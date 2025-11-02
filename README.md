@@ -8,11 +8,10 @@ Works with **Steam**
 - Weapons, punches, coins, and whiplashes  
 - Respawning, and dying
 - Enemy spawns, Enemy positions and rotations, damage to enemies
-- Breakables, hook points, checkpoints, and level transitions  
-- Lobby chat, Level loading
-- Restarts, and arenas
+- Breakables, hook points, checkpoints
+- Arenas
 
-### Installation
+### Manual Installation
 1. Install **BepInEx** for ULTRAKILL.  
 2. Drop **the downloaded file** into your `BepInEx/plugins` folder.  
 3. Launch ULTRAKILL
