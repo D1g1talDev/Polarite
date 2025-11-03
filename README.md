@@ -15,5 +15,5 @@ Works with **Steam**
 ### Manual Installation
 1. Install **BepInEx** for ULTRAKILL
 2. Extract the **downloaded ZIP**
-3. Drop **the extracted ZIP** into your `BepInEx/plugins` folder  
+3. Drop **the extracted folder** into your `BepInEx/plugins` folder  
 4. Launch ULTRAKILL
