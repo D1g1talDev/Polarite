@@ -1,0 +1,437 @@
+﻿
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using BepInEx;
+using BepInEx.Logging;
+
+using Discord;
+
+using HarmonyLib;
+
+using PluginConfig.API;
+using PluginConfig.API.Fields;
+using PluginConfig.API.Functionals;
+
+using Polarite.Multiplayer;
+using Polarite.Patches;
+
+using Steamworks;
+
+using TMPro;
+
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+using NetworkManager = Polarite.Multiplayer.NetworkManager;
+using LobbyType = Polarite.Multiplayer.LobbyType;
+using PluginConfig.API.Decorators;
+
+namespace Polarite
+{
+    public enum SkinType
+    {
+        V1,
+        V2
+    }
+
+    [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.0.0")]
+    public class ItePlugin : BaseUnityPlugin
+    {
+        public static PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
+
+        public static KeyCodeField buttonToChat = new KeyCodeField(config.rootPanel, "Open chat key", "chat.key", KeyCode.T);
+
+        public static EnumField<SkinType> skin = new EnumField<SkinType>(config.rootPanel, "Player skin (only others can see)", "player.skin", SkinType.V1);
+
+        public static ConfigHeader ttsbad = new ConfigHeader(config.rootPanel, "<color=yellow>TTS can crash the game!</color>");
+
+        public static BoolField canTTS = new BoolField(config.rootPanel, "Play TTS on chat message", "tts", false);
+
+        internal readonly Harmony harm = new Harmony("com.d1g1tal.polarite");
+
+        internal static ManualLogSource log = new ManualLogSource("Polarite");
+
+        public static ItePlugin Instance;
+
+        public static bool ignoreSpectate = false;
+
+        public static AssetBundle mainBundle;
+
+        public static GameObject currentUi;
+
+        public static GameObject leaveButton, joinButton, hostButton, copyButton, inviteButton, playerListButton;
+
+        public static Discord.Discord discord = new Discord.Discord(1432308384798867456, 1uL);
+
+        public void Awake()
+        {
+            if(Instance == null)
+            {
+                Instance = this;
+            }
+            harm.PatchAll();
+            NetworkManager netManager = gameObject.GetComponent<NetworkManager>();
+            if (netManager == null)
+            {
+                netManager = gameObject.AddComponent<NetworkManager>();
+            }
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            config.SetIconWithURL("file://" + Path.Combine(Directory.GetParent(Info.Location).FullName, "globehaha.png"));
+            skin.postValueChangeEvent += (SkinType skin) =>
+            {
+                if(NetworkManager.InLobby)
+                {
+                    NetworkManager.Instance.BroadcastPacket(new NetPacket
+                    {
+                        type = "skin",
+                        name = ((int)skin).ToString()
+                    });
+                    if(NetworkPlayer.LocalPlayer.testPlayer)
+                    {
+                        NetworkPlayer.LocalPlayer.UpdateSkin((int)skin);
+                    }
+                }
+            };
+            mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
+        }
+        public void OnApplicationQuit()
+        {
+            discord.Dispose();
+        }
+
+        public void Update()
+        {
+            discord.RunCallbacks();
+            if(currentUi != null && SceneHelper.CurrentScene != "Main Menu")
+            {
+                currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
+                if (currentUi.GetComponentInChildren<PolariteMenuManager>().mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
+                {
+                    TogglePauseMenu(false);
+                }
+                if (!currentUi.GetComponentInChildren<PolariteMenuManager>().mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
+                {
+                    TogglePauseMenu(true);
+                }
+                if(!MonoSingleton<OptionsManager>.Instance.paused)
+                {
+                    currentUi.GetComponentInChildren<PolariteMenuManager>().mainPanel.SetActive(false);
+                }
+                PolariteMenuManager pMM = currentUi.GetComponentInChildren<PolariteMenuManager>();
+                if (pMM != null)
+                {
+                    string status = (NetworkManager.InLobby) ? "STATUS: <color=green>IN LOBBY" : "STATUS: <color=red>NOT IN LOBBY";
+                    pMM.statusHost.text = status;
+                    pMM.statusJoin.text = status;
+                    leaveButton.SetActive(NetworkManager.InLobby);
+                    playerListButton.SetActive(NetworkManager.InLobby);
+                    joinButton.GetComponent<Button>().interactable = !NetworkManager.InLobby;
+                    hostButton.GetComponent<Button>().interactable = !NetworkManager.InLobby;
+
+                    inviteButton.SetActive(NetworkManager.HostAndConnected);
+                    copyButton.SetActive(NetworkManager.HostAndConnected);
+                }
+            }
+            if(currentUi != null && SceneHelper.CurrentScene == "Main Menu")
+            {
+                currentUi.SetActive(false);
+            }
+            if(currentUi != null)
+            {
+                PolariteMenuManager pMM = currentUi.GetComponentInChildren<PolariteMenuManager>();
+                pMM.uiOpen.interactable = SceneHelper.CurrentScene != "Endless";
+            }
+        }
+        public void TogglePauseMenu(bool value)
+        {
+            foreach(Transform c in MonoSingleton<OptionsManager>.Instance.pauseMenu.transform)
+            {
+                if(c.name != "Level Stats")
+                {
+                    c.gameObject.SetActive(value);
+                }
+            }
+            MonoSingleton<OptionsManager>.Instance.pauseMenu.GetComponent<Image>().enabled = value;
+        }
+
+        private void CreatePolariteUI()
+        {
+            GameObject uiObj = Instantiate(mainBundle.LoadAsset<GameObject>("PolariteCanvas"));
+            if(uiObj != null)
+            {
+                DontDestroyOnLoad(uiObj);
+                currentUi = uiObj;
+
+                PolariteMenuManager pMM = currentUi.transform.Find("PolariteMenu").gameObject.AddComponent<PolariteMenuManager>();
+                if(pMM != null)
+                {
+                    pMM.uiOpen = pMM.transform.Find("Activate").GetComponent<Button>();
+                    pMM.uiOpen.onClick.AddListener(pMM.ToggleMainPanel);
+
+                    Transform host = pMM.transform.Find("Main").Find("Host");
+                    Transform join = pMM.transform.Find("Main").Find("Join");
+                    Transform publicLobbies = pMM.transform.Find("Main").Find("PublicLobbies");
+                    Transform playerList = pMM.transform.Find("Main").Find("PlayerList");
+
+                    pMM.maxP = host.Find("MaxPlayers").GetComponent<TMP_InputField>();
+                    pMM.lobbyName = host.Find("UsefulInputField").GetComponent<TMP_InputField>();
+                    pMM.lobbyType = host.Find("UsefulDropdown").GetComponent<TMP_Dropdown>();
+                    pMM.mainPanel = pMM.transform.Find("Main").gameObject;
+                    pMM.code = join.Find("UsefulInputField").GetComponent<TMP_InputField>();
+                    pMM.canCheat = host.Find("CanCheat").GetComponent<TMP_Dropdown>();
+
+                    pMM.statusHost = host.Find("Status").GetComponent<TextMeshProUGUI>();
+                    pMM.statusJoin = join.Find("Status").GetComponent<TextMeshProUGUI>();
+
+                    Button leave = pMM.transform.Find("Main").Find("Leave").GetComponent<Button>();
+                    Button invite = host.Find("UsefulButton (1)").GetComponent<Button>();
+                    Button create = host.Find("UsefulButton").GetComponent<Button>();
+                    Button joinL = join.Find("UsefulButton").GetComponent<Button>();
+                    Button copyCode = host.Find("CopyCode").GetComponent<Button>();
+                    Button onPublicClick = pMM.transform.Find("Main").Find("UsefulButton (3)").GetComponent<Button>();
+                    Button refresh = publicLobbies.Find("RefreshButton").GetComponent<Button>();
+                    Button pList = pMM.transform.Find("Main").Find("PlayerListButton").GetComponent<Button>();
+
+                    leave.onClick.AddListener(NetworkManager.Instance.LeaveLobby);
+                    invite.onClick.AddListener(NetworkManager.Instance.ShowInviteOverlay);
+                    create.onClick.AddListener(CreateLobby);
+                    joinL.onClick.AddListener(JoinLobby);
+                    copyCode.onClick.AddListener(() =>
+                    {
+                        GUIUtility.systemCopyBuffer = pMM.codeHost;
+                        HudMessageReceiver.Instance.SendHudMessage("<color=green>Lobby code copied to clipboard!</color>");
+                    });
+                    onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
+                    refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
+                    pList.onClick.AddListener(PlayerList.UpdatePList);
+
+                    PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
+                    PlayerList.ContentB = playerList.Find("List").Find("Content");
+
+                    leaveButton = leave.gameObject;
+                    joinButton = joinL.gameObject;
+                    hostButton = create.gameObject;
+                    copyButton = copyCode.gameObject;
+                    inviteButton = invite.gameObject;
+                    playerListButton = pList.gameObject;
+
+                    leave.gameObject.SetActive(false);
+                    invite.gameObject.SetActive(false);
+                    host.gameObject.SetActive(false);
+                    join.gameObject.SetActive(false);
+                    publicLobbies.gameObject.SetActive(false);
+                    copyCode.gameObject.SetActive(false);
+                    playerList.gameObject.SetActive(false);
+                    pList.gameObject.SetActive(false);
+                    pMM.mainPanel.SetActive(false);
+
+                    pMM.lobbyName.text = $"{NetworkManager.GetNameOfId(SteamClient.SteamId)}'s Lobby";
+                }
+            }
+        }
+        private async void CreateLobby()
+        {
+            PolariteMenuManager pMM = currentUi.GetComponentInChildren<PolariteMenuManager>();
+            int max = int.Parse(pMM.maxP.text);
+            string lobbyName = pMM.lobbyName.text;
+            LobbyType type;
+            bool allowCheats = false;
+            switch(pMM.lobbyType.value)
+            {
+                case 0:
+                    type = LobbyType.Public;
+                    break;
+                case 1:
+                    type = LobbyType.FriendsOnly;
+                    break;
+                case 2:
+                    type = LobbyType.Private;
+                    break;
+                default:
+                    type = LobbyType.Public;
+                    break;
+            }
+            switch(pMM.canCheat.value)
+            {
+                case 0:
+                    allowCheats = false;
+                    break;
+                case 1:
+                    allowCheats = true;
+                    break;
+            }
+            await NetworkManager.Instance.CreateLobby(max, type, lobbyName, (string c) =>
+            {
+                pMM.codeHost = c;
+            }, allowCheats);
+            string levelName = StockMapInfo.Instance.levelName;
+            if (string.IsNullOrEmpty(levelName))
+            {
+                levelName = SceneHelper.CurrentScene;
+            }
+            NetworkManager.Instance.CurrentLobby.SetData("levelName", levelName);
+        }
+        private async void JoinLobby()
+        {
+            PolariteMenuManager pMM = currentUi.GetComponentInChildren<PolariteMenuManager>();
+            await NetworkManager.Instance.JoinLobbyByCode(pMM.code.text);
+            NetworkManager.Instance.GetAllPlayersInLobby(NetworkManager.Instance.CurrentLobby, out SteamId[] ids, false);
+            foreach (var id in ids)
+            {
+                if (!NetworkManager.players.ContainsKey(id.Value.ToString()))
+                {
+                    NetworkPlayer newPlr = NetworkPlayer.Create(id.Value, NetworkManager.GetNameOfId(id));
+                    NetworkManager.players.Add(id.Value.ToString(), newPlr);
+                }
+            }
+        }
+
+        private void OnSceneLoaded(Scene args1, LoadSceneMode args2)
+        {
+            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap")
+            {
+                return;
+            }
+            NetworkManager netManager = gameObject.GetComponent<NetworkManager>();
+            if (netManager == null)
+            {
+                netManager = gameObject.AddComponent<NetworkManager>();
+            }
+            ChatUI ui = gameObject.GetComponent<ChatUI>();
+            if (ui == null)
+            {
+                ui = gameObject.AddComponent<ChatUI>();
+            }
+            if (MonoSingleton<CameraController>.Instance != null && MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>() == null)
+            {
+                SpectatorCam cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();
+            }
+            Instance.StopAllCoroutines();
+            ignoreSpectate = false;
+            if(SpectatorCam.isSpectating)
+            {
+                SpectatorCam.isSpectating = false;
+            }
+            if(SceneHelper.CurrentScene != "Main Menu" && currentUi == null)
+            {
+                CreatePolariteUI();
+            }
+            /*
+            if (NetworkManager.ClientAndConnected && NetworkManager.Instance.CurrentLobby.GetData("forceS") == "1")
+            {
+                SpectatePlayers();
+                ignoreSpectate = true;
+                FinalDoor door = FindObjectOfType<FinalDoor>();
+                if (door != null)
+                {
+                    door.Open();
+                }
+                NetworkManager.Instance.BroadcastPacket(new NetPacket
+                {
+                    type = "forcespec"
+                });
+                NetworkManager.DisplaySystemChatMessage("You have been forced into spectate. (Reason: Host already opened level door, wait for next level)");
+            }
+            */
+            SceneObjectCache.Initialize();
+            NetworkEnemyBootstrap boot = gameObject.GetComponent<NetworkEnemyBootstrap>();
+            if (boot == null)
+            {
+                boot = gameObject.AddComponent<NetworkEnemyBootstrap>();
+            }
+            NetworkEnemyBootstrap.AttachSyncScripts();
+            if(NetworkManager.HostAndConnected)
+            {
+                string levelName = StockMapInfo.Instance.levelName;
+                if (string.IsNullOrEmpty(levelName))
+                {
+                    levelName = SceneHelper.CurrentScene;
+                }
+                NetworkManager.Instance.CurrentLobby.SetData("levelName", levelName);
+            }
+            if(NetworkManager.HasRichPresence)
+            {
+                discord.GetActivityManager().UpdateActivity(new Activity
+                 {
+                     ApplicationId = 1432308384798867456,
+                     Details = $"Playing in: {NetworkManager.Instance.CurrentLobby.GetData("levelName")}, In Polarite Lobby ({NetworkManager.Instance.CurrentLobby.MemberCount}/{NetworkManager.Instance.CurrentLobby.MaxMembers})",
+                     Instance = true
+                 }, delegate { });
+            }
+            else
+            {
+                string levelName = StockMapInfo.Instance.levelName;
+                if (string.IsNullOrEmpty(levelName))
+                {
+                    levelName = SceneHelper.CurrentScene;
+                }
+                discord.GetActivityManager().UpdateActivity(new Activity
+                {
+                    ApplicationId = 1432308384798867456,
+                    Details = $"Playing in: {levelName}, Not In Lobby",
+                    Instance = true
+                }, delegate { });
+            }
+            NetworkPlayer.ToggleColsForAll(false);
+            Instance.StartCoroutine(RestartCols());
+            NetworkManager.WasUsed = NetworkManager.InLobby;
+        }
+        public static void SpawnSound(AudioClip clip, float pitch, Transform parent, float volume)
+        {
+            AudioSource audioSource = new GameObject("Noise").AddComponent<AudioSource>();
+            audioSource.clip = clip;
+            audioSource.pitch = pitch;
+            audioSource.volume = volume;
+            audioSource.spatialBlend = 1f;
+            audioSource.gameObject.AddComponent<RemoveOnTime>().time = clip.length;
+            audioSource.transform.SetParent(parent, false);
+            audioSource.transform.position = parent.position;
+            audioSource.Play();
+        }
+        public static void SpectatePlayers()
+        {
+            if(ignoreSpectate)
+            {
+                return;
+            }
+            Instance.StartCoroutine(SpectatePlayersB());
+        }
+
+        public static IEnumerator SpectatePlayersB()
+        {
+            yield return new WaitForSeconds(1.25f);
+            List<Transform> playerTransforms = new List<Transform>();
+            SpectatorCam cam = MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>();
+            if (cam == null)
+            {
+                cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();
+            }
+            foreach(var p in NetworkManager.players)
+            {
+                if(NetworkPlayer.LocalPlayer != p.Value)
+                {
+                    playerTransforms.Add(p.Value.transform);
+                }
+            }
+            cam.GetComponent<CameraController>().enabled = false;
+            MonoSingleton<NewMovement>.Instance.DeactivatePlayer();
+            cam.StartSpectating(playerTransforms);
+            foreach(var door in FindObjectsOfType<Door>())
+            {
+                door.Open(skull: true);
+            }
+            MonoSingleton<MusicManager>.Instance.ForceStartMusic();
+        }
+        public static IEnumerator RestartCols()
+        {
+            yield return new WaitForSeconds(4f);
+            NetworkPlayer.ToggleColsForAll(true);
+        }
+    }
+}

@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Polarite", "Polarite.csproj", "{11C7A6EC-B123-96F2-4397-8F66F173739E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11C7A6EC-B123-96F2-4397-8F66F173739E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11C7A6EC-B123-96F2-4397-8F66F173739E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11C7A6EC-B123-96F2-4397-8F66F173739E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11C7A6EC-B123-96F2-4397-8F66F173739E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {52F5AB99-E79A-4086-B97A-5EF5D59B047A}
+	EndGlobalSection
+EndGlobal
