@@ -31,6 +31,7 @@ using UnityEngine.UI;
 using NetworkManager = Polarite.Multiplayer.NetworkManager;
 using LobbyType = Polarite.Multiplayer.LobbyType;
 using PluginConfig.API.Decorators;
+using Logic;
 
 namespace Polarite
 {
@@ -70,6 +71,24 @@ namespace Polarite
         public static Discord.Discord discord;
 
         public static bool HasDiscord;
+
+        public static readonly string[] PathsToSoftlocks = new string[]
+        {
+            "Door (Large) With Controllers (9)/LockedDoorBlocker",
+            "V2 - Arena/V2 Stuff(Clone)/Door",
+            "4 - Heart Chamber/4 Stuff(Clone)/Door",
+            "Main Section/9 - Boss Arena/Boss Stuff(Clone)/IntroObjects/WallCollider",
+            "Main Section/Outside/2-4/2-4 Stuff(Clone)(Clone)/GlassDoor (Skull)",
+            "2 - Organ Hall/2 Stuff(Clone)/Door",
+            "Interiors/5 - Pump Room/5 Stuff/Pre-wall",
+            "Interiors/5 - Pump Room/5 Stuff/ToActivate",
+            "Exteriors/14/Cube",
+            "Exteriors/Armboy/Cube",
+            "3 - Fuckatorium/3 Stuff(Clone)/EntranceCloser",
+            "Main/Exterior/ExteriorStuff(Clone)/SecuritySystemFight/ArenaWalls",
+            "Main/Interior/InteriorStuff(Clone)(Clone)/BrainFight/EntryForceField"
+        };
+
 
         public void Awake()
         {
@@ -217,6 +236,7 @@ namespace Polarite
                     Button onPublicClick = pMM.transform.Find("Main").Find("UsefulButton (3)").GetComponent<Button>();
                     Button refresh = publicLobbies.Find("RefreshButton").GetComponent<Button>();
                     Button pList = pMM.transform.Find("Main").Find("PlayerListButton").GetComponent<Button>();
+                    Button discord = pMM.transform.Find("Main").Find("JoinDiscord").GetComponent<Button>();
 
                     leave.onClick.AddListener(NetworkManager.Instance.LeaveLobby);
                     invite.onClick.AddListener(NetworkManager.Instance.ShowInviteOverlay);
@@ -226,6 +246,10 @@ namespace Polarite
                     {
                         GUIUtility.systemCopyBuffer = pMM.codeHost;
                         HudMessageReceiver.Instance.SendHudMessage("<color=green>Lobby code copied to clipboard!</color>");
+                    });
+                    discord.onClick.AddListener(() =>
+                    {
+                        Application.OpenURL("https://discord.gg/2jzJ9XWbS4");
                     });
                     onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
                     refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
@@ -308,6 +332,17 @@ namespace Polarite
                 {
                     NetworkPlayer newPlr = NetworkPlayer.Create(id.Value, NetworkManager.GetNameOfId(id));
                     NetworkManager.players.Add(id.Value.ToString(), newPlr);
+                }
+            }
+        }
+        public static void CleanLevelOfSoftlocks()
+        {
+            foreach(var softlock in PathsToSoftlocks)
+            {
+                Transform sL = GameObject.Find(softlock)?.transform;
+                if(sL != null)
+                {
+                    Destroy(sL.gameObject);
                 }
             }
         }
@@ -404,6 +439,10 @@ namespace Polarite
             NetworkPlayer.ToggleColsForAll(false);
             Instance.StartCoroutine(RestartCols());
             NetworkManager.WasUsed = NetworkManager.InLobby;
+            if(NetworkManager.InLobby)
+            {
+                CleanLevelOfSoftlocks();
+            }
         }
         public static void SpawnSound(AudioClip clip, float pitch, Transform parent, float volume)
         {

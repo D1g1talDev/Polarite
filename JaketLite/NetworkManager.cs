@@ -185,6 +185,7 @@ namespace Polarite.Multiplayer
                     DisplayWarningChatMessage($"Your lobby is public, Anyone can join this lobby from the public lobbies tab.");
                 }
                 PlayerList.UpdatePList();
+                ItePlugin.CleanLevelOfSoftlocks();
             }
         }
 

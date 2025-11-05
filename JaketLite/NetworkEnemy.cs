@@ -78,6 +78,11 @@ namespace Polarite.Multiplayer
                 name = ID,
                 parameters = new string[] { Owner.ToString() }
             });
+            if(Enemy.isBoss && NetworkManager.InLobby && NetworkManager.Instance.CurrentLobby.MemberCount > 1)
+            {
+                float mult = 1f + (Mathf.Max(0, NetworkManager.Instance.CurrentLobby.MemberCount - 1) * 1.5f);
+                Enemy.health *= mult;
+            }
         }
         private void OnEnable()
         {

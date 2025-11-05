@@ -41,6 +41,7 @@ namespace Polarite
             FetchAvatar(newList.Find("PFP").GetComponent<Image>(), new Friend(id));
             Button kick = newList.Find("Kick").GetComponent<Button>();
             Button ban = newList.Find("Ban").GetComponent<Button>();
+            Button steam = newList.Find("Steam").GetComponent<Button>();
 
             kick.interactable = NetworkManager.HostAndConnected && id != SteamClient.SteamId.Value;
             ban.interactable = NetworkManager.HostAndConnected && id != SteamClient.SteamId.Value;
@@ -53,7 +54,10 @@ namespace Polarite
             {
                 NetworkManager.Instance.KickPlayer(id, true);
             });
-
+            steam.onClick.AddListener(() =>
+            {
+                Application.OpenURL($"https://steamcommunity.com/profiles/{id}/");
+            });
             return newList;
         }
         public static async void FetchAvatar(Image target, Friend user)
