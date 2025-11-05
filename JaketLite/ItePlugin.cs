@@ -343,6 +343,7 @@ namespace Polarite
                 {
                     if(v2Patch)
                     {
+                        obj.GetComponent<Door>().Open(skull: true);
                         Destroy(obj.GetComponent<Door>());
                     }
                     else
