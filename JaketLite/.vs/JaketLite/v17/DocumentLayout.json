@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\networkenemysync.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:networkenemysync.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|c:\\users\\d1g1t\\source\\repos\\jaketlite\\polarite\\jaketlite\\iteplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:iteplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\networkenemy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:networkenemy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -13,10 +21,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\chatui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:chatui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|c:\\users\\d1g1t\\source\\repos\\jaketlite\\polarite\\jaketlite\\iteplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:iteplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\packetreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -47,10 +51,6 @@
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:nametag.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\networkenemysync.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:networkenemysync.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\patches\\enemynetworkpatch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:patches\\enemynetworkpatch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
@@ -62,7 +62,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 10,
+          "SelectedChildIndex": 9,
           "Children": [
             {
               "$type": "Bookmark",
@@ -70,44 +70,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "SpectatorCam.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\SpectatorCam.cs",
               "RelativeDocumentMoniker": "SpectatorCam.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\SpectatorCam.cs",
               "RelativeToolTip": "SpectatorCam.cs",
-              "ViewState": "AgIAAEUAAAAAAAAAAAAIwCwAAAAsAAAAAAAAAA==",
+              "ViewState": "AgIAAFYAAAAAAAAAAAAQwF8AAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T16:02:43.583Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "HeadRotate.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\HeadRotate.cs",
-              "RelativeDocumentMoniker": "HeadRotate.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\HeadRotate.cs",
-              "RelativeToolTip": "HeadRotate.cs",
-              "ViewState": "AgIAAAUAAAAAAAAAAAAowAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T10:56:09.711Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 10,
-              "Title": "NameTag.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NameTag.cs",
-              "RelativeDocumentMoniker": "NameTag.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NameTag.cs",
-              "RelativeToolTip": "NameTag.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T08:46:47.158Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
               "Title": "PlayerList.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\PlayerList.cs",
               "RelativeDocumentMoniker": "PlayerList.cs",
@@ -119,7 +95,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "NetworkPlayer.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkPlayer.cs",
               "RelativeDocumentMoniker": "NetworkPlayer.cs",
@@ -131,7 +107,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "NetworkManager.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkManager.cs",
               "RelativeDocumentMoniker": "NetworkManager.cs",
@@ -143,7 +119,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "ChatUI.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\ChatUI.cs",
               "RelativeDocumentMoniker": "ChatUI.cs",
@@ -156,7 +132,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "PacketReader.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\PacketReader.cs",
               "RelativeDocumentMoniker": "PacketReader.cs",
@@ -169,33 +145,70 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "ItePlugin.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\ItePlugin.cs",
               "RelativeDocumentMoniker": "ItePlugin.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\ItePlugin.cs",
               "RelativeToolTip": "ItePlugin.cs",
-              "ViewState": "AgIAANwAAAAAAAAAAAAEwBMAAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAMABAAAAAAAAAAAhwAsCAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T00:36:42.721Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "NetworkEnemy.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemy.cs",
               "RelativeDocumentMoniker": "NetworkEnemy.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemy.cs",
               "RelativeToolTip": "NetworkEnemy.cs",
-              "ViewState": "AgIAABsAAAAAAAAAAADwv2oAAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAQwGgAAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T00:35:54.828Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 0,
+              "Title": "NetworkEnemySync.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemySync.cs",
+              "RelativeDocumentMoniker": "NetworkEnemySync.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemySync.cs",
+              "RelativeToolTip": "NetworkEnemySync.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAAwB8AAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T05:09:31.192Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "NameTag.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NameTag.cs",
+              "RelativeDocumentMoniker": "NameTag.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NameTag.cs",
+              "RelativeToolTip": "NameTag.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T08:46:47.158Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "HeadRotate.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\HeadRotate.cs",
+              "RelativeDocumentMoniker": "HeadRotate.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\HeadRotate.cs",
+              "RelativeToolTip": "HeadRotate.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAowAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T10:56:09.711Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "ForceOff.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\ForceOff.cs",
               "RelativeDocumentMoniker": "ForceOff.cs",
@@ -204,18 +217,6 @@
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T11:27:32.993Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "NetworkEnemySync.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemySync.cs",
-              "RelativeDocumentMoniker": "NetworkEnemySync.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemySync.cs",
-              "RelativeToolTip": "NetworkEnemySync.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T05:09:31.192Z"
             },
             {
               "$type": "Document",

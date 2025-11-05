@@ -88,10 +88,6 @@ namespace Polarite
             Vector3 dir = (targets[0].position - transform.position).normalized;
             yaw = Quaternion.LookRotation(dir).eulerAngles.y;
         }
-        public void UpdateTargets(List<Transform> newList)
-        {
-            playerTargets = newList;
-        }
 
         public void StopSpectating()
         {

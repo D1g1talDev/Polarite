@@ -24,7 +24,7 @@ namespace Polarite.Multiplayer
             if (NetworkManager.InLobby && !here)
             {
                 here = true;
-                owner = SteamClient.SteamId;
+                owner = (GetComponent<EnemyIdentifier>().isBoss) ? SteamClient.SteamId : NetworkManager.Instance.CurrentLobby.Owner.Id;
                 NetworkManager.Instance.BroadcastPacket(new NetPacket
                 {
                     type = "enemySpawn",
