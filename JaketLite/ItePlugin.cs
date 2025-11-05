@@ -124,7 +124,10 @@ namespace Polarite
 
         public void Update()
         {
-            discord.RunCallbacks();
+            if(HasDiscord)
+            {
+                discord.RunCallbacks();
+            }
             if(currentUi != null && SceneHelper.CurrentScene != "Main Menu")
             {
                 currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
