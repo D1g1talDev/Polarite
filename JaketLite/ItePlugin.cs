@@ -40,6 +40,12 @@ namespace Polarite
         V1,
         V2
     }
+    public enum VoiceMode
+    {
+        PushToTalk,
+        VoiceActivation,
+        ToggleToTalk
+    }
 
     [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.0.1")]
     public class ItePlugin : BaseUnityPlugin
@@ -47,6 +53,27 @@ namespace Polarite
         public static PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
 
         public static KeyCodeField buttonToChat = new KeyCodeField(config.rootPanel, "Open chat key", "chat.key", KeyCode.T);
+
+        public static ConfigHeader vcheaderstuff = new ConfigHeader(config.rootPanel, "Stuff related to Voice Chat");
+
+        public static KeyCodeField voicePushToTalk = new KeyCodeField(config.rootPanel, "Push-to-talk key", "voice.ptt", KeyCode.V);
+
+        // voice chat stuff
+        // made by doomahreal
+
+        public static EnumField<VoiceMode> voiceMode = new EnumField<VoiceMode>(config.rootPanel, "Voice mode", "voice.mode", VoiceMode.PushToTalk);
+
+        // which microphone index to use (0 = first device)
+        public static IntField voiceMicIndex = new IntField(config.rootPanel, "Microphone index", "voice.mic", 0);
+
+        // voice activation sensitivity (linear 0-100)
+        public static IntField voiceVADThreshold = new IntField(config.rootPanel, "Voice activation threshold (0-100)", "voice.vad", 30);
+
+        // whether to receive/hear voice chat
+        public static BoolField receiveVoice = new BoolField(config.rootPanel, "Receive voice chat", "voice.receive", true);
+
+        // proximity distance for voice in world units
+        public static FloatField voiceProximity = new FloatField(config.rootPanel, "Voice proximity range", "voice.range", 15f);
 
         public static EnumField<SkinType> skin = new EnumField<SkinType>(config.rootPanel, "Player skin (only others can see)", "player.skin", SkinType.V1);
 
