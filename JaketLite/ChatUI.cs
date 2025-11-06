@@ -287,7 +287,8 @@ namespace Polarite.Multiplayer
 
         public void OnSubmitMessage(string message, bool network, string realMsg, Transform parent = null, bool tts = true)
         {
-            if (string.IsNullOrWhiteSpace(message) || !System.Text.RegularExpressions.Regex.IsMatch(message, "[A-Za-z]"))
+            // message is + user
+            if (string.IsNullOrWhiteSpace(realMsg) || !System.Text.RegularExpressions.Regex.IsMatch(realMsg, "[A-Za-z]"))
             {
                 return;
             }
@@ -300,7 +301,7 @@ namespace Polarite.Multiplayer
                     name = realMsg,
                     parameters = new string[]
                     {
-                tts.ToString()
+                        tts.ToString()
                     }
                 });
             }

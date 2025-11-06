@@ -521,7 +521,7 @@ namespace Polarite
             }
             foreach(var p in NetworkManager.players)
             {
-                if(NetworkPlayer.LocalPlayer != p.Value)
+                if(p.Value != NetworkPlayer.LocalPlayer)
                 {
                     playerTransforms.Add(p.Value.transform);
                 }
