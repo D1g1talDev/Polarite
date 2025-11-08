@@ -444,13 +444,11 @@ namespace Polarite
             {
                 ui = gameObject.AddComponent<ChatUI>();
             }
-            /*
             VoiceChatManager vcManager = gameObject.GetComponent<VoiceChatManager>();
             if (vcManager == null)
             {
                 vcManager = gameObject.AddComponent<VoiceChatManager>();
             }
-            */
             if (MonoSingleton<CameraController>.Instance != null && MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>() == null)
             {
                 SpectatorCam cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();

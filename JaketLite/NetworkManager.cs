@@ -133,16 +133,12 @@ namespace Polarite.Multiplayer
             {
                 SteamNetworking.AcceptP2PSessionWithUser(id);
             };
-
-            /*
-            // Ensure voice manager exists (ite plugin made this work for some reason but i'll just let ite plugin control it from now on)
             if (VoiceChatManager.Instance == null)
             {
                 GameObject vc = new GameObject("VoiceChatManager");
                 vc.AddComponent<VoiceChatManager>();
                 DontDestroyOnLoad(vc);
             }
-            */
             Id = SteamClient.SteamId.Value;
         }
 
