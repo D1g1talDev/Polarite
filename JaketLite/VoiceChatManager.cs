@@ -52,6 +52,8 @@ namespace Polarite.Multiplayer
 
         private Dictionary<ulong, AudioClip> voiceClips = new Dictionary<ulong, AudioClip>();
         private Dictionary<ulong, int> writeHeads = new Dictionary<ulong, int>();
+        private Dictionary<ulong, float> lastPacketTime = new Dictionary<ulong, float>();
+        private float silenceTimeout = 0.6f; // seconds to consider remote stopped
 
         // indicator UI
         private GameObject indicatorCanvas;
@@ -144,9 +146,9 @@ namespace Polarite.Multiplayer
             {
                 if (Microphone.devices == null || Microphone.devices.Length == 0)
                     return;
-                for(int i = 0; i < Microphone.devices.Length; i++)
+                for (int i = 0; i < Microphone.devices.Length; i++)
                 {
-                    if(i == 0)
+                    if (i == 0)
                     {
                         ItePlugin.wheresMyMic.text = "";
                     }
@@ -389,8 +391,42 @@ namespace Polarite.Multiplayer
                 head = 0;
 
             writeHeads[senderId] = head;
+
+            // mark time of last packet for this sender
+            lastPacketTime[senderId] = Time.time;
         }
 
+        void LateUpdate()
+        {
+            if (lastPacketTime.Count == 0) return;
+            float now = Time.time;
+            var ids = lastPacketTime.Keys.ToList();
+            foreach (var id in ids)
+            {
+                if (now - lastPacketTime[id] > silenceTimeout)
+                {
+                    lastPacketTime.Remove(id);
+                    writeHeads.Remove(id);
+                    if (voiceClips.TryGetValue(id, out var clip))
+                    {
+                        voiceClips.Remove(id);
+                        try
+                        {
+                            if (remoteSources.TryGetValue(id, out var src) && src != null)
+                            {
+                                if (src.isPlaying) src.Stop();
+                                src.clip = null;
+                            }
+                            if (clip != null) Destroy(clip);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogWarning("[Voice] Failed to cleanup silent clip: " + e);
+                        }
+                    }
+                }
+            }
+        }
 
         private AudioSource GetOrCreateSource(ulong steamId)
         {
