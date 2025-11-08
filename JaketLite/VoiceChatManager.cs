@@ -350,22 +350,23 @@ namespace Polarite.Multiplayer
                 short s = BitConverter.ToInt16(buffer, idx); idx += 2;
                 float v = s / (float)short.MaxValue;
                 floats[i] = v; // assign decoded float
-                floats[i] *= ItePlugin.volumeMult.value; // everyone was super quiet so
+                // apply configured volume and clamp to valid range
+                floats[i] = Mathf.Clamp(floats[i] * ItePlugin.volume.value, -1f, 1f);
                 sum += v * v;
             }
 
             float rms = Mathf.Sqrt(sum / samples);
             float level = Mathf.Clamp01(rms * 5f);
 
-            // name tag update
-            ulong senderId = sender.Value;
-            NetworkPlayer plr = NetworkPlayer.Find(senderId);
+            // name tag update AFTER audio started so icon syncs with playback
+            NetworkPlayer plr = NetworkPlayer.Find(sender.Value);
             if (plr != null && plr.NameTag != null)
                 plr.NameTag.SetTalkingLevel(level);
 
             if (!ItePlugin.receiveVoice.value)
                 return;
 
+            ulong senderId = sender.Value;
             AudioSource src = GetOrCreateSource(senderId);
 
             // make or retrieve persistent clip for streaming
@@ -393,7 +394,7 @@ namespace Polarite.Multiplayer
 
             writeHeads[senderId] = head;
 
-            // mark time of last packet for this sender
+            // update last packet time so we know the player is speaking
             lastPacketTime[senderId] = Time.time;
         }
 

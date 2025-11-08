@@ -348,6 +348,54 @@ namespace Polarite.Multiplayer
                 }
                 s.materials = mats2;
             }
+
+            // Additionally apply shader to all renderers under the specified path
+            try
+            {
+                Transform root = transform.Find("v2_combined/metarig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R");
+                if (root != null)
+                {
+                    ApplyShaderRecursively(root, MonoSingleton<DefaultReferenceManager>.Instance.masterShader);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("Failed applying shader to rig path: " + e);
+            }
+        }
+
+        private void ApplyShaderRecursively(Transform node, Shader shader)
+        {
+            if (node == null || shader == null) return;
+            // apply to Renderer (MeshRenderer) if present
+            var renderer = node.GetComponent<Renderer>();
+            if (renderer != null && renderer.materials != null)
+            {
+                var mats = renderer.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (mats[i] != null)
+                        mats[i].shader = shader;
+                }
+                renderer.materials = mats;
+            }
+            // apply to SkinnedMeshRenderer
+            var sk = node.GetComponent<SkinnedMeshRenderer>();
+            if (sk != null && sk.materials != null)
+            {
+                var sm = sk.materials;
+                for (int i = 0; i < sm.Length; i++)
+                {
+                    if (sm[i] != null)
+                        sm[i].shader = shader;
+                }
+                sk.materials = sm;
+            }
+
+            for (int i = 0; i < node.childCount; i++)
+            {
+                ApplyShaderRecursively(node.GetChild(i), shader);
+            }
         }
 
         public static NetworkPlayer Find(ulong id)

@@ -11,67 +11,67 @@ namespace Polarite.Multiplayer
     {
         None = 0,
 
-        // Player health
+        // player health
         DamageT = 1,
         HealT = 2,
 
-        // Level flow
+        // level flow
         Level = 3,
         Restart = 4,
         Kick = 5,
         Ban = 6,
 
-        // Player noises / actions
+        // player actions / noises
         Hurt = 7,
         Die = 8,
         Respawn = 9,
         Jump = 10,
         Dash = 11,
 
-        // Weapon swaps and animations
+        // weapons & cosmetics
         Gun = 12,
         Punch = 13,
         Coin = 14,
         Whip = 15,
-
-        // Cosmetic changes
         Skin = 16,
 
-        // Transform + animation + hp
+        // transform + animation + hp
         Transform = 17,
 
-        // Chat
+        // chat
         ChatMsg = 18,
 
-        // Enemies
+        // enemies
         EnemyState = 19,
         EnemyDmg = 20,
         DeathEnemy = 21,
         Ownership = 22,
         EnemySpawn = 23,
 
-        // Arena / level objects
+        // level objects
         Arena = 24,
         FinalOpen = 25,
-
-        // Breakables
         Break = 26,
 
-        // Hook points
+        // other
         HookS = 27,
-
-        // Checkpoints & anti–cheat
         Checkpoint = 28,
         Cheater = 29,
 
-        // Networking events
+        // connection events
         Join = 30,
         Left = 31,
-        HostLeave = 32
+        HostLeave = 32,
+
+        // cutscene skip voting
+        SkipVoteRequest = 33,
+        SkipVoteUpdate = 34,
+        SkipExecute = 35
     }
 
     public static class PacketReader
     {
+        // Dispatch incoming packets
         public static void Handle(PacketType type, byte[] data, ulong senderId)
         {
             BinaryPacketReader reader = new BinaryPacketReader(data);
@@ -212,11 +212,17 @@ namespace Polarite.Multiplayer
                         var p = NetworkPlayer.Find(senderId);
                         string name = NetworkManager.GetNameOfId(senderId);
 
-                        string format = (NetworkManager.Instance.CurrentLobby.Owner.Id == senderId)
-                            ? $"<color=orange>{name}</color>: {text}"
-                            : (senderId == 76561198893363168 || senderId == 76561199078878250)
-                                ? $"<color=green>[DEV] {name}</color>: {text}"
+                        string format;
+                        if (senderId == 76561198893363168 || senderId == 76561199078878250)
+                        {
+                            format = $"<color=green>[DEV] {name}</color>: {text}";
+                        }
+                        else
+                        {
+                            format = (NetworkManager.Instance.CurrentLobby.Owner.Id == senderId)
+                                ? $"<color=orange>{name}</color>: {text}"
                                 : $"<color=grey>{name}</color>: {text}";
+                        }
 
                         ChatUI.Instance.OnSubmitMessage(format, false, text, p.transform);
                         ChatUI.Instance.ShowUIForBit();
@@ -365,6 +371,31 @@ namespace Polarite.Multiplayer
                 case PacketType.HostLeave:
                     NetworkManager.Instance.LeaveLobby();
                     break;
+
+                case PacketType.SkipVoteRequest:
+                    {
+                        bool accept = reader.ReadBool();
+                        if (NetworkManager.HostAndConnected)
+                        {
+                            Polarite.Patches.SkipVotePatch.SkipVoteManager.HandleClientVote(senderId, accept);
+                        }
+                        break;
+                    }
+
+                case PacketType.SkipVoteUpdate:
+                    {
+                        int acceptCount = reader.ReadInt();
+                        int needed = reader.ReadInt();
+                        int total = reader.ReadInt();
+                        Polarite.Patches.SkipVotePatch.SkipVoteManager.ApplyUpdateClientSide(acceptCount, needed, total);
+                        break;
+                    }
+
+                case PacketType.SkipExecute:
+                    {
+                        Polarite.Patches.SkipVotePatch.SkipVoteManager.ExecuteSkipLocal();
+                        break;
+                    }
             }
         }
     }

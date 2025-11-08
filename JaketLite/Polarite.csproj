@@ -421,6 +421,7 @@
     <Reference Include="UnityEngine.XRModule">
       <HintPath>libs\UnityEngine.XRModule.dll</HintPath>
     </Reference>
+    <Publicize Include="Assembly-CSharp" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BinaryPacketReader.cs" />
@@ -442,6 +443,8 @@
     <Compile Include="Patches\BreakablePatch.cs" />
     <Compile Include="Patches\CheaterPatch.cs" />
     <Compile Include="Patches\CheckPointPatch.cs" />
+    <Compile Include="Patches\CutsceneSkipPatch.cs" />
+    <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />
     <Compile Include="Patches\DeadPatch.cs" />
     <Compile Include="Patches\DeathZonePatch.cs" />
@@ -482,6 +485,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="PluginConfig.API.Fields\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

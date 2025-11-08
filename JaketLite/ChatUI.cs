@@ -22,6 +22,11 @@ namespace Polarite.Multiplayer
         public KeyCode toggleKey = KeyCode.T;
         public int maxMessages = 15;
 
+        // unlimited history storage
+        private System.Collections.Generic.List<string> chatMessages = new System.Collections.Generic.List<string>();
+        private System.Text.StringBuilder chatBuilder = new System.Text.StringBuilder();
+        private int hardCapMessages = 100000; // very high cap to avoid unbounded memory in pathological cases
+
         private bool isTyping = false;
         private Coroutine onlyShowForBit;
 
@@ -78,6 +83,8 @@ namespace Polarite.Multiplayer
             scrollRect = scrollGO.GetComponent<ScrollRect>();
             scrollRect.horizontal = false;
             scrollRect.vertical = true;
+            // slightly faster scrolling
+            scrollRect.scrollSensitivity = 30f;
             RectTransform scrollRectTransform = scrollGO.GetComponent<RectTransform>();
             scrollRectTransform.anchorMin = new Vector2(0f, 0.2f);
             scrollRectTransform.anchorMax = new Vector2(1f, 1f);
@@ -181,15 +188,16 @@ namespace Polarite.Multiplayer
             {
                 inputField.onSubmit.AddListener((string s) =>
                 {
-                    OnSubmitMessage(
-                        (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
-                            ? $"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}"
-                            : (NetworkManager.Id == 76561198893363168 || NetworkManager.Id == 76561199078878250)
-                                ? $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}"
-                                : $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}",
-                        true,
-                        TMPUtils.StripTMP(s)
-                    );
+                    // prioritise DEV tag if this user is a developer
+                    string author;
+                    if (NetworkManager.Id == 76561198893363168 || NetworkManager.Id == 76561199078878250)
+                        author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+                    else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
+                        author = $"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+                    else
+                        author = $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+
+                    OnSubmitMessage(author, true, TMPUtils.StripTMP(s));
                 });
                 inputField.onDeselect.AddListener((string s) => ToggleChat());
                 inputField.onValueChanged.AddListener((string s) =>
@@ -316,12 +324,20 @@ namespace Polarite.Multiplayer
 
             if (chatLog != null)
             {
-                chatLog.text += "\n" + message;
-                string[] lines = chatLog.text.Split('\n');
-                if (lines.Length > maxMessages)
+                // append to message list and string builder to avoid repeated splits/joins
+                // enforce hard cap by removing oldest messages when needed
+                if (chatMessages.Count >= hardCapMessages)
                 {
-                    chatLog.text = string.Join("\n", lines, lines.Length - maxMessages, maxMessages);
+                    // remove oldest 10%
+                    int removeCount = Mathf.Max(1, hardCapMessages / 10);
+                    chatMessages.RemoveRange(0, removeCount);
+                    // rebuild builder
+                    chatBuilder.Clear();
+                    foreach (var m in chatMessages) chatBuilder.AppendLine(m);
                 }
+                chatMessages.Add(message);
+                chatBuilder.AppendLine(message);
+                chatLog.text = chatBuilder.ToString();
             }
 
             if (ItePlugin.canTTS.value)

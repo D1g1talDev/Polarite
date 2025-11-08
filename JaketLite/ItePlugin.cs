@@ -72,7 +72,7 @@ namespace Polarite
         // voice quality setting
         public static EnumField<VoiceQuality> voiceQuality = new EnumField<VoiceQuality>(config.rootPanel, "Voice quality", "voice.quality", VoiceQuality.Medium);
 
-        public static IntField volumeMult = new IntField(config.rootPanel, "Volume multiplier", "voice.volume", 2);
+        public static IntField volume = new IntField(config.rootPanel, "Volume", "voice.volume", 25);
 
         // which microphone index to use (0 = first device)
         public static IntField voiceMicIndex = new IntField(config.rootPanel, "Microphone index", "voice.mic", 0);
