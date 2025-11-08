@@ -1,5 +1,4 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -47,6 +46,13 @@ namespace Polarite
         ToggleToTalk
     }
 
+    public enum VoiceQuality
+    {
+        Low,
+        Medium,
+        High
+    }
+
     [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.0.1")]
     public class ItePlugin : BaseUnityPlugin
     {
@@ -62,6 +68,9 @@ namespace Polarite
         // made by doomahreal
 
         public static EnumField<VoiceMode> voiceMode = new EnumField<VoiceMode>(config.rootPanel, "Voice mode", "voice.mode", VoiceMode.PushToTalk);
+
+        // voice quality setting
+        public static EnumField<VoiceQuality> voiceQuality = new EnumField<VoiceQuality>(config.rootPanel, "Voice quality", "voice.quality", VoiceQuality.Medium);
 
         // which microphone index to use (0 = first device)
         public static IntField voiceMicIndex = new IntField(config.rootPanel, "Microphone index", "voice.mic", 0);

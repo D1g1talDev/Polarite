@@ -597,7 +597,8 @@ namespace Polarite.Multiplayer
                     {
                         BinaryPacketReader reader = new BinaryPacketReader(buffer);
 
-                        PacketType type = reader.ReadEnum<PacketType>();
+                        // PacketWriter writes type as a single byte, then sender ulong, then a length-prefixed byte[]
+                        PacketType type = (PacketType)reader.ReadByte();
                         ulong sender = reader.ReadULong();
                         byte[] data = reader.ReadBytes();
 

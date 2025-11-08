@@ -166,6 +166,21 @@ namespace Polarite.Multiplayer
                     catch { }
 
                     micDevice = desiredDevice;
+                    // choose sample rates based on quality setting
+                    switch (ItePlugin.voiceQuality.value)
+                    {
+                        case VoiceQuality.Low:
+                            sampleRate = 16000; // acceptable low quality
+                            break;
+                        case VoiceQuality.Medium:
+                            sampleRate = 44100; // CD quality
+                            break;
+                        case VoiceQuality.High:
+                            sampleRate = 48000; // standard pro audio / voice comms
+                            break;
+                    }
+                    // use ~20ms chunks
+                    chunkSamples = Mathf.Max(1, Mathf.RoundToInt(sampleRate * 0.02f));
                     micClip = Microphone.Start(micDevice, true, 1, sampleRate);
                     // wait a little for mic to start
                     int attempts = 0;
@@ -332,7 +347,7 @@ namespace Polarite.Multiplayer
             {
                 short s = BitConverter.ToInt16(buffer, idx); idx += 2;
                 float v = s / (float)short.MaxValue;
-                floats[i] *= 2f;
+                floats[i] = v; // assign decoded float
                 sum += v * v;
             }
 
@@ -350,17 +365,18 @@ namespace Polarite.Multiplayer
 
             AudioSource src = GetOrCreateSource(senderId);
 
-            // make or retrieve persistent clip
-            if (!voiceClips.TryGetValue(senderId, out AudioClip clip) || clip == null)
+            // make or retrieve persistent clip for streaming
+            AudioClip clip;
+            if (!voiceClips.TryGetValue(senderId, out clip) || clip == null)
             {
-                // 2 second circular buffer at source sample rate
-                int clipSamples = sr * 2;
+                int clipSamples = sr * 2; // 2 second buffer
+                // create streaming clip so SetData works correctly
                 clip = AudioClip.Create($"vc_stream_{senderId}", clipSamples, 1, sr, false);
                 voiceClips[senderId] = clip;
                 writeHeads[senderId] = 0;
 
                 src.clip = clip;
-                src.loop = true;
+                src.loop = true; // loop the ring buffer
                 src.Play();
             }
 
