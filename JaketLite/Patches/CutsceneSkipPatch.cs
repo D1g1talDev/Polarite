@@ -13,40 +13,32 @@ namespace Polarite.Patches
         {
             public static Dictionary<ulong, bool> votes = new Dictionary<ulong, bool>();
             public static int neededToSkip = 0;
-
-            // client-side cache
             public static int lastAcceptCount = 0;
             public static int lastTotal = 1;
             public static bool localVoteSet = false;
             public static bool localVoteValue = false;
 
-            // Host: handle a client's vote
             public static void HandleClientVote(ulong clientId, bool accept)
             {
                 votes[clientId] = accept;
                 UpdateAndBroadcast();
             }
 
-            // Host: recompute counts and broadcast; execute skip if threshold met
             public static void UpdateAndBroadcast()
             {
                 int acceptCount = 0;
                 int total = 0;
                 if (NetworkManager.Instance.CurrentLobby.Id != 0)
-                {
                     total = NetworkManager.Instance.CurrentLobby.MemberCount;
-                }
                 else
-                {
                     total = 1;
-                }
+
                 foreach (var m in NetworkManager.Instance.CurrentLobby.Members)
                 {
                     if (votes.ContainsKey(m.Id.Value) && votes[m.Id.Value])
                         acceptCount++;
                 }
 
-                // require unanimous consent: all players must accept
                 neededToSkip = total;
 
                 PacketWriter w = new PacketWriter();
@@ -63,7 +55,6 @@ namespace Polarite.Patches
                 }
             }
 
-            // Client: apply authoritative update from host and show text
             public static void ApplyUpdateClientSide(int acceptCount, int needed, int total)
             {
                 lastAcceptCount = acceptCount;
@@ -71,9 +62,9 @@ namespace Polarite.Patches
                 neededToSkip = needed;
 
                 int votesLeft = Math.Max(0, neededToSkip - lastAcceptCount);
-                int displayAccept = lastAcceptCount; // authoritative
+                int displayAccept = lastAcceptCount;
 
-                string text = $"Skip votes: {displayAccept}/{neededToSkip} — {votesLeft} votes left. Press F1 to accept, F2 to decline";
+                string text = $"Skip votes: {displayAccept}/{neededToSkip} — {votesLeft} votes left. Press <color=orange>F1</color> to accept, <color=orange>F2</color> to decline";
 
                 var txtMono = MonoSingleton<CutsceneSkipText>.Instance;
                 if (txtMono != null && txtMono.txt != null)
@@ -87,7 +78,6 @@ namespace Polarite.Patches
                 }
             }
 
-            // Execute skip locally by invoking existing CutsceneSkip.onSkip
             public static void ExecuteSkipLocal()
             {
                 var skip = GameObject.FindObjectOfType<CutsceneSkip>();
@@ -98,13 +88,9 @@ namespace Polarite.Patches
                         skip.onSkip.Invoke("");
                         var txtMono = MonoSingleton<CutsceneSkipText>.Instance;
                         if (txtMono != null)
-                        {
                             txtMono.Hide();
-                        }
                         else
-                        {
                             HudMessageReceiver.Instance.SendHudMessage("Cutscene skipped by lobby vote.");
-                        }
                     }
                     catch (Exception e)
                     {
@@ -113,7 +99,6 @@ namespace Polarite.Patches
                 }
             }
 
-            // Client: send vote to host and update local text immediately (best-effort prediction)
             public static void SendVote(bool accept)
             {
                 if (!NetworkManager.InLobby) return;
@@ -134,7 +119,9 @@ namespace Polarite.Patches
 
                 int votesLeft = Math.Max(0, neededToSkip - predictedAccept);
 
-                string voteText = accept ? $"You voted to skip. ({predictedAccept}/{neededToSkip}) — {votesLeft} left to skip." : $"You declined to skip. ({predictedAccept}/{neededToSkip}) — {votesLeft} left to skip.";
+                string voteText = accept
+                    ? $"You voted to skip. ({predictedAccept}/{neededToSkip}) — {votesLeft} left to skip. Press <color=orange>F2</color> to change vote."
+                    : $"You declined to skip. ({predictedAccept}/{neededToSkip}) — {votesLeft} left to skip. Press <color=orange>F1</color> to change vote.";
 
                 var txtMono = MonoSingleton<CutsceneSkipText>.Instance;
                 if (txtMono != null && txtMono.txt != null)
@@ -153,7 +140,6 @@ namespace Polarite.Patches
             }
         }
 
-        // Replace CutsceneSkip.Start when in lobby to show voting UI
         [HarmonyPatch(typeof(CutsceneSkip), "Start")]
         [HarmonyPrefix]
         static bool StartPrefix(CutsceneSkip __instance)
@@ -167,16 +153,15 @@ namespace Polarite.Patches
             {
                 SkipVoteManager.votes.Clear();
                 foreach (var m in NetworkManager.Instance.CurrentLobby.Members)
-                {
                     SkipVoteManager.votes[m.Id.Value] = false;
-                }
-                SkipVoteManager.votes[NetworkManager.Id] = true; // host auto-accept
+
+                SkipVoteManager.votes[NetworkManager.Id] = true;
                 SkipVoteManager.UpdateAndBroadcast();
             }
             else
             {
                 var txtMono = MonoSingleton<CutsceneSkipText>.Instance;
-                string text = "Lobby: Voting to skip cutscene. Press F1 to accept, F2 to decline.";
+                string text = "Lobby: Voting to skip cutscene. Press <color=orange>F1</color> to accept, <color=orange>F2</color> to decline.";
                 if (txtMono != null && txtMono.txt != null)
                 {
                     txtMono.txt.text = text;
@@ -191,7 +176,6 @@ namespace Polarite.Patches
             return false;
         }
 
-        // Intercept F1/F2 in CutsceneSkip.LateUpdate while in lobby
         [HarmonyPatch(typeof(CutsceneSkip), "LateUpdate")]
         [HarmonyPrefix]
         static bool LateUpdatePrefix(CutsceneSkip __instance)
@@ -200,13 +184,9 @@ namespace Polarite.Patches
                 return true;
 
             if (Input.GetKeyDown(KeyCode.F1))
-            {
                 SkipVoteManager.SendVote(true);
-            }
             else if (Input.GetKeyDown(KeyCode.F2))
-            {
                 SkipVoteManager.SendVote(false);
-            }
 
             return false;
         }
