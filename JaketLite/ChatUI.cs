@@ -27,7 +27,7 @@ namespace Polarite.Multiplayer
         private System.Text.StringBuilder chatBuilder = new System.Text.StringBuilder();
         private int hardCapMessages = 100000; // very high cap to avoid unbounded memory in pathological cases
 
-        private bool isTyping = false;
+        public static bool isTyping = false;
         private Coroutine onlyShowForBit;
 
         public static ChatUI Instance;
@@ -303,6 +303,13 @@ namespace Polarite.Multiplayer
 
         public void OnSubmitMessage(string message, bool network, string realMsg, Transform parent = null, bool tts = true)
         {
+            if(CommandManager.IsCommand(realMsg))
+            {
+                CommandManager.CheckCommand(realMsg);
+                inputField.text = "";
+                return;
+            }
+
             // message is + user
             if (string.IsNullOrWhiteSpace(realMsg) || !System.Text.RegularExpressions.Regex.IsMatch(realMsg, "[A-Za-z]"))
             {
@@ -340,7 +347,7 @@ namespace Polarite.Multiplayer
                 chatLog.text = chatBuilder.ToString();
             }
 
-            if (ItePlugin.canTTS.value)
+            if (ItePlugin.canTTS.value && tts)
             {
                 TextReader.SayString(realMsg, parent);
             }

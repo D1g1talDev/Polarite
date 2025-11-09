@@ -6,6 +6,7 @@ using Polarite.Multiplayer;
 using Sandbox;
 using Random = UnityEngine.Random;
 using Steamworks;
+using ULTRAKILL.Cheats;
 
 namespace Polarite.Multiplayer
 {
@@ -71,16 +72,19 @@ namespace Polarite.Multiplayer
             w.WriteString(ID);
             w.WriteULong(Owner);
             NetworkManager.Instance.BroadcastPacket(PacketType.Ownership, w.GetBytes());
-            if (Enemy.isBoss && NetworkManager.InLobby && NetworkManager.Instance.CurrentLobby.MemberCount > 1)
+            if (Enemy.isBoss && NetworkManager.InLobby && NetworkManager.Instance.CurrentLobby.MemberCount > 1 && NetworkManager.Instance.CurrentLobby.GetData("bh") == "1")
             {
-                float mult = 1f + (Mathf.Max(0, NetworkManager.Instance.CurrentLobby.MemberCount - 1) * 1.5f);
-                SetHealth(Enemy.health * mult);
+                float playerScale = 1f + (Mathf.Max(0, NetworkManager.Instance.CurrentLobby.MemberCount - 1) * 1.5f);
+                float configScale = float.Parse(NetworkManager.Instance.CurrentLobby.GetData("bhm"));
+
+                float finalMult = playerScale * configScale;
+                SetHealth(Enemy.health * finalMult);
                 BossHealthBar bHB = GetComponent<BossHealthBar>();
                 if (bHB != null)
                 {
                     foreach(var layer in bHB.healthLayers)
                     {
-                        layer.health *= mult;
+                        layer.health *= finalMult;
                     }
                     // so the boss bar can refresh
                     bHB.enabled = false;
@@ -98,12 +102,17 @@ namespace Polarite.Multiplayer
         {
             if (Enemy == null || !IsAlive) return;
             // make sure swordsmachines try not to target anything
-            if(SceneHelper.CurrentScene == "Level 0-2" && Enemy.enemyType == EnemyType.Swordsmachine && !Enemy.isBoss)
+            if(SceneHelper.CurrentScene == "Level 0-2" && Enemy.enemyType == EnemyType.Swordsmachine)
             {
                 if(globalTargetUpdater != null)
                 {
                     StopCoroutine(globalTargetUpdater);
                 }
+                return;
+            }
+            if(BlindEnemies.Blind)
+            {
+                Enemy.target = null;
                 return;
             }
             if (Owner == 0)

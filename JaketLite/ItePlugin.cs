@@ -58,41 +58,51 @@ namespace Polarite
     {
         public static PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
 
+        public static ConfigPanel mainGameRelated = new ConfigPanel(config.rootPanel, "Gameplay Config", "gameplay");
+
+        public static ConfigPanel voiceRelated = new ConfigPanel(config.rootPanel, "Voice Config", "voice");
+
+        public static ConfigPanel cosmeticRelated = new ConfigPanel(config.rootPanel, "Cosmetic Config", "cosmetic");
+
+        public static BoolField bossHpIncrease = new BoolField(mainGameRelated, "Increase boss hp by player count", "g.b", true);
+
+        public static FloatField bossHpMult = new FloatField(mainGameRelated, "Boss hp increase multiplier", "g.bm", 1.5f);
+
         public static KeyCodeField buttonToChat = new KeyCodeField(config.rootPanel, "Open chat key", "chat.key", KeyCode.T);
 
-        public static ConfigHeader vcheaderstuff = new ConfigHeader(config.rootPanel, "Stuff related to Voice Chat");
+        public static ConfigHeader vcheaderstuff = new ConfigHeader(voiceRelated, "Stuff related to Voice Chat");
 
-        public static KeyCodeField voicePushToTalk = new KeyCodeField(config.rootPanel, "Push-to-talk key", "voice.ptt", KeyCode.V);
+        public static KeyCodeField voicePushToTalk = new KeyCodeField(voiceRelated, "Push-to-talk key", "voice.ptt", KeyCode.V);
 
         // voice chat stuff
         // made by doomahreal
 
-        public static EnumField<VoiceMode> voiceMode = new EnumField<VoiceMode>(config.rootPanel, "Voice mode", "voice.mode", VoiceMode.PushToTalk);
+        public static EnumField<VoiceMode> voiceMode = new EnumField<VoiceMode>(voiceRelated, "Voice mode", "voice.mode", VoiceMode.PushToTalk);
 
         // voice quality setting
-        public static EnumField<VoiceQuality> voiceQuality = new EnumField<VoiceQuality>(config.rootPanel, "Voice quality", "voice.quality", VoiceQuality.Medium);
+        public static EnumField<VoiceQuality> voiceQuality = new EnumField<VoiceQuality>(voiceRelated, "Voice quality", "voice.quality", VoiceQuality.High); // medium didn't sound good to other people
 
-        public static IntField volume = new IntField(config.rootPanel, "Volume", "voice.volume", 25);
+        public static IntField volume = new IntField(voiceRelated, "Volume", "voice.volume", 25);
 
         // which microphone index to use (0 = first device)
-        public static IntField voiceMicIndex = new IntField(config.rootPanel, "Microphone index", "voice.mic", 0);
+        public static IntField voiceMicIndex = new IntField(voiceRelated, "Microphone index", "voice.mic", 0);
 
-        public static ConfigHeader wheresMyMic = new ConfigHeader(config.rootPanel, "0: ");
+        public static ConfigHeader wheresMyMic = new ConfigHeader(voiceRelated, "0: ");
 
         // voice activation sensitivity (linear 0-100)
-        public static IntField voiceVADThreshold = new IntField(config.rootPanel, "Voice activation threshold (0-100)", "voice.vad", 30);
+        public static IntField voiceVADThreshold = new IntField(voiceRelated, "Voice activation threshold (0-100)", "voice.vad", 30);
 
         // whether to receive/hear voice chat
-        public static BoolField receiveVoice = new BoolField(config.rootPanel, "Receive voice chat", "voice.receive", true);
+        public static BoolField receiveVoice = new BoolField(voiceRelated, "Receive voice chat", "voice.receive", true);
 
         // proximity distance for voice in world units
-        public static FloatField voiceProximity = new FloatField(config.rootPanel, "Voice proximity range", "voice.range", 15f);
+        public static FloatField voiceProximity = new FloatField(voiceRelated, "Voice proximity range", "voice.range", 15f);
 
-        public static EnumField<SkinType> skin = new EnumField<SkinType>(config.rootPanel, "Player skin (only others can see)", "player.skin", SkinType.V1);
+        public static EnumField<SkinType> skin = new EnumField<SkinType>(cosmeticRelated, "Player skin (only others can see)", "player.skin", SkinType.V1);
 
-        public static ConfigHeader ttsbad = new ConfigHeader(config.rootPanel, "<color=yellow>TTS can crash the game!</color>");
+        public static ConfigHeader ttsbad = new ConfigHeader(cosmeticRelated, "<color=yellow>TTS can crash the game!</color>");
 
-        public static BoolField canTTS = new BoolField(config.rootPanel, "Play TTS on chat message", "tts", false);
+        public static BoolField canTTS = new BoolField(cosmeticRelated, "Play TTS on chat message", "tts", false);
 
         internal readonly Harmony harm = new Harmony("com.d1g1tal.polarite");
 
@@ -153,6 +163,20 @@ namespace Polarite
                     {
                         NetworkPlayer.LocalPlayer.UpdateSkin((int)skin);
                     }
+                }
+            };
+            bossHpIncrease.postValueChangeEvent += (bool v) =>
+            {
+                if(NetworkManager.HostAndConnected)
+                {
+                    NetworkManager.Instance.CurrentLobby.SetData("bh", (v) ? "1" : "0");
+                }
+            };
+            bossHpMult.postValueChangeEvent += (float v) =>
+            {
+                if (NetworkManager.HostAndConnected)
+                {
+                    NetworkManager.Instance.CurrentLobby.SetData("bhm", v.ToString());
                 }
             };
             mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
@@ -281,7 +305,7 @@ namespace Polarite
                     copyCode.onClick.AddListener(() =>
                     {
                         GUIUtility.systemCopyBuffer = pMM.codeHost;
-                        HudMessageReceiver.Instance.SendHudMessage("<color=green>Lobby code copied to clipboard!</color>");
+                        NetworkManager.DisplaySystemChatMessage("Lobby code copied to clipboard");
                     });
                     discord.onClick.AddListener(() =>
                     {
@@ -345,6 +369,10 @@ namespace Polarite
                 case 1:
                     allowCheats = true;
                     break;
+            }
+            if(max > 250)
+            {
+                max = 250;
             }
             await NetworkManager.Instance.CreateLobby(max, type, lobbyName, (string c) =>
             {

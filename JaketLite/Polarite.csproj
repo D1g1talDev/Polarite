@@ -426,6 +426,7 @@
   <ItemGroup>
     <Compile Include="BinaryPacketReader.cs" />
     <Compile Include="ChatUI.cs" />
+    <Compile Include="CommandManager.cs" />
     <Compile Include="ForceOff.cs" />
     <Compile Include="HeadRotate.cs" />
     <Compile Include="ItePlugin.cs" />
@@ -444,6 +445,7 @@
     <Compile Include="Patches\CheaterPatch.cs" />
     <Compile Include="Patches\CheckPointPatch.cs" />
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
+    <Compile Include="Patches\NoCheatsOnType.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />
     <Compile Include="Patches\DeadPatch.cs" />

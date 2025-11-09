@@ -69,11 +69,11 @@ namespace Polarite
                 talkingAvatar = go.GetComponent<Image>();
                 RectTransform rt = go.GetComponent<RectTransform>();
                 // position above hpText
-                rt.anchorMin = new Vector2(0.5f, 1f);
-                rt.anchorMax = new Vector2(0.5f, 1f);
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0f);
-                rt.anchoredPosition = new Vector2(0f, 3f);
-                rt.sizeDelta = new Vector2(12f, 12f);
+                rt.anchoredPosition = new Vector2(0f, 1f);
+                rt.sizeDelta = new Vector2(5f, 5f);
             }
 
             if (talkingAvatar != null)

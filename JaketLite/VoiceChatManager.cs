@@ -452,7 +452,7 @@ namespace Polarite.Multiplayer
             AudioSource src = go.AddComponent<AudioSource>();
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.minDistance = 2f;
+            src.minDistance = 3f; // make prox slightly more louder
             src.dopplerLevel = 0f;
             // use configured proximity range for spatial maxDistance
             src.maxDistance = ItePlugin.voiceProximity.value;

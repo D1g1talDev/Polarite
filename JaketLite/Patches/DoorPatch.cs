@@ -55,15 +55,19 @@ namespace Polarite.Patches
     {
         [HarmonyPatch(nameof(Door.Lock))]
         [HarmonyPrefix]
-        static bool Prefix()
+        static bool Prefix(Door __instance)
         {
-            return false;
+            if(__instance.name == "Barrier")
+            {
+                return true;
+            }
+            return !NetworkManager.InLobby;
         }
         [HarmonyPatch(nameof(Door.Optimize))]
         [HarmonyPrefix]
         static bool Prefix2()
         {
-            return false;
+            return !NetworkManager.InLobby;
         }
     }
 }
