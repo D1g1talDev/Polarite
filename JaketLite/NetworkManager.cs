@@ -577,6 +577,14 @@ namespace Polarite.Multiplayer
                 SteamId id = default;
                 if (SteamNetworking.ReadP2PPacket(buffer, ref packetSize, ref id))
                 {
+                    if (CurrentLobby.GetData("banned_" + id) == "1")
+                    {
+                        //if (AmIHost()) ChatUI.OnSubmitMessage($"") i was gonna put a msg or smt here
+                        KickPlayer(id, true); // try to kick the player incase they just didnt get the packet or smt
+                        continue;
+                    }
+
+
                     // Simple protocol: voice packets start with 0x56 ('V')
                     if (packetSize > 0 && buffer[0] == 0x56)
                     {
