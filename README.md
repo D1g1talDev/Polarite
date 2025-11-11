@@ -32,3 +32,5 @@ Works with **Steam**
 5. build like a normal project
 
 notes: if you wanna add a cs file, edit csproj and scroll down and say to add it, i dont know why the owner isnt using a moderner dotnet sdk for this project but im just a contributor
+
+NOTICE: if you want to test any changes you make to this repo. you must have another friend test it with you, or wait until the update is public for everyone.
