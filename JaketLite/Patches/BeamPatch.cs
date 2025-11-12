@@ -18,7 +18,7 @@ namespace Polarite.Patches
             {
                 return;
             }
-            DeadPatch.DeathMessage = "was shot by " + __instance.ignoreEnemyType.ToString();
+            DeadPatch.Death("was shot by ", (ulong)__instance.ignoreEnemyType);
         }
     }
 }

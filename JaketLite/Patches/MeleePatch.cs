@@ -15,7 +15,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(SwingCheck2 __instance)
         {
-            DeadPatch.DeathMessage = "was slain by " + __instance.type.ToString();
+            DeadPatch.Death("was slain by ", (ulong)__instance.type);
         }
     }
 }

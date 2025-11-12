@@ -15,7 +15,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(VirtueInsignia __instance)
         {
-            DeadPatch.DeathMessage = "was smited";
+            DeadPatch.Death("was smited");
         }
     }
 }

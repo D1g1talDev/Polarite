@@ -15,7 +15,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix()
         {
-            DeadPatch.DeathMessage = "exploded";
+            DeadPatch.Death("exploded");
         }
     }
 }

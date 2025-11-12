@@ -566,7 +566,7 @@ namespace Polarite.Multiplayer
         public static void DoFriendlyDamage(ulong whoDidIt, int damage)
         {
             MonoSingleton<NewMovement>.instance.GetHurt(damage, false);
-            DeadPatch.DeathMessage = "was friendly fired by " + NetworkManager.GetNameOfId(whoDidIt);
+            DeadPatch.Death("was friendly fired by ", whoDidIt);
         }
     }
 }

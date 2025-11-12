@@ -16,11 +16,11 @@ namespace Polarite.Patches
         {
             if(__instance.deathType == "tram")
             {
-                DeadPatch.DeathMessage = "was ran over by a tram";
+                DeadPatch.Death("was ran over by a tram");
             }
             else
             {
-                DeadPatch.DeathMessage = (__instance.notInstakill) ? "walked into the danger zone" : "fell into danger";
+                DeadPatch.Death(__instance.notInstakill ? "walked into the danger zone" : "fell into danger");
             }
         }
     }

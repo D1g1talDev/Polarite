@@ -14,7 +14,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void TimeToDie(Projectile __instance)
         {
-            DeadPatch.DeathMessage = "was shot by " + __instance.safeEnemyType.ToString();
+            DeadPatch.Death("was shot by ", (ulong)__instance.safeEnemyType);
         }
     }
 }

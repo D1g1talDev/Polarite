@@ -577,6 +577,14 @@ namespace Polarite.Multiplayer
                 SteamId id = default;
                 if (SteamNetworking.ReadP2PPacket(buffer, ref packetSize, ref id))
                 {
+                    if (CurrentLobby.GetData("banned_" + id) == "1")
+                    {
+                        KickPlayer(id, true); // try to ban the player again
+                                              // incase they just didnt get the packet or smt idk :P
+                        continue;
+                    }
+
+
                     // Simple protocol: voice packets start with 0x56 ('V')
                     if (packetSize > 0 && buffer[0] == 0x56)
                     {
@@ -602,10 +610,13 @@ namespace Polarite.Multiplayer
                         byte[] data = reader.ReadBytes();
 
                         // don’t handle our own stuff
-                        if (sender == NetworkManager.Id)
+                        if (sender == Id)
                             continue;
 
-                        PacketReader.Handle(type, data, sender);
+                        // check for people lying about what user they are within packets
+                        if (sender != id)
+
+                        Handle(type, data, sender);
                     }
                     catch (Exception ex)
                     {
