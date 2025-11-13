@@ -13,7 +13,8 @@ Works with **Steam**
 - Respawning, and dying
 - Enemy spawns, Enemy positions and rotations, damage to enemies
 - Breakables, hook points, checkpoints
-- Arenas
+- Arenas, Triggers
+- Cybergrind and Sandbox
 
 ## Manual Installation
 1. Make sure you have **BepInEx** for ULTRAKILL
