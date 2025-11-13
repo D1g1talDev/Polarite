@@ -1,5 +1,3 @@
-// skipping on this for now since i need to get to work on making packets not json.
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,32 +12,15 @@ using SteamImage = Steamworks.Data.Image;
 
 namespace Polarite.Multiplayer
 {
-    // Simple proximity voice chat using Unity Microphone and Steam P2P packets.
-    // - Push-to-talk via PluginConfigurator (ItePlugin.voicePushToTalk)
-    // - Supports Voice Activation and Toggle modes
-    // - Select microphone by index from config
-    // - Mono 16kHz, 20ms chunks (~320 samples)
-    // - Sends raw PCM16 data with a small header
-    // Packet format:
-    // [0] = 0x56 ('V') marker
-    // [1..2] = ushort sampleRate (little-endian)
-    // [3] = byte channels
-    // [4..5] = ushort samplesCount
-    // [6..] = PCM16 little-endian samplesCount * 2 bytes
-
-    // made by doomahreal
-
     public class VoiceChatManager : MonoBehaviour
     {
         public static VoiceChatManager Instance;
 
         [Header("Voice Settings")]
-        // keep a default here but overridden from config each frame
         public KeyCode pushToTalk = KeyCode.V;
-        // proximity range is configurable via ItePlugin.voiceProximity
         public float proximityRange = 15f;
         public int sampleRate = 16000;
-        public int chunkSamples = 320; // 20ms @16kHz
+        public int chunkSamples = 320;
 
         private string micDevice;
         private AudioClip micClip;
@@ -47,15 +28,12 @@ namespace Polarite.Multiplayer
         private bool isTalking = false;
         private Coroutine captureCoroutine;
 
-        // AudioSources for remote players
-        private Dictionary<ulong, AudioSource> remoteSources = new Dictionary<ulong, AudioSource>();
+        private readonly Dictionary<ulong, AudioSource> remoteSources = new Dictionary<ulong, AudioSource>();
+        private readonly Dictionary<ulong, AudioClip> voiceClips = new Dictionary<ulong, AudioClip>();
+        private readonly Dictionary<ulong, int> writeHeads = new Dictionary<ulong, int>();
+        private readonly Dictionary<ulong, float> lastPacketTime = new Dictionary<ulong, float>();
+        private float silenceTimeout = 0.6f;
 
-        private Dictionary<ulong, AudioClip> voiceClips = new Dictionary<ulong, AudioClip>();
-        private Dictionary<ulong, int> writeHeads = new Dictionary<ulong, int>();
-        private Dictionary<ulong, float> lastPacketTime = new Dictionary<ulong, float>();
-        private float silenceTimeout = 0.6f; // seconds to consider remote stopped
-
-        // indicator UI
         private GameObject indicatorCanvas;
         private UnityEngine.UI.Image indicatorImage;
         private Sprite onSprite, offSprite;
@@ -67,44 +45,36 @@ namespace Polarite.Multiplayer
                 Destroy(gameObject);
                 return;
             }
+
             Instance = this;
             DontDestroyOnLoad(gameObject);
-
             TryStartMic();
             CreateIndicator();
         }
 
         void OnDestroy()
         {
-            if (micClip != null && Microphone.IsRecording(micDevice))
-            {
-                Microphone.End(micDevice);
-            }
+            if (micClip != null && Microphone.IsRecording(micDevice)) Microphone.End(micDevice);
+            CleanupAllPeers();
+        }
+
+        void OnDisable()
+        {
+            CleanupAllPeers();
         }
 
         void Update()
         {
-            // update indicator visibility and sprite
             bool hasMic = Microphone.devices != null && Microphone.devices.Length > 0;
             bool inLobby = NetworkManager.InLobby;
-            if (indicatorCanvas != null)
-            {
-                indicatorCanvas.SetActive(hasMic && inLobby);
-                if (indicatorImage != null && indicatorCanvas.activeSelf)
-                {
-                    if (isTalking)
-                    {
-                        if (onSprite != null) indicatorImage.sprite = onSprite;
-                    }
-                    else
-                    {
-                        if (offSprite != null) indicatorImage.sprite = offSprite;
-                    }
-                }
-            }
 
-            if (!hasMic)
-                return;
+            if (indicatorCanvas != null)
+                indicatorCanvas.SetActive(hasMic && inLobby);
+
+            if (!hasMic) return;
+
+            if (indicatorCanvas != null && indicatorCanvas.activeSelf && indicatorImage != null)
+                indicatorImage.sprite = isTalking ? onSprite : offSprite;
 
             KeyCode configured = ItePlugin.voicePushToTalk.value;
             var mode = ItePlugin.voiceMode.value;
@@ -113,86 +83,72 @@ namespace Polarite.Multiplayer
             {
                 if (Input.GetKeyDown(configured)) StartTalking();
                 if (Input.GetKeyUp(configured)) StopTalking();
+                return;
             }
-            else if (mode == VoiceMode.ToggleToTalk)
+
+            if (mode == VoiceMode.ToggleToTalk)
             {
                 if (Input.GetKeyDown(configured))
                 {
-                    if (isTalking) StopTalking(); else StartTalking();
-                }
-            }
-            else if (mode == VoiceMode.VoiceActivation)
-            {
-                // ensure mic running
-                TryStartMic();
-                float level = GetMicLevel();
-                int threshold = Mathf.Clamp(ItePlugin.voiceVADThreshold.value, 0, 100);
-                // map threshold 0-100 to a linear level; assume level roughly 0-1
-                float thresh = threshold / 100f * 0.5f; // empirical scaling
-                if (level >= thresh)
-                {
-                    if (!isTalking) StartTalking();
-                }
-                else
-                {
                     if (isTalking) StopTalking();
+                    else StartTalking();
                 }
+                return;
             }
+
+            if (mode != VoiceMode.VoiceActivation) return;
+
+            TryStartMic();
+            float level = GetMicLevel();
+            int threshold = Mathf.Clamp(ItePlugin.voiceVADThreshold.value, 0, 100);
+            float thresh = threshold / 100f * 0.5f;
+            if (level >= thresh)
+            {
+                if (!isTalking) StartTalking();
+                return;
+            }
+
+            if (isTalking) StopTalking();
         }
 
         private void TryStartMic()
         {
             try
             {
-                if (Microphone.devices == null || Microphone.devices.Length == 0)
-                    return;
+                if (Microphone.devices == null || Microphone.devices.Length == 0) return;
+
+                ItePlugin.wheresMyMic.text = "";
                 for (int i = 0; i < Microphone.devices.Length; i++)
-                {
-                    if (i == 0)
-                    {
-                        ItePlugin.wheresMyMic.text = "";
-                    }
                     ItePlugin.wheresMyMic.text += $"{i}: " + Microphone.devices[i] + "\n";
-                }
+
                 int desired = Mathf.Clamp(ItePlugin.voiceMicIndex.value, 0, Microphone.devices.Length - 1);
                 string desiredDevice = Microphone.devices[desired];
-                if (micClip == null || micDevice != desiredDevice || !Microphone.IsRecording(micDevice))
-                {
-                    try
-                    {
-                        if (micClip != null && Microphone.IsRecording(micDevice))
-                        {
-                            Microphone.End(micDevice);
-                        }
-                    }
-                    catch { }
 
-                    micDevice = desiredDevice;
-                    // choose sample rates based on quality setting
-                    switch (ItePlugin.voiceQuality.value)
-                    {
-                        case VoiceQuality.Low:
-                            sampleRate = 16000; // acceptable low quality
-                            break;
-                        case VoiceQuality.Medium:
-                            sampleRate = 44100; // CD quality
-                            break;
-                        case VoiceQuality.High:
-                            sampleRate = 48000; // standard pro audio / voice comms
-                            break;
-                    }
-                    // use ~20ms chunks
-                    chunkSamples = Mathf.Max(1, Mathf.RoundToInt(sampleRate * 0.02f));
-                    micClip = Microphone.Start(micDevice, true, 1, sampleRate);
-                    // wait a little for mic to start
-                    int attempts = 0;
-                    while (!(Microphone.GetPosition(micDevice) > 0) && attempts < 50)
-                    {
-                        System.Threading.Thread.Sleep(10);
-                        attempts++;
-                    }
-                    micPosition = Microphone.GetPosition(micDevice);
+                if (micClip != null && micDevice == desiredDevice && Microphone.IsRecording(micDevice))
+                    return;
+
+                try { if (micClip != null && Microphone.IsRecording(micDevice)) Microphone.End(micDevice); } catch { }
+
+                micDevice = desiredDevice;
+
+                switch (ItePlugin.voiceQuality.value)
+                {
+                    case VoiceQuality.Low: sampleRate = 16000; break;
+                    case VoiceQuality.Medium: sampleRate = 44100; break;
+                    case VoiceQuality.High: sampleRate = 48000; break;
                 }
+
+                chunkSamples = Mathf.Max(1, Mathf.RoundToInt(sampleRate * 0.02f));
+                micClip = Microphone.Start(micDevice, true, 1, sampleRate);
+
+                int attempts = 0;
+                while (!(Microphone.GetPosition(micDevice) > 0) && attempts < 50)
+                {
+                    System.Threading.Thread.Sleep(10);
+                    attempts++;
+                }
+
+                micPosition = Microphone.GetPosition(micDevice);
             }
             catch (Exception e)
             {
@@ -211,18 +167,17 @@ namespace Polarite.Multiplayer
             micClip.GetData(data, start);
             float sum = 0f;
             for (int i = 0; i < data.Length; i++) sum += data[i] * data[i];
-            float rms = Mathf.Sqrt(sum / data.Length);
-            return rms;
+            return Mathf.Sqrt(sum / data.Length);
         }
 
         public void StartTalking()
         {
             if (micClip == null) TryStartMic();
-            if (micClip == null) return;
-            if (isTalking) return;
+            if (micClip == null || isTalking) return;
             isTalking = true;
             captureCoroutine = StartCoroutine(CaptureAndSend());
         }
+
         public void StopTalking()
         {
             if (!isTalking) return;
@@ -242,22 +197,11 @@ namespace Polarite.Multiplayer
             while (isTalking)
             {
                 int pos = Microphone.GetPosition(micDevice);
-                int samplesAvailable = 0;
-
-                if (pos < micPosition)
-                {
-                    samplesAvailable = micClip.samples - micPosition + pos;
-                }
-                else
-                {
-                    samplesAvailable = pos - micPosition;
-                }
+                int samplesAvailable = pos < micPosition ? micClip.samples - micPosition + pos : pos - micPosition;
 
                 while (samplesAvailable >= chunkSamples)
                 {
                     micClip.GetData(buffer, micPosition);
-
-                    // convert to PCM16
                     float sum = 0f;
                     for (int i = 0; i < chunkSamples; i++)
                     {
@@ -268,21 +212,18 @@ namespace Polarite.Multiplayer
 
                     float rms = Mathf.Sqrt(sum / chunkSamples);
 
-                    // build packet
                     byte[] payload = new byte[1 + 2 + 1 + 2 + chunkSamples * 2];
                     int idx = 0;
-                    payload[idx++] = 0x56; // 'V' voice marker
+                    payload[idx++] = 0x56;
                     Array.Copy(BitConverter.GetBytes((ushort)sampleRate), 0, payload, idx, 2); idx += 2;
-                    payload[idx++] = 1; // channels
+                    payload[idx++] = 1;
                     Array.Copy(BitConverter.GetBytes((ushort)chunkSamples), 0, payload, idx, 2); idx += 2;
                     for (int i = 0; i < chunkSamples; i++)
                     {
-                        short s = pcm[i];
-                        Array.Copy(BitConverter.GetBytes(s), 0, payload, idx, 2);
+                        Array.Copy(BitConverter.GetBytes(pcm[i]), 0, payload, idx, 2);
                         idx += 2;
                     }
 
-                    // send to nearby players using configured range
                     if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0 && SteamClient.IsValid)
                     {
                         float range = ItePlugin.voiceProximity.value;
@@ -290,38 +231,19 @@ namespace Polarite.Multiplayer
                         foreach (var kv in NetworkManager.players)
                         {
                             NetworkPlayer plr = kv.Value;
-                            if (plr == null) continue;
-                            if (plr.SteamId == NetworkManager.Id) continue; // don't send to self
-
-                            float dist = Vector3.Distance(myPos, plr.transform.position);
-                            if (dist <= range)
-                            {
-                                try
-                                {
-                                    SteamNetworking.SendP2PPacket(plr.SteamId, payload);
-                                }
-                                catch (Exception e)
-                                {
-                                    Debug.LogWarning("[Voice] Failed sending P2P packet: " + e);
-                                }
-                            }
+                            if (plr == null || plr.SteamId == NetworkManager.Id) continue;
+                            if (Vector3.Distance(myPos, plr.transform.position) > range) continue;
+                            try { SteamNetworking.SendP2PPacket(plr.SteamId, payload); }
+                            catch (Exception e) { Debug.LogWarning("[Voice] Failed sending P2P packet: " + e); }
                         }
                     }
 
-                    // locally show our talking avatar if local player exists
                     var localPlayer = NetworkPlayer.LocalPlayer;
                     if (localPlayer != null && localPlayer.NameTag != null)
-                    {
-                        // convert rms to 0..1
-                        float lvl = Mathf.Clamp01(rms * 5f);
-                        localPlayer.NameTag.SetTalkingLevel(lvl);
-                    }
+                        localPlayer.NameTag.SetTalkingLevel(Mathf.Clamp01(rms * 5f));
 
-                    // advance micPosition
                     micPosition += chunkSamples;
                     if (micPosition >= micClip.samples) micPosition -= micClip.samples;
-
-                    // lower available
                     samplesAvailable -= chunkSamples;
                 }
 
@@ -329,7 +251,6 @@ namespace Polarite.Multiplayer
             }
         }
 
-        // Called from NetworkManager when a non-JSON packet is received
         public void OnP2PDataReceived(byte[] buffer, int length, SteamId sender)
         {
             if (length < 1 || buffer[0] != 0x56) return;
@@ -338,64 +259,70 @@ namespace Polarite.Multiplayer
             ushort sr = BitConverter.ToUInt16(buffer, idx); idx += 2;
             byte channels = buffer[idx++];
             ushort samples = BitConverter.ToUInt16(buffer, idx); idx += 2;
-
             int expectedBytes = samples * 2;
             if (length < idx + expectedBytes) return;
 
-            // decode pcm16 -> float
             float[] floats = new float[samples];
             float sum = 0f;
             for (int i = 0; i < samples; i++)
             {
                 short s = BitConverter.ToInt16(buffer, idx); idx += 2;
                 float v = s / (float)short.MaxValue;
-                floats[i] = v; // assign decoded float
-                // apply configured volume and clamp to valid range
-                floats[i] = Mathf.Clamp(floats[i] * ItePlugin.volume.value, -1f, 1f);
+                floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
                 sum += v * v;
             }
 
-            float rms = Mathf.Sqrt(sum / samples);
-            float level = Mathf.Clamp01(rms * 5f);
-
-            // name tag update AFTER audio started so icon syncs with playback
+            float level = Mathf.Clamp01(Mathf.Sqrt(sum / samples) * 5f);
             NetworkPlayer plr = NetworkPlayer.Find(sender.Value);
-            if (plr != null && plr.NameTag != null)
-                plr.NameTag.SetTalkingLevel(level);
-
-            if (!ItePlugin.receiveVoice.value)
-                return;
+            if (plr != null && plr.NameTag != null) plr.NameTag.SetTalkingLevel(level);
+            if (!ItePlugin.receiveVoice.value) return;
 
             ulong senderId = sender.Value;
             AudioSource src = GetOrCreateSource(senderId);
 
-            // make or retrieve persistent clip for streaming
             AudioClip clip;
-            if (!voiceClips.TryGetValue(senderId, out clip) || clip == null)
+            bool recreateClip = !voiceClips.TryGetValue(senderId, out clip) || clip == null || clip.frequency != sr || clip.channels != channels;
+            if (recreateClip)
             {
-                int clipSamples = sr * 2; // 2 second buffer
-                // create streaming clip so SetData works correctly
-                clip = AudioClip.Create($"vc_stream_{senderId}", clipSamples, 1, sr, false);
+                if (voiceClips.ContainsKey(senderId) && voiceClips[senderId] != null)
+                {
+                    try { Destroy(voiceClips[senderId]); } catch { }
+                    voiceClips.Remove(senderId);
+                }
+
+                int clipSamples = sr * 2;
+                clip = AudioClip.Create($"vc_stream_{senderId}", clipSamples, Math.Max(1, (int)channels), sr, false);
                 voiceClips[senderId] = clip;
                 writeHeads[senderId] = 0;
-
                 src.clip = clip;
-                src.loop = true; // loop the ring buffer
-                src.Play();
+                src.loop = true;
+                try { if (!src.isPlaying) src.Play(); } catch { }
             }
 
-            int head = writeHeads[senderId];
+            int head = writeHeads.ContainsKey(senderId) ? writeHeads[senderId] : 0;
+            try
+            {
+                if (samples > clip.samples)
+                {
+                    float[] small = new float[clip.samples];
+                    Array.Copy(floats, 0, small, 0, clip.samples);
+                    clip.SetData(small, head);
+                    head += clip.samples;
+                }
+                else
+                {
+                    clip.SetData(floats, head);
+                    head += samples;
+                }
 
-            // write incoming PCM floats to ring buffer
-            clip.SetData(floats, head);
-            head += samples;
-            if (head >= clip.samples)
-                head = 0;
-
-            writeHeads[senderId] = head;
-
-            // update last packet time so we know the player is speaking
-            lastPacketTime[senderId] = Time.time;
+                if (head >= clip.samples) head = 0;
+                writeHeads[senderId] = head;
+                lastPacketTime[senderId] = Time.time;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Voice] Failed writing audio data: " + e);
+            }
         }
 
         void LateUpdate()
@@ -405,34 +332,39 @@ namespace Polarite.Multiplayer
             var ids = lastPacketTime.Keys.ToList();
             foreach (var id in ids)
             {
-                if (now - lastPacketTime[id] > silenceTimeout)
+                if (now - lastPacketTime[id] <= silenceTimeout) continue;
+                lastPacketTime.Remove(id);
+                writeHeads.Remove(id);
+
+                if (!voiceClips.TryGetValue(id, out var clip)) continue;
+                voiceClips.Remove(id);
+
+                try
                 {
-                    lastPacketTime.Remove(id);
-                    writeHeads.Remove(id);
-                    if (voiceClips.TryGetValue(id, out var clip))
+                    if (remoteSources.TryGetValue(id, out var src) && src != null)
                     {
-                        voiceClips.Remove(id);
-                        try
-                        {
-                            if (remoteSources.TryGetValue(id, out var src) && src != null)
-                            {
-                                if (src.isPlaying) src.Stop();
-                                src.clip = null;
-                            }
-                            if (clip != null) Destroy(clip);
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogWarning("[Voice] Failed to cleanup silent clip: " + e);
-                        }
+                        if (src.isPlaying) src.Stop();
+                        src.clip = null;
+                        try { Destroy(src.gameObject); } catch { }
+                        remoteSources.Remove(id);
                     }
+                    if (clip != null) Destroy(clip);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[Voice] Failed to cleanup silent clip: " + e);
                 }
             }
         }
 
         private AudioSource GetOrCreateSource(ulong steamId)
         {
-            if (remoteSources.ContainsKey(steamId) && remoteSources[steamId] != null) return remoteSources[steamId];
+            if (remoteSources.TryGetValue(steamId, out var existing) && existing != null)
+            {
+                existing.maxDistance = ItePlugin.voiceProximity.value;
+                existing.loop = true;
+                return existing;
+            }
 
             NetworkPlayer plr = NetworkPlayer.Find(steamId);
             GameObject go;
@@ -452,13 +384,11 @@ namespace Polarite.Multiplayer
             AudioSource src = go.AddComponent<AudioSource>();
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.minDistance = 4f; // make prox slightly more louder
+            src.minDistance = 4f;
             src.dopplerLevel = 0f;
-            // use configured proximity range for spatial maxDistance
             src.maxDistance = ItePlugin.voiceProximity.value;
-            src.loop = false;
+            src.loop = true;
             src.playOnAwake = false;
-
             remoteSources[steamId] = src;
             return src;
         }
@@ -467,17 +397,13 @@ namespace Polarite.Multiplayer
         {
             try
             {
-                string dir = null;
-                if (ItePlugin.Instance != null)
-                {
-                    dir = Path.GetDirectoryName(ItePlugin.Instance.Info.Location);
-                }
-                else
-                {
-                    dir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                }
+                string dir = ItePlugin.Instance != null
+                    ? Path.GetDirectoryName(ItePlugin.Instance.Info.Location)
+                    : Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
                 string onPath = Path.Combine(dir, "on.png");
                 string offPath = Path.Combine(dir, "off.png");
+
                 if (File.Exists(onPath))
                 {
                     byte[] d = File.ReadAllBytes(onPath);
@@ -486,6 +412,7 @@ namespace Polarite.Multiplayer
                     t.filterMode = FilterMode.Point;
                     onSprite = Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f));
                 }
+
                 if (File.Exists(offPath))
                 {
                     byte[] d = File.ReadAllBytes(offPath);
@@ -495,7 +422,6 @@ namespace Polarite.Multiplayer
                     offSprite = Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f));
                 }
 
-                // create canvas
                 indicatorCanvas = new GameObject("VoiceIndicatorCanvas");
                 var canvas = indicatorCanvas.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -508,17 +434,45 @@ namespace Polarite.Multiplayer
                 indicatorImage = imgGO.GetComponent<UnityEngine.UI.Image>();
                 indicatorImage.sprite = offSprite;
                 RectTransform rt = imgGO.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(1f, 0f);
-                rt.anchorMax = new Vector2(1f, 0f);
+                rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f);
                 rt.pivot = new Vector2(1f, 0f);
                 rt.anchoredPosition = new Vector2(-10f, 10f);
                 rt.sizeDelta = new Vector2(48f, 48f);
-
                 indicatorCanvas.SetActive(false);
             }
             catch (Exception e)
             {
                 Debug.LogWarning("[Voice] Failed to create indicator: " + e);
+            }
+        }
+
+        private void CleanupAllPeers()
+        {
+            try
+            {
+                foreach (var kv in remoteSources.ToList())
+                {
+                    try
+                    {
+                        if (kv.Value == null) continue;
+                        if (kv.Value.isPlaying) kv.Value.Stop();
+                        try { Destroy(kv.Value.gameObject); } catch { }
+                    }
+                    catch { }
+                }
+                remoteSources.Clear();
+
+                foreach (var kv in voiceClips.ToList())
+                {
+                    try { if (kv.Value != null) Destroy(kv.Value); } catch { }
+                }
+                voiceClips.Clear();
+                writeHeads.Clear();
+                lastPacketTime.Clear();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Voice] Failed to cleanup peers: " + e);
             }
         }
     }
