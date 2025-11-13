@@ -21,9 +21,7 @@ namespace Polarite.Patches
         {
             if(NetworkManager.InLobby && sceneName == "Endless")
             {
-                NetworkManager.DisplayError("The Cybergrind is not supported with multiplayer.");
-                ___loadingBlocker.SetActive(false);
-                return false;
+                NetworkManager.DisplayWarningChatMessage("CYBERGRIND SYNC IS INDEV!!!!");
             }
             if(sceneName == "Intermission1")
             {

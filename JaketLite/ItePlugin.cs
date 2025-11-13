@@ -222,7 +222,14 @@ namespace Polarite
             {
                 discord.RunCallbacks();
             }
-            DeadPatch.SpectateOnDeath = !NetworkManager.Sandbox;
+            if (NetworkManager.InLobby)
+            {
+                DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
+            }
+            else
+            {
+                DeadPatch.SpectateOnDeath = false;
+            }
             if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
             {
                 currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
