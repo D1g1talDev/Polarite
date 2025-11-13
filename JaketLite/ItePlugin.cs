@@ -193,6 +193,10 @@ namespace Polarite
             mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
             TryRunDiscord();
         }
+        public void Start()
+        {
+            EntityStorage.StoreAll();
+        }
         public void OnApplicationQuit()
         {
             discord.Dispose();
@@ -218,7 +222,8 @@ namespace Polarite
             {
                 discord.RunCallbacks();
             }
-            if(currentUi != null && SceneHelper.CurrentScene != "Main Menu")
+            DeadPatch.SpectateOnDeath = !NetworkManager.Sandbox;
+            if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
             {
                 currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
                 if (currentUi.GetComponentInChildren<PolariteMenuManager>().mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
@@ -251,11 +256,6 @@ namespace Polarite
             if(currentUi != null && SceneHelper.CurrentScene == "Main Menu")
             {
                 currentUi.SetActive(false);
-            }
-            if(currentUi != null)
-            {
-                PolariteMenuManager pMM = currentUi.GetComponentInChildren<PolariteMenuManager>();
-                pMM.uiOpen.interactable = SceneHelper.CurrentScene != "Endless";
             }
         }
         public void TogglePauseMenu(bool value)
@@ -522,12 +522,6 @@ namespace Polarite
             }
             */
             SceneObjectCache.Initialize();
-            NetworkEnemyBootstrap boot = gameObject.GetComponent<NetworkEnemyBootstrap>();
-            if (boot == null)
-            {
-                boot = gameObject.AddComponent<NetworkEnemyBootstrap>();
-            }
-            NetworkEnemyBootstrap.AttachSyncScripts();
             if(NetworkManager.HostAndConnected)
             {
                 string levelName = StockMapInfo.Instance.levelName;
@@ -584,16 +578,16 @@ namespace Polarite
             audioSource.transform.position = parent.position;
             audioSource.Play();
         }
-        public static void SpectatePlayers()
+        public static void SpectatePlayers(bool loadAll)
         {
             if(ignoreSpectate)
             {
                 return;
             }
-            Instance.StartCoroutine(SpectatePlayersB());
+            Instance.StartCoroutine(SpectatePlayersB(loadAll));
         }
 
-        public static IEnumerator SpectatePlayersB()
+        public static IEnumerator SpectatePlayersB(bool loadAll)
         {
             yield return new WaitForSeconds(1.25f);
             List<Transform> playerTransforms = new List<Transform>();
@@ -612,11 +606,14 @@ namespace Polarite
             cam.GetComponent<CameraController>().enabled = false;
             MonoSingleton<NewMovement>.Instance.DeactivatePlayer();
             cam.StartSpectating(playerTransforms);
-            foreach(var door in FindObjectsOfType<Door>())
+            if(loadAll)
             {
-                door.Open(skull: true);
+                foreach (var door in FindObjectsOfType<Door>())
+                {
+                    door.Open(skull: true);
+                }
+                MonoSingleton<MusicManager>.Instance.ForceStartMusic();
             }
-            MonoSingleton<MusicManager>.Instance.ForceStartMusic();
         }
         public static IEnumerator RestartCols()
         {

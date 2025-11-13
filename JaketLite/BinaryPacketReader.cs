@@ -117,14 +117,7 @@ public class BinaryPacketReader
     }
     public T ReadEnum<T>() where T : Enum
     {
-        // default behavior: enums in binary packets may be transmitted as a single byte
-        // but keep a fallback to int if necessary
-        if (index < buffer.Length)
-        {
-            byte b = ReadByte();
-            return (T)Enum.ToObject(typeof(T), (int)b);
-        }
-        return (T)Enum.ToObject(typeof(T), 0);
+        return (T)Enum.Parse(typeof(T), ReadString());
     }
 
     public byte[] ReadBytes()

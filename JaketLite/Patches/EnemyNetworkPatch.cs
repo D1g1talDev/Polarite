@@ -21,8 +21,7 @@ namespace Polarite.Patches
         {
             if (__instance.GetComponent<NetworkEnemy>() == null && __instance.gameObject.scene.name != null && NetworkManager.InLobby)
             {
-                NetworkEnemySync nES = __instance.GetComponent<NetworkEnemySync>();
-                NetworkEnemy.Create(nES.id, __instance, nES.owner);
+                NetworkEnemy.Create(SceneObjectCache.GetScenePath(__instance.gameObject), __instance, NetworkManager.Instance.CurrentLobby.Owner.Id);
             }
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]

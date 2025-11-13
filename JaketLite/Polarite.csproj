@@ -427,13 +427,12 @@
     <Compile Include="BinaryPacketReader.cs" />
     <Compile Include="ChatUI.cs" />
     <Compile Include="CommandManager.cs" />
+    <Compile Include="EntityStorage.cs" />
     <Compile Include="ForceOff.cs" />
     <Compile Include="HeadRotate.cs" />
     <Compile Include="ItePlugin.cs" />
     <Compile Include="NameTag.cs" />
     <Compile Include="NetworkEnemy.cs" />
-    <Compile Include="NetworkEnemyBootstrap.cs" />
-    <Compile Include="NetworkEnemySync.cs" />
     <Compile Include="NetworkIDManager.cs" />
     <Compile Include="NetworkManager.cs" />
     <Compile Include="NetworkPlayer.cs" />
@@ -445,7 +444,10 @@
     <Compile Include="Patches\CheaterPatch.cs" />
     <Compile Include="Patches\CheckPointPatch.cs" />
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
+    <Compile Include="Patches\CyberSync.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
+    <Compile Include="Patches\NoGZForPlayer.cs" />
+    <Compile Include="Patches\ObjActPatch.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />
     <Compile Include="Patches\DeadPatch.cs" />

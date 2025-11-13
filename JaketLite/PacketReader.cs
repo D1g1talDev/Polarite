@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Net.Sockets;
 
+using Polarite.Patches;
+
 using Steamworks;
 
 using UnityEngine;
@@ -68,7 +70,9 @@ namespace Polarite.Multiplayer
         SkipVoteUpdate = 34,
         SkipExecute = 35,
 
-        PVP = 36
+        PVP = 36,
+        CyberPattern = 37,
+        ObjAct = 38
     }
 
     public static class PacketReader
@@ -123,6 +127,12 @@ namespace Polarite.Multiplayer
 
                         NetworkPlayer.Find(senderId)?.DeathNoise();
                         NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId) + " " + msg);
+
+                        if(DeadPatch.SpectateOnDeath)
+                        {
+                            DeadPatch.DeadPlayers++;
+                            DeadPatch.DeadPs.Add(NetworkPlayer.Find(senderId));
+                        }
                         break;
                     }
 
@@ -237,11 +247,12 @@ namespace Polarite.Multiplayer
                 case PacketType.EnemyState:
                     {
                         string id = reader.ReadString();
+
                         Vector3 pos = reader.ReadVector3();
                         Quaternion rot = reader.ReadQuaternion();
                         NetworkEnemy e = NetworkEnemy.Find(id);
                         if (e != null)
-                            e.ApplyState(pos, rot);
+                            e.ApplyState(e.transform.position, e.transform.rotation, pos, rot);
                         break;
                     }
 
@@ -279,15 +290,31 @@ namespace Polarite.Multiplayer
 
                 case PacketType.EnemySpawn:
                     {
+                        string name = reader.ReadString();
                         string path = reader.ReadString();
-                        GameObject go = SceneObjectCache.Find(path);
-                        if (go != null)
+                        EnemyType type1 = reader.ReadEnum<EnemyType>();
+                        Vector3 pos = reader.ReadVector3();
+                        Quaternion rot = reader.ReadQuaternion();
+                        bool hasHp = reader.ReadBool();
+                        bool hasSpeed = reader.ReadBool();
+                        bool hasDamage = reader.ReadBool();
+                        float hpMod = reader.ReadFloat();
+                        float speedMod = reader.ReadFloat();
+                        float damageMod = reader.ReadFloat();
+                        bool boss = reader.ReadBool();
+
+                        EnemyIdentifier eid = SceneObjectCache.TrySpawnEnemy(path, type1, pos, rot);
+                        eid.name = name;
+                        eid.isBoss = boss;
+                        if(boss && eid.GetComponent<BossHealthBar>() == null)
                         {
-                            var sync = go.GetComponent<NetworkEnemySync>();
-                            sync.owner = senderId;
-                            sync.here = true;
-                            go.SetActive(true);
+                            BossHealthBar bhb = eid.gameObject.AddComponent<BossHealthBar>();
+                            bhb.bossName = eid.FullName;
                         }
+
+                        if (hasHp) eid.HealthBuff(hpMod);
+                        if (hasSpeed) eid.SpeedBuff(speedMod);
+                        if (hasDamage) eid.DamageBuff(damageMod);
                         break;
                     }
 
@@ -348,6 +375,16 @@ namespace Polarite.Multiplayer
                             cp.activated = true;
                             cp.ActivateCheckPoint();
                             NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(senderId));
+                            if(DeadPatch.SpectateOnDeath)
+                            {
+                                DeadPatch.DeadPlayers = 0;
+                                DeadPatch.DeadPs.Clear();
+
+                                NewMovement m = MonoSingleton<NewMovement>.Instance;
+                                NetworkPlayer sender = NetworkPlayer.Find(senderId);
+
+                                DeadPatch.Respawn(sender.transform.position + Vector3.up * 1.25f, sender.transform.rotation);
+                            }
                         }
                         break;
                     }
@@ -407,6 +444,32 @@ namespace Polarite.Multiplayer
                         ulong who = reader.ReadULong();
                         int dmg = reader.ReadInt();
                         NetworkPlayer.DoFriendlyDamage(who, dmg);
+                        break;
+                    }
+                case PacketType.CyberPattern:
+                    {
+                        int wave = reader.ReadInt();
+                        string h = reader.ReadString();
+                        string p = reader.ReadString();
+                        CyberSync.Load(new ArenaPattern
+                        {
+                            heights = h,
+                            prefabs = p
+                        }, wave);
+                        break;
+                    }
+                case PacketType.ObjAct:
+                    {
+                        string path = reader.ReadString();
+                        GameObject obj = SceneObjectCache.Find(path);
+                        if (obj)
+                        {
+                            ObjectActivator activator = obj.GetComponent<ObjectActivator>();
+                            if (activator != null)
+                            {
+                                activator.Activate();
+                            }
+                        }
                         break;
                     }
             }

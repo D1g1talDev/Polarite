@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Polarite.Patches;
+
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -120,6 +122,29 @@ namespace Polarite.Multiplayer
                 Add(found);
 
             return found;
+        }
+
+        public static EnemyIdentifier TrySpawnEnemy(string path, EnemyType fallback, Vector3 pos, Quaternion rot)
+        {
+            try
+            {
+                GameObject obj = Find(path);
+                if (obj == null || NetworkManager.Sandbox || CyberSync.Active)
+                {
+                    return EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
+                }
+                else
+                {
+                    obj.SetActive(true);
+                    obj.transform.position = pos;
+                    obj.transform.rotation = rot;
+                    return obj.GetComponent<EnemyIdentifier>();
+                }
+            }
+            catch
+            {
+                return EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
+            }
         }
 
         public static void Add(GameObject obj)

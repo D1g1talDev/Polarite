@@ -32,6 +32,13 @@ namespace Polarite.Patches
             {
                 return false;
             }
+            if(NetworkManager.InLobby && __instance.TryGetComponent<ArenaStatus>(out var astat))
+            {
+                if(astat.currentStatus < __instance.waitForStatus)
+                {
+                    return false;
+                }
+            }
             PacketWriter w = new PacketWriter();
             w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));
             NetworkManager.Instance.BroadcastPacket(PacketType.Arena, w.GetBytes());
@@ -44,6 +51,13 @@ namespace Polarite.Patches
             if (!__instance.activateOnEnable && NetworkManager.InLobby)
             {
                 return false;
+            }
+            if (NetworkManager.InLobby && __instance.TryGetComponent<ArenaStatus>(out var astat))
+            {
+                if (astat.currentStatus < __instance.waitForStatus)
+                {
+                    return false;
+                }
             }
             PacketWriter w = new PacketWriter();
             w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));

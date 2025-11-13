@@ -49,7 +49,7 @@ namespace Polarite.Patches
             }
             if(NetworkManager.ClientAndConnected && sceneName != "Main Menu" && SceneHelper.CurrentScene != "Main Menu" && NetworkManager.players.Count > 1 && !ItePlugin.ignoreSpectate)
             {
-                ItePlugin.SpectatePlayers();
+                ItePlugin.SpectatePlayers(true);
                 ___loadingBlocker.SetActive(false);
                 ItePlugin.ignoreSpectate = true;
                 return false;

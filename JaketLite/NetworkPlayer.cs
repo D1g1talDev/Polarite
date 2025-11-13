@@ -53,6 +53,7 @@ namespace Polarite.Multiplayer
         public void SpawnNoise()
         {
             spawnNoise.Play();
+            ToggleRig(true);
         }
         public void DeathNoise()
         {
@@ -62,6 +63,7 @@ namespace Polarite.Multiplayer
             expB.canHit = AffectedSubjects.PlayerOnly;
             expB.damage = 0;
             expB.harmless = true;
+            ToggleRig(false);
         }
         public void HurtNoise()
         {
@@ -402,6 +404,7 @@ namespace Polarite.Multiplayer
 
         public void HandleFriendlyFire(ulong whoDidIt, int damage)
         {
+            /*
             if(damage == 0)
             {
                 damage = 1;
@@ -415,6 +418,7 @@ namespace Polarite.Multiplayer
                 // for testing
                 DoFriendlyDamage(whoDidIt, damage);
             }
+            */
         }
 
         public static NetworkPlayer Find(ulong id)
@@ -473,6 +477,9 @@ namespace Polarite.Multiplayer
             HeadRotate headR = v2Rig.transform.Find("v2_combined").gameObject.AddComponent<HeadRotate>();
             headR.head = headT;
 
+            EnsureAllObjectsAreCleaned(v2Rig.transform, id == NetworkManager.Id);
+
+            Destroy(v2Rig.GetComponent<EnemyIdentifier>());
             Destroy(v2Rig.GetComponent<V2>());
             Destroy(v2Rig.transform.Find("v2_combined").Find("v2_mdl").GetComponent<EnemySimplifier>());
             SkinnedMeshRenderer smr = v2Rig.transform.Find("v2_combined").Find("v2_mdl").GetComponent<SkinnedMeshRenderer>();
@@ -510,6 +517,15 @@ namespace Polarite.Multiplayer
             plr.Init(id, name);
             return plr;
         }
+        public void ToggleRig(bool value)
+        {
+            if(this == LocalPlayer)
+            {
+                return;
+            }
+            transform.Find("v2_combined").gameObject.SetActive(value);
+            NameTag.gameObject.SetActive(value);
+        }
         public static void EnsureAllObjectsAreCleaned(Transform t, bool local)
         {
             foreach(Transform c in t)
@@ -538,6 +554,7 @@ namespace Polarite.Multiplayer
                 col.enabled = value;
             }
         }
+        
 
         public static void ToggleColsForAll(bool value)
         {
@@ -549,24 +566,30 @@ namespace Polarite.Multiplayer
 
         public static void ToggleEid(Transform t, bool value)
         {
+            /*
             EnemyIdentifier eid = t.GetComponent<EnemyIdentifier>();
             eid.enabled = value;
             eid.dead = false;
-            eid.health = Mathf.Infinity;
+            eid.health = Mathf.Infinity;* 
+            */
         }
 
         public static void ToggleEidForAll(bool value)
         {
+            /*
             foreach (var plr in NetworkManager.players)
             {
                 ToggleEid(plr.Value.transform, value);
             }
+            */
         }
 
         public static void DoFriendlyDamage(ulong whoDidIt, int damage)
         {
+            /*
             MonoSingleton<NewMovement>.instance.GetHurt(damage, false);
             DeadPatch.Death("was friendly fired by ", whoDidIt);
+            */
         }
     }
 }

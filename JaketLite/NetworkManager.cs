@@ -615,6 +615,7 @@ namespace Polarite.Multiplayer
 
                         // check for people lying about what user they are within packets
                         if (sender != id)
+                            continue;
 
                         Handle(type, data, sender);
                     }

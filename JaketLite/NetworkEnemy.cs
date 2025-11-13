@@ -16,6 +16,7 @@ namespace Polarite.Multiplayer
         public EnemyIdentifier Enemy;
         public bool IsAlive = true;
         public ulong Owner = 0;
+        public bool IgnoreSpawnSync = false;
 
         private static readonly Dictionary<string, NetworkEnemy> allEnemies = new Dictionary<string, NetworkEnemy>();
         private static Coroutine globalTargetUpdater;
@@ -95,6 +96,7 @@ namespace Polarite.Multiplayer
                     bHB.enabled = true;
                 }
             }
+            SyncSpawn();
         }
         private void OnDestroy()
         {
@@ -135,9 +137,27 @@ namespace Polarite.Multiplayer
             }
             else
             {
-                Enemy.transform.position = Vector3.Lerp(Enemy.transform.position, targetPos, Time.unscaledDeltaTime * 10f);
-                Enemy.transform.rotation = Quaternion.Slerp(Enemy.transform.rotation, targetRot, Time.unscaledDeltaTime * 10f);
+                Enemy.transform.position = Vector3.Lerp(lastPos, targetPos, Time.unscaledDeltaTime * 10f);
+                Enemy.transform.rotation = Quaternion.Slerp(lastRot, targetRot, Time.unscaledDeltaTime * 10f);
             }
+        }
+        public void SyncSpawn()
+        {
+            PacketWriter w = new PacketWriter();
+            w.WriteString(name);
+            w.WriteString(ID);
+            w.WriteString(Enum.GetName(typeof(EnemyType), Enemy.enemyType));
+            w.WriteVector3(Enemy.transform.position);
+            w.WriteQuaternion(Enemy.transform.rotation);
+            w.WriteBool(Enemy.healthBuff);
+            w.WriteBool(Enemy.speedBuff);
+            w.WriteBool(Enemy.damageBuff);
+            w.WriteFloat(Enemy.healthBuffModifier);
+            w.WriteFloat(Enemy.speedBuffModifier);
+            w.WriteFloat(Enemy.damageBuffModifier);
+
+            w.WriteBool(Enemy.isBoss);
+            NetworkManager.Instance.BroadcastPacket(PacketType.EnemySpawn, w.GetBytes());
         }
         public void TakeOwnership(ulong newOwner)
         {
@@ -221,15 +241,19 @@ namespace Polarite.Multiplayer
 
             PacketWriter w = new PacketWriter();
             w.WriteString(ID);
+
             w.WriteVector3(pos);
             w.WriteQuaternion(rot);
 
             NetworkManager.Instance.BroadcastPacket(PacketType.EnemyState, w.GetBytes());
         }
 
-        public void ApplyState(Vector3 pos, Quaternion rot)
+        public void ApplyState(Vector3 lastPos1, Quaternion lastRot1, Vector3 pos, Quaternion rot)
         {
             if (Enemy == null) return;
+
+            lastPos = lastPos1;
+            lastRot = lastRot1;
 
             targetPos = pos;
             targetRot = rot;

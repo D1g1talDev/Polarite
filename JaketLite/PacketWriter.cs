@@ -86,7 +86,7 @@ namespace Polarite.Multiplayer
 
         public void WriteEnum<T>(T value) where T : Enum
         {
-            WriteInt(Convert.ToInt32(value));
+            WriteString(Enum.GetName(typeof(T), value));
         }
 
         public void WriteBytes(byte[] data)
