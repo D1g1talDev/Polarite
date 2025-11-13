@@ -74,10 +74,16 @@ namespace Polarite.Patches
         public static void Respawn(Vector3 pos, Quaternion rot)
         {
             NewMovement m = MonoSingleton<NewMovement>.Instance;
+            if(m.hp > 0)
+            {
+                return;
+            }
+            ItePlugin.StopSpectating();
             m.transform.position = pos;
             m.transform.rotation = rot;
             m.cc.ResetCamera(m.transform.eulerAngles.y + 0.01f);
             m.Respawn();
+            IsDeadInSpectate = false;
         }
     }
 }

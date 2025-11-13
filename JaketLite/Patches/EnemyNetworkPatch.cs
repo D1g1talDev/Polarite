@@ -21,6 +21,10 @@ namespace Polarite.Patches
         {
             if (__instance.GetComponent<NetworkEnemy>() == null && __instance.gameObject.scene.name != null && NetworkManager.InLobby)
             {
+                if(!SceneObjectCache.Contains(__instance.gameObject))
+                {
+                    SceneObjectCache.Add(__instance.gameObject);
+                }
                 NetworkEnemy.Create(SceneObjectCache.GetScenePath(__instance.gameObject), __instance, NetworkManager.Instance.CurrentLobby.Owner.Id);
             }
         }

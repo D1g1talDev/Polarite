@@ -96,7 +96,10 @@ namespace Polarite.Multiplayer
                     bHB.enabled = true;
                 }
             }
-            SyncSpawn();
+            if(Owner == NetworkManager.Id)
+            {
+                SyncSpawn();
+            }
         }
         private void OnDestroy()
         {

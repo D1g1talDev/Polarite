@@ -447,7 +447,6 @@
     <Compile Include="Patches\CyberSync.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
     <Compile Include="Patches\NoGZForPlayer.cs" />
-    <Compile Include="Patches\ObjActPatch.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />
     <Compile Include="Patches\DeadPatch.cs" />

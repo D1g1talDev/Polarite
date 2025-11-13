@@ -597,6 +597,7 @@ namespace Polarite
         public static IEnumerator SpectatePlayersB(bool loadAll)
         {
             yield return new WaitForSeconds(1.25f);
+            MonoSingleton<NewMovement>.Instance.ActivatePlayer();
             List<Transform> playerTransforms = new List<Transform>();
             SpectatorCam cam = MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>();
             if (cam == null)
@@ -621,6 +622,15 @@ namespace Polarite
                 }
                 MonoSingleton<MusicManager>.Instance.ForceStartMusic();
             }
+        }
+        public static void StopSpectating()
+        {
+            SpectatorCam cam = MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>();
+            if (cam == null)
+            {
+                cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();
+            }
+            cam.StopSpectating();
         }
         public static IEnumerator RestartCols()
         {

@@ -80,7 +80,6 @@ namespace Polarite
             playerTargets = targets;
             currentIndex = 0;
             isSpectating = true;
-            spectatorCamera.enabled = true;
 
             if (spectatorCanvas != null)
                 spectatorCanvas.enabled = true;
@@ -92,7 +91,6 @@ namespace Polarite
         public void StopSpectating()
         {
             isSpectating = false;
-            spectatorCamera.enabled = false;
             playerTargets.Clear();
 
             if (spectatorCanvas != null)

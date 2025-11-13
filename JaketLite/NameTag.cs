@@ -72,8 +72,8 @@ namespace Polarite
                 rt.anchorMin = new Vector2(0.5f, 0.5f);
                 rt.anchorMax = new Vector2(0.5f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0f);
-                rt.anchoredPosition = new Vector2(0f, 1f);
-                rt.sizeDelta = new Vector2(5f, 5f);
+                rt.anchoredPosition = new Vector2(0f, 30f);
+                rt.sizeDelta = new Vector2(45f, 45f);
             }
 
             if (talkingAvatar != null)

@@ -131,7 +131,12 @@ namespace Polarite.Multiplayer
                 GameObject obj = Find(path);
                 if (obj == null || NetworkManager.Sandbox || CyberSync.Active)
                 {
-                    return EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
+                    EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
+                    if(!Contains(newE.gameObject))
+                    {
+                        Add(newE.gameObject);
+                    }
+                    return newE;
                 }
                 else
                 {
@@ -143,7 +148,12 @@ namespace Polarite.Multiplayer
             }
             catch
             {
-                return EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
+                EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
+                if (!Contains(newE.gameObject))
+                {
+                    Add(newE.gameObject);
+                }
+                return newE;
             }
         }
 

@@ -37,7 +37,8 @@ namespace Polarite.Patches
         {
             current = pat;
             wave = w;
-            AccessTools.Method(typeof(EndlessGrid), "NextWave").Invoke(typeof(EndlessGrid), null);
+            EndlessGrid.instance.NextWave();
+            EndlessGrid.instance.LoadPattern(pat);
             Collider col = EndlessGrid.instance.GetComponent<Collider>();
             if (col.enabled)
             {
