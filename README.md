@@ -13,7 +13,7 @@ Works with **Steam**
 - Respawning, and dying
 - Enemy spawns, Enemy positions and rotations, damage to enemies
 - Breakables, hook points, checkpoints
-- Arenas, Triggers
+- Arenas
 - Cybergrind and Sandbox
 
 ## Manual Installation
