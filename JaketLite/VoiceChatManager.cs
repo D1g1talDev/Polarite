@@ -37,6 +37,7 @@ namespace Polarite.Multiplayer
         private GameObject indicatorCanvas;
         private UnityEngine.UI.Image indicatorImage;
         private Sprite onSprite, offSprite;
+        private bool wasInLobby = false;
 
         void Awake()
         {
@@ -50,6 +51,7 @@ namespace Polarite.Multiplayer
             DontDestroyOnLoad(gameObject);
             TryStartMic();
             CreateIndicator();
+            wasInLobby = NetworkManager.InLobby;
         }
 
         void OnDestroy()
@@ -67,6 +69,13 @@ namespace Polarite.Multiplayer
         {
             bool hasMic = Microphone.devices != null && Microphone.devices.Length > 0;
             bool inLobby = NetworkManager.InLobby;
+
+            // detect leaving lobby: cleanup audio resources to avoid hearing peers while disconnected
+            if (wasInLobby && !inLobby)
+            {
+                CleanupAllPeers();
+            }
+            wasInLobby = inLobby;
 
             if (indicatorCanvas != null)
                 indicatorCanvas.SetActive(hasMic && inLobby);
@@ -253,6 +262,11 @@ namespace Polarite.Multiplayer
 
         public void OnP2PDataReceived(byte[] buffer, int length, SteamId sender)
         {
+            // Ignore voice packets when not in a valid lobby or Steam not initialized
+            if (NetworkManager.Instance == null || NetworkManager.Instance.CurrentLobby.Id == 0 || !SteamClient.IsValid) return;
+            // ignore packets from users not in our current player list
+            if (!NetworkManager.players.ContainsKey(sender.Value.ToString())) return;
+
             if (length < 1 || buffer[0] != 0x56) return;
 
             int idx = 1;
