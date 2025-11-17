@@ -7,6 +7,7 @@ using Sandbox;
 using Random = UnityEngine.Random;
 using Steamworks;
 using ULTRAKILL.Cheats;
+using System.Linq;
 
 namespace Polarite.Multiplayer
 {
@@ -22,8 +23,8 @@ namespace Polarite.Multiplayer
         private static Coroutine globalTargetUpdater;
 
         private float lastSyncTime;
-        private Vector3 lastPos;
-        private Quaternion lastRot;
+        private Vector3 lastPos, currentP;
+        private Quaternion lastRot, currentR;
         public Vector3 targetPos;
         public Quaternion targetRot;
 
@@ -34,6 +35,12 @@ namespace Polarite.Multiplayer
             if(eid.GetComponent<NetworkPlayer>() != null)
             {
                 return null;
+            }
+            if(eid.TryGetComponent<NetworkEnemy>(out var net))
+            {
+                net.ID = id;
+                net.Owner = owner;
+                return net;
             }
             var netE = eid.gameObject.AddComponent<NetworkEnemy>();
             netE.ID = id;
@@ -66,6 +73,8 @@ namespace Polarite.Multiplayer
 
             lastPos = Enemy.transform.position;
             lastRot = Enemy.transform.rotation;
+            currentP = lastPos;
+            currentR = lastRot;
             targetPos = Enemy.transform.position;
             targetRot = Enemy.transform.rotation;
             // ensure it exists for everyone
@@ -110,8 +119,11 @@ namespace Polarite.Multiplayer
         private void Update()
         {
             if (Enemy == null || !IsAlive) return;
+            // ensure that this is a known enemy for the packets
+            if (!allEnemies.ContainsKey(ID)) allEnemies.Add(ID, this);
+
             // make sure swordsmachines try not to target anything
-            if(SceneHelper.CurrentScene == "Level 0-2" && Enemy.enemyType == EnemyType.Swordsmachine)
+            if (SceneHelper.CurrentScene == "Level 0-2" && Enemy.enemyType == EnemyType.Swordsmachine)
             {
                 if(globalTargetUpdater != null)
                 {
@@ -140,8 +152,8 @@ namespace Polarite.Multiplayer
             }
             else
             {
-                Enemy.transform.position = Vector3.Lerp(Enemy.transform.position, targetPos, Time.unscaledDeltaTime * 10f);
-                Enemy.transform.rotation = Quaternion.Slerp(Enemy.transform.rotation, targetRot, Time.unscaledDeltaTime * 10f);
+                Enemy.transform.position = Vector3.Lerp(currentP, targetPos, Time.unscaledDeltaTime * 10f);
+                Enemy.transform.rotation = Quaternion.Slerp(currentR, targetRot, Time.unscaledDeltaTime * 10f);
             }
         }
         public void SyncSpawn()
@@ -254,6 +266,9 @@ namespace Polarite.Multiplayer
         public void ApplyState(Vector3 pos, Quaternion rot)
         {
             if (Enemy == null) return;
+
+            currentP = Enemy.transform.position;
+            currentR = Enemy.transform.rotation;
 
             targetPos = pos;
             targetRot = rot;
