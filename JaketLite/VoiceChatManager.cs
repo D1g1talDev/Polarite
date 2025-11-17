@@ -10,6 +10,8 @@ using UnityEngine.UI;
 using Polarite;
 using SteamImage = Steamworks.Data.Image;
 
+// class made by doomahreal, also IM BECOMING THE BOILED ONE WITH THIS CODE AHHHHHHHHHHHHHH WHY DOES IT KEEP SOUNDING SHITTY!!!!!!!!
+
 namespace Polarite.Multiplayer
 {
     public class VoiceChatManager : MonoBehaviour
@@ -38,6 +40,10 @@ namespace Polarite.Multiplayer
         private UnityEngine.UI.Image indicatorImage;
         private Sprite onSprite, offSprite;
         private bool wasInLobby = false;
+
+        // Codec identifiers
+        private const byte CODEC_PCM16 = 1;
+        private const byte CODEC_MULAW8 = 2;
 
         void Awake()
         {
@@ -147,7 +153,8 @@ namespace Polarite.Multiplayer
                     case VoiceQuality.High: sampleRate = 48000; break;
                 }
 
-                chunkSamples = Mathf.Max(1, Mathf.RoundToInt(sampleRate * 0.02f));
+                // use a 20ms target chunk but clamp to reasonable bounds to avoid too small or too large packets
+                chunkSamples = Mathf.Clamp(Mathf.Max(1, Mathf.RoundToInt(sampleRate * 0.02f)), 128, 2048);
                 micClip = Microphone.Start(micDevice, true, 1, sampleRate);
 
                 int attempts = 0;
@@ -221,17 +228,21 @@ namespace Polarite.Multiplayer
 
                     float rms = Mathf.Sqrt(sum / chunkSamples);
 
-                    byte[] payload = new byte[1 + 2 + 1 + 2 + chunkSamples * 2];
+                    // use mu-law compression to reduce packet size
+                    byte[] compressed = new byte[chunkSamples];
+                    for (int i = 0; i < chunkSamples; i++)
+                        compressed[i] = MuLawCompress(pcm[i]);
+
+                    // payload: 1 byte magic, 2 bytes sampleRate, 1 byte channels, 1 byte codec, 2 bytes samples, then payload bytes
+                    int headerSize = 1 + 2 + 1 + 1 + 2;
+                    byte[] payload = new byte[headerSize + compressed.Length];
                     int idx = 0;
                     payload[idx++] = 0x56;
                     Array.Copy(BitConverter.GetBytes((ushort)sampleRate), 0, payload, idx, 2); idx += 2;
-                    payload[idx++] = 1;
+                    payload[idx++] = 1; // channels
+                    payload[idx++] = CODEC_MULAW8;
                     Array.Copy(BitConverter.GetBytes((ushort)chunkSamples), 0, payload, idx, 2); idx += 2;
-                    for (int i = 0; i < chunkSamples; i++)
-                    {
-                        Array.Copy(BitConverter.GetBytes(pcm[i]), 0, payload, idx, 2);
-                        idx += 2;
-                    }
+                    Array.Copy(compressed, 0, payload, idx, compressed.Length);
 
                     if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0 && SteamClient.IsValid)
                     {
@@ -262,28 +273,51 @@ namespace Polarite.Multiplayer
 
         public void OnP2PDataReceived(byte[] buffer, int length, SteamId sender)
         {
-            // Ignore voice packets when not in a valid lobby or Steam not initialized
+            // ignore voice packets when not in a valid lobby or Steam not initialized
             if (NetworkManager.Instance == null || NetworkManager.Instance.CurrentLobby.Id == 0 || !SteamClient.IsValid) return;
             // ignore packets from users not in our current player list
             if (!NetworkManager.players.ContainsKey(sender.Value.ToString())) return;
 
-            if (length < 1 || buffer[0] != 0x56) return;
+            // minimal header check: magic + sr + channels + codec + samples
+            if (length < 1 + 2 + 1 + 1 + 2) return;
+            if (buffer[0] != 0x56) return;
 
             int idx = 1;
             ushort sr = BitConverter.ToUInt16(buffer, idx); idx += 2;
             byte channels = buffer[idx++];
+            byte codec = buffer[idx++];
             ushort samples = BitConverter.ToUInt16(buffer, idx); idx += 2;
-            int expectedBytes = samples * 2;
+
+            int expectedBytes = 0;
+            if (codec == CODEC_PCM16) expectedBytes = samples * 2;
+            else if (codec == CODEC_MULAW8) expectedBytes = samples; // 1 byte per sample
+            else return; // unknown codec
+
             if (length < idx + expectedBytes) return;
 
             float[] floats = new float[samples];
             float sum = 0f;
-            for (int i = 0; i < samples; i++)
+
+            if (codec == CODEC_PCM16)
             {
-                short s = BitConverter.ToInt16(buffer, idx); idx += 2;
-                float v = s / (float)short.MaxValue;
-                floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
-                sum += v * v;
+                for (int i = 0; i < samples; i++)
+                {
+                    short s = BitConverter.ToInt16(buffer, idx); idx += 2;
+                    float v = s / (float)short.MaxValue;
+                    floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
+                    sum += v * v;
+                }
+            }
+            else // mu-law
+            {
+                for (int i = 0; i < samples; i++)
+                {
+                    byte b = buffer[idx++];
+                    short s = MuLawExpand(b);
+                    float v = s / (float)short.MaxValue;
+                    floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
+                    sum += v * v;
+                }
             }
 
             float level = Mathf.Clamp01(Mathf.Sqrt(sum / samples) * 5f);
@@ -304,7 +338,8 @@ namespace Polarite.Multiplayer
                     voiceClips.Remove(senderId);
                 }
 
-                int clipSamples = sr * 2;
+                // use a 3 second ring buffer by default to reduce underruns while keeping latency reasonable
+                int clipSamples = sr * 3;
                 clip = AudioClip.Create($"vc_stream_{senderId}", clipSamples, Math.Max(1, (int)channels), sr, false);
                 voiceClips[senderId] = clip;
                 writeHeads[senderId] = 0;
@@ -488,6 +523,45 @@ namespace Polarite.Multiplayer
             {
                 Debug.LogWarning("[Voice] Failed to cleanup peers: " + e);
             }
+        }
+
+        // --- mu-law helpers (8-bit) ---
+        private static readonly int[] MuLawCompressTable = GenerateMuLawCompressTable();
+
+        private static byte MuLawCompress(short pcm)
+        {
+            // implement standard 8-bit mu-law compression
+            // convert to 14-bit magnitude
+            int sign = (pcm >> 8) & 0x80;
+            int magnitude = Math.Abs(pcm);
+            if (magnitude > 32635) magnitude = 32635;
+            magnitude += 132;
+
+            int exponent = 7;
+            for (int expMask = 0x4000; (magnitude & expMask) == 0 && exponent > 0; expMask >>= 1)
+                exponent--;
+
+            int mantissa = (magnitude >> (exponent + 3)) & 0x0F;
+            byte mulaw = (byte)~(sign | (exponent << 4) | mantissa);
+            return mulaw;
+        }
+
+        private static short MuLawExpand(byte mulaw)
+        {
+            mulaw = (byte)~mulaw;
+            int sign = (mulaw & 0x80);
+            int exponent = (mulaw & 0x70) >> 4;
+            int mantissa = mulaw & 0x0F;
+            int magnitude = ((mantissa << 3) + 0x84) << exponent;
+            magnitude -= 132;
+            short sample = (short)(sign == 0 ? magnitude : -magnitude);
+            return sample;
+        }
+
+        private static int[] GenerateMuLawCompressTable()
+        {
+            // kept for reference / possible future optimizations
+            return new int[256];
         }
     }
 }
