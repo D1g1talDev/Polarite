@@ -351,20 +351,42 @@ namespace Polarite.Multiplayer
             int head = writeHeads.ContainsKey(senderId) ? writeHeads[senderId] : 0;
             try
             {
-                if (samples > clip.samples)
+                int clipLen = clip.samples;
+
+                if (samples >= clipLen)
                 {
-                    float[] small = new float[clip.samples];
-                    Array.Copy(floats, 0, small, 0, clip.samples);
-                    clip.SetData(small, head);
-                    head += clip.samples;
+                    // payload bigger than clip: keep last clipLen samples
+                    float[] small = new float[clipLen];
+                    Array.Copy(floats, samples - clipLen, small, 0, clipLen);
+                    clip.SetData(small, 0);
+                    head = 0;
                 }
                 else
                 {
-                    clip.SetData(floats, head);
-                    head += samples;
+                    int spaceAtEnd = clipLen - head;
+                    if (samples <= spaceAtEnd)
+                    {
+                        // fits without wrapping
+                        clip.SetData(floats, head);
+                        head += samples;
+                        if (head >= clipLen) head = 0;
+                    }
+                    else
+                    {
+                        // split into two writes to wrap around circular buffer
+                        float[] part1 = new float[spaceAtEnd];
+                        Array.Copy(floats, 0, part1, 0, spaceAtEnd);
+                        clip.SetData(part1, head);
+
+                        int remaining = samples - spaceAtEnd;
+                        float[] part2 = new float[remaining];
+                        Array.Copy(floats, spaceAtEnd, part2, 0, remaining);
+                        clip.SetData(part2, 0);
+
+                        head = remaining;
+                    }
                 }
 
-                if (head >= clip.samples) head = 0;
                 writeHeads[senderId] = head;
                 lastPacketTime[senderId] = Time.time;
             }
