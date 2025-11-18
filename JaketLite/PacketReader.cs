@@ -119,21 +119,27 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Die:
                     {
-                        byte msgB = reader.ReadByte(); ulong id = reader.ReadULong();
+                        byte msgB = reader.ReadByte();
+                        ulong id = reader.ReadULong();
 
-                        string msg = Patches.DeadPatch.DeathMessages[msgB];
-                        if (msgB == 1) msg += NetworkManager.GetNameOfId(id);
-                        else if (id != 0) msg += ((EnemyType)id).ToString();
+                        string baseMsg = DeadPatch.DeathMessages[msgB];
+                        string finalMsg = baseMsg;
 
-                        NetworkPlayer.Find(senderId)?.DeathNoise();
-                        NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId) + " " + msg);
-                        /*
-                        if(DeadPatch.SpectateOnDeath)
+                        if (baseMsg.Contains("{0}"))
                         {
-                            DeadPatch.DeadPlayers++;
-                            DeadPatch.DeadPs.Add(NetworkPlayer.Find(senderId));
+                            string playerName = NetworkManager.GetNameOfId(id);
+                            if (!string.IsNullOrEmpty(playerName) && playerName != id.ToString())
+                            {
+                                finalMsg = string.Format(baseMsg, playerName);
+                            }
+                            else
+                            {
+                                EnemyType type1 = (EnemyType)(int)id;
+                                finalMsg = string.Format(baseMsg, type.ToString());
+                            }
                         }
-                        */
+                        NetworkPlayer.Find(senderId)?.DeathNoise();
+                        NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId) + " " + finalMsg);
                         break;
                     }
 

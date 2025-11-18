@@ -53,26 +53,36 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(DeathSequence __instance)
         {
-            if(NetworkManager.InLobby)
+            if (!NetworkManager.InLobby)
+                return;
+
+            string final = DeathMessage;
+            if (DeathMessage.Contains("{0}"))
             {
-                PacketWriter w = new PacketWriter();
-                w.WriteByte(deathMessage);
-                w.WriteULong(Arg);
-                NetworkManager.Instance.BroadcastPacket(PacketType.Die, w.GetBytes());
-                NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + DeathMessage);
-                NetworkPlayer.ToggleEidForAll(false);
-                /*
-                if(SpectateOnDeath)
+                string enemy = Enum.GetName(typeof(EnemyType), (int)Arg);
+                string player = NetworkManager.GetNameOfId(Arg);
+
+                if (!string.IsNullOrEmpty(enemy))
                 {
-                    DeadPlayers++;
-                    IsDeadInSpectate = true;
-                    ItePlugin.SpectatePlayers(false);
-                    __instance.EndSequence();
-                    __instance.deathScreen.SetActive(false);
+                    final = string.Format(DeathMessage, enemy);
                 }
-                */
+                else if (!string.IsNullOrEmpty(player))
+                {
+                    final = string.Format(DeathMessage, player);
+                }
+                else
+                {
+                    final = string.Format(DeathMessage, Arg);
+                }
             }
+            PacketWriter w = new PacketWriter();
+            w.WriteString(final);
+            NetworkManager.Instance.BroadcastPacket(PacketType.Die, w.GetBytes());
+
+            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + final);
+            NetworkPlayer.ToggleEidForAll(false);
         }
+
         public static void Respawn(Vector3 pos, Quaternion rot)
         {
             NewMovement m = MonoSingleton<NewMovement>.Instance;

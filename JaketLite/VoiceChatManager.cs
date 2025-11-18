@@ -260,7 +260,7 @@ namespace Polarite.Multiplayer
 
                     var localPlayer = NetworkPlayer.LocalPlayer;
                     if (localPlayer != null && localPlayer.NameTag != null)
-                        localPlayer.NameTag.SetTalkingLevel(Mathf.Clamp01(rms * 5f));
+                        localPlayer.NameTag.SetTalking(Mathf.Clamp01(rms * 5f) > 0.05f);
 
                     micPosition += chunkSamples;
                     if (micPosition >= micClip.samples) micPosition -= micClip.samples;
@@ -322,7 +322,7 @@ namespace Polarite.Multiplayer
 
             float level = Mathf.Clamp01(Mathf.Sqrt(sum / samples) * 5f);
             NetworkPlayer plr = NetworkPlayer.Find(sender.Value);
-            if (plr != null && plr.NameTag != null) plr.NameTag.SetTalkingLevel(level);
+            if (plr != null && plr.NameTag != null) plr.NameTag.SetTalking(level > 0.05f);
             if (!ItePlugin.receiveVoice.value) return;
 
             ulong senderId = sender.Value;

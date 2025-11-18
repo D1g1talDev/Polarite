@@ -32,10 +32,8 @@ namespace Polarite
         private Vector3 baseHPScale;
 
         // voice avatar
-        private Image talkingAvatar;
-        private float talkingLevel = 0f;
-        private float lastTalkTime = -9999f;
-        private float talkFadeSeconds = 2f;
+        private GameObject talking;
+        private float disableTalkTimer;
 
         void Start()
         {
@@ -56,31 +54,19 @@ namespace Polarite
             transform.Find("Canvas").GetComponent<Canvas>().worldCamera = MonoSingleton<CameraController>.Instance.cam;
             player = playerT;
 
-            // create or find avatar image
-            Transform existing = mainLookAt.Find("TalkingPFP");
+            Transform pfp = mainLookAt.Find("PFP");
+            if(pfp != null)
+            {
+                Image img = pfp.GetComponent<Image>();
+                PlayerList.FetchAvatar(img, new Friend(steamId));
+                img.rectTransform.sizeDelta = new Vector2(120, 120);
+            }
+            // added a speaking icon to the bundle
+            Transform existing = mainLookAt.Find("Speaking");
             if (existing != null)
             {
-                talkingAvatar = existing.GetComponent<Image>();
-            }
-            else
-            {
-                GameObject go = new GameObject("TalkingPFP", typeof(RectTransform), typeof(Image));
-                go.transform.SetParent(mainLookAt, false);
-                talkingAvatar = go.GetComponent<Image>();
-                RectTransform rt = go.GetComponent<RectTransform>();
-                // position above hpText
-                rt.anchorMin = new Vector2(0.5f, 0.5f);
-                rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.pivot = new Vector2(0.5f, 0f);
-                rt.anchoredPosition = new Vector2(0f, 30f);
-                rt.sizeDelta = new Vector2(45f, 45f);
-            }
-
-            if (talkingAvatar != null)
-            {
-                talkingAvatar.color = new Color(1f, 1f, 1f, 0f);
-                // fetch avatar image
-                PlayerList.FetchAvatar(talkingAvatar, new Friend(id));
+                talking = existing.gameObject;
+                talking.gameObject.SetActive(false);
             }
         }
 
@@ -88,6 +74,17 @@ namespace Polarite
         {
             if (nameText == null) return;
 
+            if(disableTalkTimer > 0)
+            {
+                disableTalkTimer -= Time.deltaTime;
+            }
+            else
+            {
+                if (talking != null && talking.activeSelf)
+                {
+                    talking.SetActive(false);
+                }
+            }
             float textWidth = nameText.preferredWidth / 6.25f;
             if (Mathf.Abs(textWidth - lastWidth) > 0.001f)
             {
@@ -140,38 +137,16 @@ namespace Polarite
                 float scale = Mathf.Lerp(1f, heartbeatStrength, beat);
                 hpText.transform.localScale = baseHPScale * scale;
             }
-
-            // update talking avatar alpha based on lastTalkTime and level
-            if (talkingAvatar != null)
-            {
-                float age = Time.time - lastTalkTime;
-                float target = 0f;
-                if (age < talkFadeSeconds)
-                {
-                    target = talkingLevel;
-                }
-                float flicker = 0f;
-                if (talkingLevel > 0.01f)
-                {
-                    flicker = Mathf.Sin(Time.time * 20f) * 0.1f * talkingLevel;
-                }
-                float currentAlpha = talkingAvatar.color.a;
-                float desired = Mathf.Clamp01(target + flicker);
-                float next = Mathf.Lerp(currentAlpha, desired, Time.deltaTime * 8f);
-                Color c = talkingAvatar.color;
-                c.a = next;
-                talkingAvatar.color = c;
-            }
         }
         public void SetHP(float newHP)
         {
             targetHP = Mathf.Clamp(newHP, 0f, 200f);
         }
 
-        public void SetTalkingLevel(float level)
+        public void SetTalking(bool value)
         {
-            talkingLevel = Mathf.Clamp01(level);
-            lastTalkTime = Time.time;
+            if (value) disableTalkTimer = 1f;
+            talking.SetActive(value);
         }
     }
 }

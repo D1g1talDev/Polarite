@@ -571,6 +571,10 @@ namespace Polarite
             {
                 NetworkPlayer.ToggleEidForAll(true);
                 CleanLevelOfSoftlocks();
+                foreach(var p in NetworkManager.players.Values)
+                {
+                    p.ToggleRig(true);
+                }
             }
         }
         public static void SpawnSound(AudioClip clip, float pitch, Transform parent, float volume)
