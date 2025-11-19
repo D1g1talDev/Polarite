@@ -33,6 +33,7 @@ namespace Polarite
 
         // voice avatar
         private GameObject talking;
+        private Image pfpI;
         private float disableTalkTimer;
 
         void Start()
@@ -60,6 +61,7 @@ namespace Polarite
                 Image img = pfp.GetComponent<Image>();
                 PlayerList.FetchAvatar(img, new Friend(steamId));
                 img.rectTransform.sizeDelta = new Vector2(120, 120);
+                pfpI = img;
             }
             // added a speaking icon to the bundle
             Transform existing = mainLookAt.Find("Speaking");
@@ -97,7 +99,7 @@ namespace Polarite
                 scale.x = scaledWidth;
                 background.localScale = scale;
             }
-
+            pfpI.rectTransform.sizeDelta = new Vector2(120, 120);
             Transform cam = Camera.current.transform;
             Vector3 dir = (mainLookAt.transform.position - cam.position).normalized;
             mainLookAt.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);

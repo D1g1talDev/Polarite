@@ -56,30 +56,17 @@ namespace Polarite.Patches
             if (!NetworkManager.InLobby)
                 return;
 
-            string final = DeathMessage;
-            if (DeathMessage.Contains("{0}"))
-            {
-                string enemy = Enum.GetName(typeof(EnemyType), (int)Arg);
-                string player = NetworkManager.GetNameOfId(Arg);
-
-                if (!string.IsNullOrEmpty(enemy))
-                {
-                    final = string.Format(DeathMessage, enemy);
-                }
-                else if (!string.IsNullOrEmpty(player))
-                {
-                    final = string.Format(DeathMessage, player);
-                }
-                else
-                {
-                    final = string.Format(DeathMessage, Arg);
-                }
-            }
+            
             PacketWriter w = new PacketWriter();
-            w.WriteString(final);
+            w.WriteByte(deathMessage);
+            w.WriteULong(Arg);
             NetworkManager.Instance.BroadcastPacket(PacketType.Die, w.GetBytes());
 
-            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + final);
+            string msg = DeathMessages[deathMessage];
+            ulong id = Arg;
+            if (deathMessage == 1) msg += NetworkManager.GetNameOfId(id);
+            else if (id != 0) msg += ((EnemyType)id).ToString();
+            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + msg);
             NetworkPlayer.ToggleEidForAll(false);
         }
 

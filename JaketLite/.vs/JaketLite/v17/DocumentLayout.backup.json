@@ -15,12 +15,20 @@
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:iteplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\networkmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:networkmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\patches\\deadpatch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:patches\\deadpatch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\packetreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:packetreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\entitystorage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:entitystorage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\networkenemy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -61,14 +69,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\binarypacketreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:binarypacketreader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\networkmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:networkmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\entitystorage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|solutionrelative:entitystorage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1F807CB4-4D22-4300-ADF4-C04802F7AB19}|Polarite.csproj|C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\patches\\deathzonepatch.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -217,7 +217,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Bookmark",
@@ -225,33 +225,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "NetworkIDManager.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkIDManager.cs",
-              "RelativeDocumentMoniker": "NetworkIDManager.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkIDManager.cs",
-              "RelativeToolTip": "NetworkIDManager.cs",
-              "ViewState": "AgIAAGoAAAAAAAAAAAAgwHYAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-13T07:14:42.32Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 7,
-              "Title": "EnemyNetworkPatch.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\EnemyNetworkPatch.cs",
-              "RelativeDocumentMoniker": "Patches\\EnemyNetworkPatch.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\EnemyNetworkPatch.cs",
-              "RelativeToolTip": "Patches\\EnemyNetworkPatch.cs",
-              "ViewState": "AgIAABAAAAAAAAAAAAAqwB0AAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T05:11:10.24Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
               "Title": "NetworkEnemy.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkEnemy.cs",
               "RelativeDocumentMoniker": "NetworkEnemy.cs",
@@ -264,26 +238,26 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "PacketReader.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\PacketReader.cs",
               "RelativeDocumentMoniker": "PacketReader.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\PacketReader.cs",
               "RelativeToolTip": "PacketReader.cs",
-              "ViewState": "AgIAAHkAAAAAAAAAAAAiwIEAAABPAAAAAAAAAA==",
+              "ViewState": "AgIAAHQAAAAAAAAAAAAAAIYAAAAZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T00:37:38.28Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "DeadPatch.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\DeadPatch.cs",
               "RelativeDocumentMoniker": "Patches\\DeadPatch.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\DeadPatch.cs",
               "RelativeToolTip": "Patches\\DeadPatch.cs",
-              "ViewState": "AgIAADcAAAAAAAAAAAAiwEUAAAARAAAAAAAAAA==",
+              "ViewState": "AgIAADkAAAAAAAAAAADwv0EAAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-07T09:48:49.783Z",
               "EditorCaption": ""
@@ -300,7 +274,7 @@
               "RelativeDocumentMoniker": "VoiceChatManager.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\VoiceChatManager.cs",
               "RelativeToolTip": "VoiceChatManager.cs",
-              "ViewState": "AgIAAPUAAAAAAAAAAAAqwAUBAABLAAAAAAAAAA==",
+              "ViewState": "AgIAALsBAAAAAAAAAAAnwLMBAAAlAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-06T23:48:06.515Z",
               "EditorCaption": ""
@@ -313,7 +287,7 @@
               "RelativeDocumentMoniker": "NameTag.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NameTag.cs",
               "RelativeToolTip": "NameTag.cs",
-              "ViewState": "AgIAADMAAAAAAAAAAAAIwEEAAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAFYAAAAAAAAAAAAQwGQAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T08:46:47.158Z",
               "EditorCaption": ""
@@ -326,14 +300,66 @@
               "RelativeDocumentMoniker": "ItePlugin.cs",
               "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\ItePlugin.cs",
               "RelativeToolTip": "ItePlugin.cs",
-              "ViewState": "AgIAACwCAAAAAAAAAAAjwD8CAAAmAAAAAAAAAA==",
+              "ViewState": "AgIAAJUAAAAAAAAAAAAmwJ8AAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T00:36:42.721Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "EntityStorage.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\EntityStorage.cs",
+              "RelativeDocumentMoniker": "EntityStorage.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\EntityStorage.cs",
+              "RelativeToolTip": "EntityStorage.cs",
+              "ViewState": "AgIAADAAAAAAAAAAAAAewBEAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T06:53:05.35Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "NetworkManager.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkManager.cs",
+              "RelativeDocumentMoniker": "NetworkManager.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkManager.cs",
+              "RelativeToolTip": "NetworkManager.cs",
+              "ViewState": "AgIAALQAAAAAAAAAAAAgwMYAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T00:59:02.128Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 8,
+              "Title": "NetworkIDManager.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkIDManager.cs",
+              "RelativeDocumentMoniker": "NetworkIDManager.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkIDManager.cs",
+              "RelativeToolTip": "NetworkIDManager.cs",
+              "ViewState": "AgIAAGoAAAAAAAAAAAAgwHYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T07:14:42.32Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "EnemyNetworkPatch.cs",
+              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\EnemyNetworkPatch.cs",
+              "RelativeDocumentMoniker": "Patches\\EnemyNetworkPatch.cs",
+              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\EnemyNetworkPatch.cs",
+              "RelativeToolTip": "Patches\\EnemyNetworkPatch.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAqwB0AAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-05T05:11:10.24Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
               "Title": "CyberSync.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\CyberSync.cs",
               "RelativeDocumentMoniker": "Patches\\CyberSync.cs",
@@ -346,7 +372,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "NetworkPlayer.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkPlayer.cs",
               "RelativeDocumentMoniker": "NetworkPlayer.cs",
@@ -359,7 +385,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 12,
               "Title": "SpectatorCam.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\SpectatorCam.cs",
               "RelativeDocumentMoniker": "SpectatorCam.cs",
@@ -371,7 +397,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "PacketWriter.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\PacketWriter.cs",
               "RelativeDocumentMoniker": "PacketWriter.cs",
@@ -383,7 +409,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 14,
               "Title": "CutsceneSkipPatch.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\CutsceneSkipPatch.cs",
               "RelativeDocumentMoniker": "Patches\\CutsceneSkipPatch.cs",
@@ -395,7 +421,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "LoadLevelPatch.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\Patches\\LoadLevelPatch.cs",
               "RelativeDocumentMoniker": "Patches\\LoadLevelPatch.cs",
@@ -407,7 +433,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 16,
               "Title": "BinaryPacketReader.cs",
               "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\BinaryPacketReader.cs",
               "RelativeDocumentMoniker": "BinaryPacketReader.cs",
@@ -416,18 +442,6 @@
               "ViewState": "AgIAAGwAAAAAAAAAAIAxwHYAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-07T07:23:40.481Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 16,
-              "Title": "EntityStorage.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\EntityStorage.cs",
-              "RelativeDocumentMoniker": "EntityStorage.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\EntityStorage.cs",
-              "RelativeToolTip": "EntityStorage.cs",
-              "ViewState": "AgIAACsAAAAAAAAAAAAAACUAAAAZAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-13T06:53:05.35Z"
             },
             {
               "$type": "Document",
@@ -440,18 +454,6 @@
               "ViewState": "AgIAAAkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-07T11:43:20.723Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 15,
-              "Title": "NetworkManager.cs",
-              "DocumentMoniker": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkManager.cs",
-              "RelativeDocumentMoniker": "NetworkManager.cs",
-              "ToolTip": "C:\\Users\\D1g1t\\source\\repos\\JaketLite\\Polarite\\JaketLite\\NetworkManager.cs",
-              "RelativeToolTip": "NetworkManager.cs",
-              "ViewState": "AgIAAF0CAAAAAAAAAAAiwGgCAAApAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T00:59:02.128Z"
             },
             {
               "$type": "Document",

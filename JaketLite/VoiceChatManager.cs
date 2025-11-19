@@ -246,7 +246,7 @@ namespace Polarite.Multiplayer
 
                     if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0 && SteamClient.IsValid)
                     {
-                        float range = ItePlugin.voiceProximity.value;
+                        float range = 250f;
                         Vector3 myPos = NewMovement.Instance.transform.position;
                         foreach (var kv in NetworkManager.players)
                         {
@@ -432,7 +432,7 @@ namespace Polarite.Multiplayer
         {
             if (remoteSources.TryGetValue(steamId, out var existing) && existing != null)
             {
-                existing.maxDistance = ItePlugin.voiceProximity.value;
+                existing.maxDistance = 250f;
                 existing.loop = true;
                 return existing;
             }
@@ -455,9 +455,9 @@ namespace Polarite.Multiplayer
             AudioSource src = go.AddComponent<AudioSource>();
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.minDistance = 4f;
+            src.minDistance = 130f; // music kinda overlaps voice so this will make it so you can hear voice better with music
             src.dopplerLevel = 0f;
-            src.maxDistance = ItePlugin.voiceProximity.value;
+            src.maxDistance = 250f; // i used unity to think of a good distance and min distance
             src.loop = true;
             src.playOnAwake = false;
             remoteSources[steamId] = src;

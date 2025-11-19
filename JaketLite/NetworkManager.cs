@@ -196,7 +196,8 @@ namespace Polarite.Multiplayer
                     DisplayWarningChatMessage($"Your lobby is public, Anyone can join this lobby from the public lobbies tab.");
                 }
                 PlayerList.UpdatePList();
-                ItePlugin.CleanLevelOfSoftlocks();
+                ItePlugin.Instance.CleanLevel();
+                DisplayVoiceTip();
             }
         }
 
@@ -241,6 +242,7 @@ namespace Polarite.Multiplayer
                 write.WriteEnum(ItePlugin.skin.value);
                 BroadcastPacket(PacketType.Skin, write.GetBytes());
                 PlayerList.UpdatePList();
+                DisplayVoiceTip();
             }
             else
             {
@@ -371,6 +373,7 @@ namespace Polarite.Multiplayer
                 SteamFriends.SetRichPresence("steam_display", "In Lobby");
                 if(ItePlugin.HasDiscord)
                 {
+                    DiscordController.Instance.enabled = false;
                     ItePlugin.discord.GetActivityManager().UpdateActivity(new Activity
                     {
                         Details = $"Playing in: {Instance.CurrentLobby.GetData("levelName")}, In Polarite Lobby ({CurrentLobby.MemberCount}/{CurrentLobby.MaxMembers})",
@@ -387,16 +390,7 @@ namespace Polarite.Multiplayer
 
                 if(ItePlugin.HasDiscord)
                 {
-                    string levelName = StockMapInfo.Instance.levelName;
-                    if (string.IsNullOrEmpty(levelName))
-                    {
-                        levelName = SceneHelper.CurrentScene;
-                    }
-                    ItePlugin.discord.GetActivityManager().UpdateActivity(new Activity
-                    {
-                        Details = $"Playing in: {levelName}, Not In Lobby",
-                        Instance = true
-                    }, delegate { });
+                    DiscordController.Instance.enabled = true;
                 }
             }
         }
@@ -696,6 +690,15 @@ namespace Polarite.Multiplayer
             if (ChatUI.Instance != null)
             {
                 ChatUI.Instance.OnSubmitMessage($"<color=red>[ERROR]: {errorMsg}</color>", false, $"<color=red>[ERROR]: {errorMsg}</color>", tts: false);
+                ChatUI.Instance.ShowUIForBit(7f);
+            }
+        }
+
+        public static void DisplayVoiceTip()
+        {
+            if(ChatUI.Instance != null && !ItePlugin.disableVoiceChatTip.value)
+            {
+                ChatUI.Instance.OnSubmitMessage("<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (you can also disable this tip in the plugin configurator)</color>", false, "<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (you can also disable this tip in the plugin configurator)</color>", tts: false);
                 ChatUI.Instance.ShowUIForBit(7f);
             }
         }

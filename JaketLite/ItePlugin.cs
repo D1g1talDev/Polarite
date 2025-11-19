@@ -88,6 +88,8 @@ namespace Polarite
 
         public static IntField volume = new IntField(voiceRelated, "Volume", "voice.volume", 25);
 
+        public static BoolField disableVoiceChatTip = new BoolField(voiceRelated, "Disable voice chat tip message", "voice.tip.disable", false);
+
         // which microphone index to use (0 = first device)
         public static IntField voiceMicIndex = new IntField(voiceRelated, "Microphone index", "voice.mic", 0);
 
@@ -98,9 +100,6 @@ namespace Polarite
 
         // whether to receive/hear voice chat
         public static BoolField receiveVoice = new BoolField(voiceRelated, "Receive voice chat", "voice.receive", true);
-
-        // proximity distance for voice in world units
-        public static FloatField voiceProximity = new FloatField(voiceRelated, "Voice proximity range", "voice.range", 30f);
 
         public static EnumField<SkinType> skin = new EnumField<SkinType>(cosmeticRelated, "Player skin (only others can see)", "player.skin", SkinType.V1);
 
@@ -417,7 +416,11 @@ namespace Polarite
                 }
             }
         }
-        public static void CleanLevelOfSoftlocks()
+        public void CleanLevel()
+        {
+            Invoke(nameof(CleanLevelOfSoftlocks), 0.1f);
+        }
+        public void CleanLevelOfSoftlocks()
         {
             foreach (string softlock in PathsToSoftlocks)
             {
@@ -457,24 +460,29 @@ namespace Polarite
 
         private static Transform Recurse(Transform current, string[] parts, int index)
         {
-            if (current.name != parts[index])
+            if (current.name == parts[index])
             {
-                return null;
-            }
-            if (index == parts.Length - 1)
-            {
-                return current;
-            }
-            for (int i = 0; i < current.childCount; i++)
-            {
-                Transform found = Recurse(current.GetChild(i), parts, index + 1);
-                if (found != null)
+                if (index == parts.Length - 1)
+                    return current;
+
+                for (int i = 0; i < current.childCount; i++)
                 {
-                    return found;
+                    Transform found = Recurse(current.GetChild(i), parts, index + 1);
+                    if (found != null)
+                        return found;
                 }
             }
+
+            for (int i = 0; i < current.childCount; i++)
+            {
+                Transform found = Recurse(current.GetChild(i), parts, index);
+                if (found != null)
+                    return found;
+            }
+
             return null;
         }
+
 
         private void OnSceneLoaded(Scene args1, LoadSceneMode args2)
         {
@@ -511,23 +519,6 @@ namespace Polarite
             {
                 CreatePolariteUI();
             }
-            /*
-            if (NetworkManager.ClientAndConnected && NetworkManager.Instance.CurrentLobby.GetData("forceS") == "1")
-            {
-                SpectatePlayers();
-                ignoreSpectate = true;
-                FinalDoor door = FindObjectOfType<FinalDoor>();
-                if (door != null)
-                {
-                    door.Open();
-                }
-                NetworkManager.Instance.BroadcastPacket(new NetPacket
-                {
-                    type = "forcespec"
-                });
-                NetworkManager.DisplaySystemChatMessage("You have been forced into spectate. (Reason: Host already opened level door, wait for next level)");
-            }
-            */
             SceneObjectCache.Initialize();
             if(NetworkManager.HostAndConnected)
             {
@@ -542,6 +533,7 @@ namespace Polarite
             {
                 if (NetworkManager.HasRichPresence)
                 {
+                    DiscordController.Instance.enabled = false;
                     discord.GetActivityManager().UpdateActivity(new Activity
                     {
                         ApplicationId = 1432308384798867456,
@@ -551,17 +543,7 @@ namespace Polarite
                 }
                 else
                 {
-                    string levelName = StockMapInfo.Instance.levelName;
-                    if (string.IsNullOrEmpty(levelName))
-                    {
-                        levelName = SceneHelper.CurrentScene;
-                    }
-                    discord.GetActivityManager().UpdateActivity(new Activity
-                    {
-                        ApplicationId = 1432308384798867456,
-                        Details = $"Playing in: {levelName}, Not In Lobby",
-                        Instance = true
-                    }, delegate { });
+                    DiscordController.Instance.enabled = true;
                 }
             }
             NetworkPlayer.ToggleColsForAll(false);
@@ -570,7 +552,7 @@ namespace Polarite
             if(NetworkManager.InLobby)
             {
                 NetworkPlayer.ToggleEidForAll(true);
-                CleanLevelOfSoftlocks();
+                CleanLevel();
                 foreach(var p in NetworkManager.players.Values)
                 {
                     p.ToggleRig(true);
