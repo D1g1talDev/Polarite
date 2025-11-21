@@ -1,36 +1,28 @@
-﻿using System.Collections;
+﻿using BepInEx;
+using BepInEx.Logging;
+using Discord;
+using HarmonyLib;
+using Logic;
+using PluginConfig.API;
+using PluginConfig.API.Decorators;
+using PluginConfig.API.Fields;
+using PluginConfig.API.Functionals;
+using Polarite.Multiplayer;
+using Polarite.Patches;
+using Steamworks;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-
-using BepInEx;
-using BepInEx.Logging;
-
-using Discord;
-
-using HarmonyLib;
-
-using PluginConfig.API;
-using PluginConfig.API.Fields;
-using PluginConfig.API.Functionals;
-
-using Polarite.Multiplayer;
-using Polarite.Patches;
-
-using Steamworks;
-
 using TMPro;
-
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-
-using NetworkManager = Polarite.Multiplayer.NetworkManager;
 using LobbyType = Polarite.Multiplayer.LobbyType;
-using PluginConfig.API.Decorators;
-using Logic;
+using NetworkManager = Polarite.Multiplayer.NetworkManager;
 
 namespace Polarite
 {
@@ -143,7 +135,14 @@ namespace Polarite
 
         public void Awake()
         {
-            if(Instance == null)
+            var asm = Assembly.GetExecutingAssembly();
+            var stream = asm.GetManifestResourceStream("Polarite.Concentus.dll");
+            var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            Assembly.Load(ms.ToArray());
+            ms.Dispose();
+            stream.Dispose();
+            if (Instance == null)
             {
                 Instance = this;
             }
