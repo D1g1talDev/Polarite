@@ -455,9 +455,9 @@ namespace Polarite.Multiplayer
             AudioSource src = go.AddComponent<AudioSource>();
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.minDistance = 130f; // music kinda overlaps voice so this will make it so you can hear voice better with music
+            src.minDistance = 50f; // music kinda overlaps voice so this will make it so you can hear voice better with music
             src.dopplerLevel = 0f;
-            src.maxDistance = 250f; // i used unity to think of a good distance and min distance
+            src.maxDistance = 150f; // i used unity to think of a good distance and min distance
             src.loop = true;
             src.playOnAwake = false;
             remoteSources[steamId] = src;
