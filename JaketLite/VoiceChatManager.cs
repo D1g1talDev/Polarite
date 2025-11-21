@@ -9,6 +9,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using Polarite;
 using SteamImage = Steamworks.Data.Image;
+using Concentus.Structs;
+using Concentus.Enums;
 
 // class made by doomahreal, also IM BECOMING THE BOILED ONE WITH THIS CODE AHHHHHHHHHHHHHH WHY DOES IT KEEP SOUNDING SHITTY!!!!!!!!
 
@@ -41,9 +43,12 @@ namespace Polarite.Multiplayer
         private Sprite onSprite, offSprite;
         private bool wasInLobby = false;
 
-        // Codec identifiers
-        private const byte CODEC_PCM16 = 1;
-        private const byte CODEC_MULAW8 = 2;
+        // Only Opus codec
+        private const byte CODEC_OPUS = 1;
+
+        // Concentus encoder for local mic and decoders per remote peer
+        private OpusEncoder opusEncoder;
+        private readonly Dictionary<ulong, OpusDecoder> opusDecoders = new Dictionary<ulong, OpusDecoder>();
 
         void Awake()
         {
@@ -165,6 +170,35 @@ namespace Polarite.Multiplayer
                 }
 
                 micPosition = Microphone.GetPosition(micDevice);
+
+                // (re)create opus encoder with current settings
+                try
+                {
+#pragma warning disable 0618
+                    opusEncoder = new OpusEncoder(sampleRate, 1, OpusApplication.OPUS_APPLICATION_VOIP);
+#pragma warning restore 0618
+                    // choose bitrate based on configured voice quality
+                    switch (ItePlugin.voiceQuality.value)
+                    {
+                        case VoiceQuality.Low:
+                            opusEncoder.Bitrate = 12000; // ~12 kbps for low quality
+                            break;
+                        case VoiceQuality.Medium:
+                            opusEncoder.Bitrate = 24000; // ~24 kbps for medium
+                            break;
+                        case VoiceQuality.High:
+                            opusEncoder.Bitrate = 48000; // ~48 kbps for high
+                            break;
+                        default:
+                            opusEncoder.Bitrate = 24000;
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[Voice] Failed to create Opus encoder: " + e);
+                    opusEncoder = null;
+                }
             }
             catch (Exception e)
             {
@@ -228,21 +262,49 @@ namespace Polarite.Multiplayer
 
                     float rms = Mathf.Sqrt(sum / chunkSamples);
 
-                    // use mu-law compression to reduce packet size
-                    byte[] compressed = new byte[chunkSamples];
-                    for (int i = 0; i < chunkSamples; i++)
-                        compressed[i] = MuLawCompress(pcm[i]);
+                    if (opusEncoder == null)
+                    {
+                        // fallback: don't send if encoder unavailable
+                        micPosition += chunkSamples;
+                        if (micPosition >= micClip.samples) micPosition -= micClip.samples;
+                        samplesAvailable -= chunkSamples;
+                        Debug.Log("oops, no encoder");
+                        continue;
+                    }
 
-                    // payload: 1 byte magic, 2 bytes sampleRate, 1 byte channels, 1 byte codec, 2 bytes samples, then payload bytes
+                    // encode with opus
+                    byte[] encoded = new byte[4000];
+                    int encodedLen = 0;
+                    try
+                    {
+#pragma warning disable 0618
+                        encodedLen = opusEncoder.Encode(pcm, 0, chunkSamples, encoded, 0, encoded.Length);
+#pragma warning restore 0618
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning("[Voice] Opus encode failed: " + e);
+                        encodedLen = 0;
+                    }
+
+                    if (encodedLen <= 0)
+                    {
+                        micPosition += chunkSamples;
+                        if (micPosition >= micClip.samples) micPosition -= micClip.samples;
+                        samplesAvailable -= chunkSamples;
+                        continue;
+                    }
+
+                    // payload: 1 byte magic, 2 bytes sampleRate, 1 byte channels, 1 byte codec, 2 bytes samples, then opus payload bytes
                     int headerSize = 1 + 2 + 1 + 1 + 2;
-                    byte[] payload = new byte[headerSize + compressed.Length];
+                    byte[] payload = new byte[headerSize + encodedLen];
                     int idx = 0;
                     payload[idx++] = 0x56;
                     Array.Copy(BitConverter.GetBytes((ushort)sampleRate), 0, payload, idx, 2); idx += 2;
                     payload[idx++] = 1; // channels
-                    payload[idx++] = CODEC_MULAW8;
+                    payload[idx++] = CODEC_OPUS;
                     Array.Copy(BitConverter.GetBytes((ushort)chunkSamples), 0, payload, idx, 2); idx += 2;
-                    Array.Copy(compressed, 0, payload, idx, compressed.Length);
+                    Array.Copy(encoded, 0, payload, idx, encodedLen);
 
                     if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0 && SteamClient.IsValid)
                     {
@@ -288,44 +350,61 @@ namespace Polarite.Multiplayer
             byte codec = buffer[idx++];
             ushort samples = BitConverter.ToUInt16(buffer, idx); idx += 2;
 
-            int expectedBytes = 0;
-            if (codec == CODEC_PCM16) expectedBytes = samples * 2;
-            else if (codec == CODEC_MULAW8) expectedBytes = samples; // 1 byte per sample
-            else return; // unknown codec
+            if (codec != CODEC_OPUS) return; // only accept opus
 
-            if (length < idx + expectedBytes) return;
+            int expectedBytes = length - idx;
+            if (expectedBytes <= 0) return;
 
-            float[] floats = new float[samples];
+            // decode opus
+            ulong senderId = sender.Value;
+            OpusDecoder decoder;
+            if (!opusDecoders.TryGetValue(senderId, out decoder) || decoder == null)
+            {
+                try
+                {
+#pragma warning disable 0618
+                    decoder = new OpusDecoder(sr, Math.Max(1, (int)channels));
+#pragma warning restore 0618
+                    opusDecoders[senderId] = decoder;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[Voice] Failed to create Opus decoder: " + e);
+                    return;
+                }
+            }
+
+            short[] decodedPcm = new short[samples * Math.Max(1, (int)channels)];
+            int decodedSamples = 0;
+            try
+            {
+#pragma warning disable 0618
+                decodedSamples = decoder.Decode(buffer, idx, expectedBytes, decodedPcm, 0, samples, false);
+#pragma warning restore 0618
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Voice] Opus decode failed: " + e);
+                return;
+            }
+
+            if (decodedSamples <= 0) return;
+
+            int totalSamples = decodedSamples * Math.Max(1, (int)channels);
+            float[] floats = new float[totalSamples];
             float sum = 0f;
-
-            if (codec == CODEC_PCM16)
+            for (int i = 0; i < totalSamples; i++)
             {
-                for (int i = 0; i < samples; i++)
-                {
-                    short s = BitConverter.ToInt16(buffer, idx); idx += 2;
-                    float v = s / (float)short.MaxValue;
-                    floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
-                    sum += v * v;
-                }
-            }
-            else // mu-law
-            {
-                for (int i = 0; i < samples; i++)
-                {
-                    byte b = buffer[idx++];
-                    short s = MuLawExpand(b);
-                    float v = s / (float)short.MaxValue;
-                    floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
-                    sum += v * v;
-                }
+                float v = decodedPcm[i] / (float)short.MaxValue;
+                floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
+                sum += v * v;
             }
 
-            float level = Mathf.Clamp01(Mathf.Sqrt(sum / samples) * 5f);
+            float level = Mathf.Clamp01(Mathf.Sqrt(sum / Math.Max(1, decodedSamples)) * 5f);
             NetworkPlayer plr = NetworkPlayer.Find(sender.Value);
             if (plr != null && plr.NameTag != null) plr.NameTag.SetTalking(level > 0.05f);
             if (!ItePlugin.receiveVoice.value) return;
 
-            ulong senderId = sender.Value;
             AudioSource src = GetOrCreateSource(senderId);
 
             AudioClip clip;
@@ -353,22 +432,22 @@ namespace Polarite.Multiplayer
             {
                 int clipLen = clip.samples;
 
-                if (samples >= clipLen)
+                if (totalSamples >= clipLen)
                 {
                     // payload bigger than clip: keep last clipLen samples
                     float[] small = new float[clipLen];
-                    Array.Copy(floats, samples - clipLen, small, 0, clipLen);
+                    Array.Copy(floats, totalSamples - clipLen, small, 0, clipLen);
                     clip.SetData(small, 0);
                     head = 0;
                 }
                 else
                 {
                     int spaceAtEnd = clipLen - head;
-                    if (samples <= spaceAtEnd)
+                    if (totalSamples <= spaceAtEnd)
                     {
                         // fits without wrapping
                         clip.SetData(floats, head);
-                        head += samples;
+                        head += totalSamples;
                         if (head >= clipLen) head = 0;
                     }
                     else
@@ -378,7 +457,7 @@ namespace Polarite.Multiplayer
                         Array.Copy(floats, 0, part1, 0, spaceAtEnd);
                         clip.SetData(part1, head);
 
-                        int remaining = samples - spaceAtEnd;
+                        int remaining = totalSamples - spaceAtEnd;
                         float[] part2 = new float[remaining];
                         Array.Copy(floats, spaceAtEnd, part2, 0, remaining);
                         clip.SetData(part2, 0);
@@ -540,6 +619,14 @@ namespace Polarite.Multiplayer
                 voiceClips.Clear();
                 writeHeads.Clear();
                 lastPacketTime.Clear();
+
+                // dispose decoders
+                try
+                {
+                    opusEncoder = null;
+                    opusDecoders.Clear();
+                }
+                catch { }
             }
             catch (Exception e)
             {
@@ -547,43 +634,5 @@ namespace Polarite.Multiplayer
             }
         }
 
-        // --- mu-law helpers (8-bit) ---
-        private static readonly int[] MuLawCompressTable = GenerateMuLawCompressTable();
-
-        private static byte MuLawCompress(short pcm)
-        {
-            // implement standard 8-bit mu-law compression
-            // convert to 14-bit magnitude
-            int sign = (pcm >> 8) & 0x80;
-            int magnitude = Math.Abs(pcm);
-            if (magnitude > 32635) magnitude = 32635;
-            magnitude += 132;
-
-            int exponent = 7;
-            for (int expMask = 0x4000; (magnitude & expMask) == 0 && exponent > 0; expMask >>= 1)
-                exponent--;
-
-            int mantissa = (magnitude >> (exponent + 3)) & 0x0F;
-            byte mulaw = (byte)~(sign | (exponent << 4) | mantissa);
-            return mulaw;
-        }
-
-        private static short MuLawExpand(byte mulaw)
-        {
-            mulaw = (byte)~mulaw;
-            int sign = (mulaw & 0x80);
-            int exponent = (mulaw & 0x70) >> 4;
-            int mantissa = mulaw & 0x0F;
-            int magnitude = ((mantissa << 3) + 0x84) << exponent;
-            magnitude -= 132;
-            short sample = (short)(sign == 0 ? magnitude : -magnitude);
-            return sample;
-        }
-
-        private static int[] GenerateMuLawCompressTable()
-        {
-            // kept for reference / possible future optimizations
-            return new int[256];
-        }
     }
 }
