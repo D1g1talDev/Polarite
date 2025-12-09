@@ -462,6 +462,7 @@
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
     <Compile Include="Patches\CyberSync.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
+    <Compile Include="Patches\NoGhostSlamming.cs" />
     <Compile Include="Patches\NoGZForPlayer.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />

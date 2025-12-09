@@ -48,6 +48,12 @@ namespace Polarite.Multiplayer
 
         public static NetworkPlayer LocalPlayer;
 
+        public static bool selfIsGhost = false;
+
+        public bool isGhost = false;
+
+        public bool rigActive;
+
         public Coroutine updatePos;
 
         public void SpawnNoise()
@@ -77,6 +83,15 @@ namespace Polarite.Multiplayer
         public void DashNoise()
         {
             dashNoise.Play();
+        }
+
+        public void SetGhost(bool val)
+        {
+            isGhost = val;
+            if(val)
+            {
+                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), transform, 1f);
+            }
         }
 
         public void Init(ulong steamId, string playerName)
@@ -474,8 +489,10 @@ namespace Polarite.Multiplayer
 
             GameObject[] weapons = v2Rig.GetComponent<V2>().weapons;
             Transform headT = v2Rig.GetComponent<V2>().aimAtTarget[0];
+            Transform armT = v2Rig.GetComponent<V2>().aimAtTarget[1];
             HeadRotate headR = v2Rig.transform.Find("v2_combined").gameObject.AddComponent<HeadRotate>();
             headR.head = headT;
+            headR.arm = armT;
 
             EnsureAllObjectsAreCleaned(v2Rig.transform, id == NetworkManager.Id);
 
@@ -521,15 +538,23 @@ namespace Polarite.Multiplayer
         {
             if(this == LocalPlayer)
             {
+                transform.Find("v2_combined").gameObject.SetActive(false);
+                NameTag.gameObject.SetActive(false);
                 return;
             }
             transform.Find("v2_combined").gameObject.SetActive(value);
             NameTag.gameObject.SetActive(value);
+            Voice.Toggle(value, SteamId);
+            rigActive = value;
         }
         public static void EnsureAllObjectsAreCleaned(Transform t, bool local)
         {
             foreach(Transform c in t)
             {
+                if(c.name == "StandableCube")
+                {
+                    continue;
+                }
                 c.tag = "Floor";
                 c.gameObject.layer = 0;
                 if(c.GetComponent<Collider>() != null && local)

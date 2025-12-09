@@ -66,6 +66,7 @@ namespace Polarite.Patches
             ulong id = Arg;
             if (deathMessage == 1) msg += NetworkManager.GetNameOfId(id);
             else if (id != 0) msg += ((EnemyType)id).ToString();
+            msg = msg.Replace("{0}", "");
             NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + msg);
             NetworkPlayer.ToggleEidForAll(false);
         }
@@ -77,12 +78,13 @@ namespace Polarite.Patches
             {
                 return;
             }
-            ItePlugin.StopSpectating();
             m.transform.position = pos;
             m.transform.rotation = rot;
             m.cc.ResetCamera(m.transform.eulerAngles.y + 0.01f);
+            m.dead = false;
+            m.activated = true;
+            m.hp = 1;
             m.Respawn();
-            IsDeadInSpectate = false;
         }
     }
 }

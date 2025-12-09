@@ -19,12 +19,16 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool Prefix()
         {
+            if(!SteamClient.IsValid)
+            {
+                return true;
+            }
             if(NetworkManager.Instance.CurrentLobby.GetData("cheat") == "0" && NetworkManager.ClientAndConnected)
             {
                 NetworkManager.DisplayError("The host disabled cheating!");
                 return false;
             }
-            if(SceneHelper.CurrentScene != "uk_construct")
+            if(SceneHelper.CurrentScene != "uk_construct" && NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
                 w.WriteString(NetworkManager.GetNameOfId(NetworkManager.Id));

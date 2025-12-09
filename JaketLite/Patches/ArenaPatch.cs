@@ -32,9 +32,10 @@ namespace Polarite.Patches
             {
                 return false;
             }
-            if(NetworkManager.InLobby && __instance.TryGetComponent<ArenaStatus>(out var astat))
+            ArenaStatus astat = __instance.transform.GetComponentInParent<ArenaStatus>();
+            if (NetworkManager.InLobby && astat != null)
             {
-                if(astat.currentStatus < __instance.waitForStatus)
+                if (astat.currentStatus < __instance.waitForStatus)
                 {
                     return false;
                 }
@@ -52,7 +53,8 @@ namespace Polarite.Patches
             {
                 return false;
             }
-            if (NetworkManager.InLobby && __instance.TryGetComponent<ArenaStatus>(out var astat))
+            ArenaStatus astat = __instance.transform.GetComponentInParent<ArenaStatus>();
+            if (NetworkManager.InLobby && astat != null)
             {
                 if (astat.currentStatus < __instance.waitForStatus)
                 {

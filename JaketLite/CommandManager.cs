@@ -29,14 +29,15 @@ namespace Polarite
                 return;
 
             string cmd = parts[0].ToLower();
-            string args = body.Length > cmd.Length
-                ? body.Substring(cmd.Length).Trim()
-                : string.Empty;
+            string args = body.Length > cmd.Length ? body.Substring(cmd.Length).Trim() : string.Empty;
 
             switch (cmd)
             {
                 case "level":
                     HandleLevel(args);
+                    break;
+                case "help":
+                    HelpCommand();
                     break;
             }
         }
@@ -50,12 +51,30 @@ namespace Polarite
             }
 
             string levelName = args;
+            string overriddeLevelName = string.Empty;
 
-            if (!levelName.StartsWith("Level", StringComparison.OrdinalIgnoreCase))
+            if(args == "cybergrind")
+            {
+                overriddeLevelName = "Endless";
+            }
+            if(args == "credits")
+            {
+                overriddeLevelName = "CreditsMuseum2";
+            }
+            if(args == "sandbox")
+            {
+                overriddeLevelName = "uk_construct";
+            }
+
+            if (!levelName.StartsWith("Level", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(overriddeLevelName))
             {
                 levelName = $"Level {levelName.ToUpper()}";
             }
-            if(NetworkManager.HostAndConnected)
+            else if (!string.IsNullOrEmpty(overriddeLevelName))
+            {
+                levelName = overriddeLevelName;
+            }
+            if (NetworkManager.HostAndConnected)
             {
                 SceneHelper.LoadScene(levelName);
             }
@@ -63,6 +82,10 @@ namespace Polarite
             {
                 NetworkManager.DisplayError("Only the host can use the level command!");
             }
+        }
+        private static void HelpCommand()
+        {
+            NetworkManager.DisplaySystemChatMessage("Commands:\n<b>/level <level name></b>\nShortcuts:\n\n<b>cybergrind\ncredits\nsandbox</b>\nExample:\nlevel p-1");
         }
     }
 }

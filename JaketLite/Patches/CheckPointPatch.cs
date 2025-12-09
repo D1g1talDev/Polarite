@@ -31,7 +31,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void Prefix(CheckPoint __instance)
         {
-            if (NetworkManager.InLobby && !NetworkManager.Sandbox)
+            if (NetworkManager.InLobby && !NetworkManager.Sandbox && SceneHelper.CurrentScene != "Level 4-S")
             {
                 __instance.roomsToInherit.Clear();
             }
@@ -41,7 +41,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(CheckPoint __instance)
         {
-            if (NetworkManager.InLobby && !NetworkManager.Sandbox)
+            if (NetworkManager.InLobby && !NetworkManager.Sandbox && SceneHelper.CurrentScene != "Level 4-S")
             {
                 __instance.onRestart.Invoke();
                 __instance.toActivate.SetActive(true);
@@ -76,7 +76,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void Prefix2(CheckPoint __instance)
         {
-            if (NetworkManager.InLobby && !NetworkManager.Sandbox)
+            if (NetworkManager.InLobby && !NetworkManager.Sandbox && SceneHelper.CurrentScene != "Level 4-S")
             {
                 __instance.newRooms.Clear();
             }

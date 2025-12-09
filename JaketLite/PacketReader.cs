@@ -72,7 +72,9 @@ namespace Polarite.Multiplayer
 
         PVP = 36,
         CyberPattern = 37,
-        ObjAct = 38
+        CyberGameOver = 38,
+        BecameGhost = 39,
+        ReviveGhost = 40,
     }
 
     public static class PacketReader
@@ -124,6 +126,7 @@ namespace Polarite.Multiplayer
                         string msg = DeadPatch.DeathMessages[msgB];
                         if (msgB == 1) msg += NetworkManager.GetNameOfId(id);
                         else if (id != 0) msg += ((EnemyType)id).ToString();
+                        msg = msg.Replace("{0}", "");
 
                         NetworkPlayer.Find(senderId)?.DeathNoise();
                         NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId) + " " + msg);
@@ -266,7 +269,7 @@ namespace Polarite.Multiplayer
                         Vector3 poi = reader.ReadVector3();
                         NetworkEnemy e = NetworkEnemy.Find(id);
                         if (e != null)
-                            e.ApplyDamage(damage, hitter, weakpoint, poi);
+                            e.ApplyDamage(damage, hitter, weakpoint, poi, senderId);
                         break;
                     }
 
@@ -337,11 +340,10 @@ namespace Polarite.Multiplayer
                     {
                         string path = reader.ReadString();
                         var door = SceneObjectCache.Find(path).GetComponent<FinalDoor>();
-                        if (door && !door.aboutToOpen)
+                        if (door && !door.aboutToOpen && door.isActiveAndEnabled)
                         {
                             door.aboutToOpen = true;
                             door.Open();
-                            door.Invoke("OpenDoors", 1f);
                         }
                         break;
                     }
@@ -460,17 +462,52 @@ namespace Polarite.Multiplayer
                         }, wave);
                         break;
                     }
-                case PacketType.ObjAct:
+                case PacketType.CyberGameOver:
                     {
-                        string path = reader.ReadString();
-                        GameObject obj = SceneObjectCache.Find(path);
-                        if (obj)
+                        if(!CyberSync.Active)
                         {
-                            ObjectActivator activator = obj.GetComponent<ObjectActivator>();
-                            if (activator != null)
+                            return;
+                        }
+                        NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        if(p != null && !p.isGhost)
+                        {
+                            p.SetGhost(true);
+                            p.ToggleRig(false);
+                        }
+                        ItePlugin.GameOver();
+                        break;
+                    }
+                case PacketType.BecameGhost:
+                    {
+                        NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        if (p != null && !p.isGhost)
+                        {
+                            p.SetGhost(true);
+                            p.ToggleRig(false);
+                            if (ChatUI.Instance != null)
                             {
-                                activator.Activate();
+                                ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId)} became a ghost. {CyberSync.PlayersAlive()} remain.</color>", false, $"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId)} became a ghost. {CyberSync.PlayersAlive()} remain.</color>", tts: false);
+                                if(CyberSync.LastPlayerAlive() && !NetworkPlayer.selfIsGhost)
+                                {
+                                    NetworkManager.DisplayWarningChatMessage("You're the last player alive! If you die, it's game over.");
+                                    ChatUI.Instance.ShowUIForBit(7f);
+                                }
+                                else
+                                {
+                                    ChatUI.Instance.ShowUIForBit(5f);
+                                }
+                                
                             }
+                        }
+                        break;
+                    }
+                case PacketType.ReviveGhost:
+                    {
+                        NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        if (p != null && p.isGhost)
+                        {
+                            p.SetGhost(false);
+                            p.ToggleRig(true);
                         }
                         break;
                     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.Remoting.Contexts;
@@ -10,6 +11,8 @@ using System.Threading.Tasks;
 using Discord;
 
 using Mono.Cecil.Cil;
+
+using Polarite.Patches;
 
 using Steamworks;
 using Steamworks.Data;
@@ -26,13 +29,9 @@ using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
 {
-    [Serializable]
-    public class NetPacket
+    public class CrackedMode
     {
-        public string type;
-        public string name;
-        public string[] parameters;
-        public ulong senderId;
+        public string server_mode;
     }
 
     public enum LobbyType
@@ -95,6 +94,54 @@ namespace Polarite.Multiplayer
         // rigs
         public static Dictionary<string, NetworkPlayer> players = new Dictionary<string, NetworkPlayer>();
 
+        public static CrackedMode cMode;
+        void CrackCheck()
+        {
+            string path = "server_config.json";
+            if (!File.Exists(path))
+            {
+                SaveDefault(path);
+            }
+            string text = File.ReadAllText(path);
+            CrackedMode loaded = null;
+            try
+            {
+                loaded = JsonUtility.FromJson<CrackedMode>(text);
+            }
+            catch { }
+            if (loaded == null || string.IsNullOrEmpty(loaded.server_mode))
+            {
+                Debug.LogWarning("Invalid or missing server_config.json, regenerating...");
+                SaveDefault(path);
+                loaded = new CrackedMode();
+            }
+            cMode = loaded;
+            cMode.server_mode = cMode.server_mode.ToLower();
+            switch (cMode.server_mode)
+            {
+                case "steam":
+                    Debug.Log("Steam servers are active.");
+                    break;
+
+                case "pirated":
+                    Debug.Log("Pirated servers are active.");
+                    break;
+
+                default:
+                    Debug.LogWarning("Unknown mode in config, resetting to steam.");
+                    SaveDefault(path);
+                    cMode.server_mode = "steam";
+                    break;
+            }
+        }
+
+        void SaveDefault(string path)
+        {
+            File.WriteAllText(path,
+        @"{
+  ""server_mode"": ""steam""
+}");
+        }
         void Awake()
         {
             if (Instance != null && Instance != this)
@@ -102,11 +149,27 @@ namespace Polarite.Multiplayer
                 Destroy(gameObject);
                 return;
             }
+            CrackCheck();
             Instance = this;
             DontDestroyOnLoad(gameObject);
             try
             {
-                SteamClient.Init(1229490, true);
+                if(cMode.server_mode == "steam")
+                {
+                    try
+                    {
+                        SteamClient.Init(1229490, true);
+                    }
+                    catch(Exception e)
+                    {
+                        SteamClient.Init(480, true);
+                        cMode.server_mode = "pirated";
+                    }
+                }
+                else if(cMode.server_mode == "pirated")
+                {
+                    SteamClient.Init(480, true);
+                }
             }
             catch (Exception e)
             {
@@ -144,6 +207,7 @@ namespace Polarite.Multiplayer
 
         void OnApplicationQuit()
         {
+            SetRichPresenceForLobby(default);
             LeaveLobby();
             SteamClient.Shutdown();
         }
@@ -198,6 +262,7 @@ namespace Polarite.Multiplayer
                 PlayerList.UpdatePList();
                 ItePlugin.Instance.CleanLevel();
                 DisplayVoiceTip();
+                PauseMenuPatch.DisablePauseEffects();
             }
         }
 
@@ -243,6 +308,7 @@ namespace Polarite.Multiplayer
                 BroadcastPacket(PacketType.Skin, write.GetBytes());
                 PlayerList.UpdatePList();
                 DisplayVoiceTip();
+                PauseMenuPatch.DisablePauseEffects();
             }
             else
             {
@@ -305,6 +371,7 @@ namespace Polarite.Multiplayer
                 }
             }
             players.Clear();
+            Voice.Clear();
             DisplaySystemChatMessage($"Successfully left lobby '{lobbyName}'");
             PlayerList.UpdatePList();
         }
@@ -420,6 +487,10 @@ namespace Polarite.Multiplayer
                 PacketWriter write = new PacketWriter();
                 write.WriteEnum(ItePlugin.skin.value);
                 BroadcastPacket(PacketType.Skin, write.GetBytes());
+                if (member.Id == 76561198893363168 || member.Id == 76561199078878250)
+                {
+                    ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("DevJoin"), Random.Range(0.95f, 1.15f), CameraController.Instance.transform, 1f);
+                }
                 PlayerList.UpdatePList();
             }
         }
@@ -440,6 +511,10 @@ namespace Polarite.Multiplayer
             HostAndConnected = AmIHost();
             ClientAndConnected = !AmIHost();
             InLobby = CurrentLobby.Id != 0;
+            if(member.Id == 76561198893363168 || member.Id == 76561199078878250)
+            {
+                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("DevJoin"), Random.Range(0.95f, 1.15f), CameraController.Instance.transform, 1f);
+            }
             PlayerList.UpdatePList();
         }
 
@@ -478,6 +553,14 @@ namespace Polarite.Multiplayer
                         SendPacket(PacketType.Left, write.GetBytes(), member1.Id);
                 }
                 PlayerList.UpdatePList();
+                if(CyberSync.Active)
+                {
+                    CyberSync.DoubleCheckForSoftlock();
+                }
+                if (Voice.idToSource.ContainsKey(member.Id))
+                {
+                    Voice.Remove(member.Id);
+                }
             }
         }
 
@@ -494,6 +577,14 @@ namespace Polarite.Multiplayer
             ClientAndConnected = !AmIHost();
             InLobby = CurrentLobby.Id != 0;
             PlayerList.UpdatePList();
+            if (CyberSync.Active)
+            {
+                CyberSync.DoubleCheckForSoftlock();
+            }
+            if (Voice.idToSource.ContainsKey(member.Id))
+            {
+                Voice.Remove(member.Id);
+            }
         }
 
         private void HandleLobbyInvite(Lobby lobby, SteamId id)
@@ -555,16 +646,25 @@ namespace Polarite.Multiplayer
         {
             if (!SteamClient.IsValid) return;
             Sandbox = SceneHelper.CurrentScene == "uk_construct";
-
-            foreach(var member in CurrentLobby.Members)
+            if(InLobby)
             {
-                if(member.Id != NetworkManager.Id && !players.ContainsKey(member.Id.Value.ToString()))
+                bool isHost = AmIHost();
+                HostAndConnected = isHost;
+                ClientAndConnected = !isHost;
+            }
+            else
+            {
+                HostAndConnected = false;
+                ClientAndConnected = false;
+            }
+            foreach (var member in CurrentLobby.Members)
+            {
+                if (member.Id != NetworkManager.Id && !players.ContainsKey(member.Id.Value.ToString()))
                 {
                     NetworkPlayer newPlr = NetworkPlayer.Create(member.Id.Value, GetNameOfId(member.Id));
                     players.Add(member.Id.Value.ToString(), newPlr);
                 }
             }
-
             while (SteamNetworking.IsP2PPacketAvailable(out uint packetSize))
             {
                 byte[] buffer = new byte[packetSize];

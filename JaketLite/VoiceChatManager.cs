@@ -11,6 +11,7 @@ using Polarite;
 using SteamImage = Steamworks.Data.Image;
 using Concentus.Structs;
 using Concentus.Enums;
+using TMPro;
 
 // class made by doomahreal, also IM BECOMING THE BOILED ONE WITH THIS CODE AHHHHHHHHHHHHHH WHY DOES IT KEEP SOUNDING SHITTY!!!!!!!!
 
@@ -29,6 +30,7 @@ namespace Polarite.Multiplayer
         private string micDevice;
         private AudioClip micClip;
         private int micPosition = 0;
+        private int currentIndex = 0;
         private bool isTalking = false;
         private Coroutine captureCoroutine;
 
@@ -143,6 +145,7 @@ namespace Polarite.Multiplayer
 
                 int desired = Mathf.Clamp(ItePlugin.voiceMicIndex.value, 0, Microphone.devices.Length - 1);
                 string desiredDevice = Microphone.devices[desired];
+                currentIndex = desired;
 
                 if (micClip != null && micDevice == desiredDevice && Microphone.IsRecording(micDevice))
                     return;
@@ -222,7 +225,7 @@ namespace Polarite.Multiplayer
 
         public void StartTalking()
         {
-            if (micClip == null) TryStartMic();
+            if (micClip == null || ItePlugin.voiceMicIndex.value != currentIndex) TryStartMic();
             if (micClip == null || isTalking) return;
             isTalking = true;
             captureCoroutine = StartCoroutine(CaptureAndSend());
@@ -396,7 +399,8 @@ namespace Polarite.Multiplayer
             for (int i = 0; i < totalSamples; i++)
             {
                 float v = decodedPcm[i] / (float)short.MaxValue;
-                floats[i] = Mathf.Clamp(v * ItePlugin.volume.value, -1f, 1f);
+
+                floats[i] = v;
                 sum += v * v;
             }
 
@@ -511,8 +515,14 @@ namespace Polarite.Multiplayer
         {
             if (remoteSources.TryGetValue(steamId, out var existing) && existing != null)
             {
-                existing.maxDistance = 250f;
+                existing.maxDistance = 110f;
                 existing.loop = true;
+                // refresh the voice so the mute button works
+                if(!Voice.idToSource.ContainsValue(existing))
+                {
+                    Voice.Remove(steamId);
+                    Voice.Add(steamId, existing);
+                }
                 return existing;
             }
 
@@ -534,12 +544,14 @@ namespace Polarite.Multiplayer
             AudioSource src = go.AddComponent<AudioSource>();
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.minDistance = 50f; // music kinda overlaps voice so this will make it so you can hear voice better with music
+            src.minDistance = 100f; // music kinda overlaps voice so this will make it so you can hear voice better with music
             src.dopplerLevel = 0f;
-            src.maxDistance = 150f; // i used unity to think of a good distance and min distance
+            src.maxDistance = 110f;
+            src.priority = 0;
             src.loop = true;
             src.playOnAwake = false;
             remoteSources[steamId] = src;
+            Voice.Add(steamId, src);
             return src;
         }
 
@@ -619,6 +631,7 @@ namespace Polarite.Multiplayer
                 voiceClips.Clear();
                 writeHeads.Clear();
                 lastPacketTime.Clear();
+                Voice.Clear();
 
                 // dispose decoders
                 try
@@ -634,5 +647,71 @@ namespace Polarite.Multiplayer
             }
         }
 
+    }
+
+    // static vc class to manage sources
+    public static class Voice
+    {
+        public static Dictionary<ulong, AudioSource> idToSource = new Dictionary<ulong, AudioSource>();
+        public static List<ulong> mutedPlayers = new List<ulong>();
+
+        public static void Toggle(bool val, ulong id)
+        {
+            if(!idToSource.ContainsKey(id))
+            {
+                return;
+            }
+            if(mutedPlayers.Contains(id))
+            {
+                return;
+            }
+            AudioSource source = idToSource[id];
+            if (source != null)
+            {
+                source.mute = val;
+            }
+        }
+        public static void Mute(ulong id)
+        {
+            if(mutedPlayers.Contains(id))
+            {
+                return;
+            }
+            mutedPlayers.Add(id);
+            AudioSource source = idToSource[id];
+            if (source != null)
+            {
+                source.mute = true;
+            }
+        }
+        public static void Unmute(ulong id)
+        {
+            if (!mutedPlayers.Contains(id))
+            {
+                return;
+            }
+            mutedPlayers.Remove(id);
+            AudioSource source = idToSource[id];
+            if (source != null)
+            {
+                source.mute = false;
+            }
+        }
+        public static void Add(ulong id, AudioSource source)
+        {
+            idToSource.Add(id, source);
+            if(mutedPlayers.Contains(id) && source != null)
+            {
+                source.mute = true;
+            }
+        }
+        public static void Remove(ulong id)
+        {
+            idToSource.Remove(id);
+        }
+        public static void Clear()
+        {
+            idToSource.Clear();
+        }
     }
 }

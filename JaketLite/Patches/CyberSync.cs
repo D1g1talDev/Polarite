@@ -32,13 +32,18 @@ namespace Polarite.Patches
             current = pat;
             wave = EndlessGrid.instance.currentWave;
             NetworkManager.Instance.BroadcastPacket(PacketType.CyberPattern, w.GetBytes());
+
+            // respawn host aswell
+            ItePlugin.Ghost(false);
+            NetworkEnemy.Flush();
         }
         public static void Load(ArenaPattern pat, int w)
         {
+            NetworkEnemy.Flush();
             current = pat;
             wave = w;
             EndlessGrid.instance.NextWave();
-            EndlessGrid.instance.LoadPattern(pat);
+            EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);
             Collider col = EndlessGrid.instance.GetComponent<Collider>();
             if (col.enabled)
             {
@@ -47,39 +52,40 @@ namespace Polarite.Patches
                 return;
             }
             CrowdReactions.instance.React(CrowdReactions.instance.cheerLong);
-            if(MonoSingleton<NewMovement>.instance.hp > 0)
+            NewMovement i = MonoSingleton<NewMovement>.instance;
+            WeaponCharges.instance.MaxCharges();
+            i.ResetHardDamage();
+            i.exploded = false;
+            i.GetHealth(9999, true);
+            i.FullStamina();
+            if (NetworkPlayer.selfIsGhost)
             {
-                NewMovement i = MonoSingleton<NewMovement>.instance;
-                WeaponCharges.instance.MaxCharges();
-                i.ResetHardDamage();
-                i.exploded = false;
-                i.GetHealth(9999, true);
-                i.FullStamina();
-            }
-            else
-            {
-                DeadPatch.Respawn(FindRespawnPosition(), Quaternion.identity);
+                ItePlugin.Ghost(false);
             }
         }
-
-        public static Vector3 FindRespawnPosition()
+        public static bool LastPlayerAlive()
         {
-            Vector3 basePos = EndlessGrid.instance.transform.position;
-
-            var players = NetworkManager.players
-                .Where(p => !DeadPatch.DeadPs.Contains(p.Value))
-                .ToList();
-
-            if (players.Count > 0)
-                basePos = players[UnityEngine.Random.Range(0, players.Count)].Value.transform.position;
-
-            Vector3 candidate = basePos + new Vector3(UnityEngine.Random.Range(-5f, 5f), 10f, UnityEngine.Random.Range(-5f, 5f));
-            if (Physics.Raycast(candidate, Vector3.down, out RaycastHit hit, 50f, LayerMask.GetMask("Default", "Environment")))
+            int alive = 0;
+            foreach (NetworkPlayer p in NetworkManager.players.Values)
             {
-                return hit.point + Vector3.up * 1.5f;
+                if (!p.isGhost)
+                {
+                    alive++;
+                }
             }
-
-            return basePos + Vector3.up * 2f;
+            return alive <= 1;
+        }
+        public static int PlayersAlive()
+        {
+            int alive = 0;
+            foreach (NetworkPlayer p in NetworkManager.players.Values)
+            {
+                if (!p.isGhost)
+                {
+                    alive++;
+                }
+            }
+            return alive;
         }
 
 
@@ -101,46 +107,74 @@ namespace Polarite.Patches
             }
             else if (NetworkManager.InLobby)
             {
-                current = pattern;
+                pattern = current;
                 __instance.currentWave = wave;
             }
-            if(NetworkManager.HostAndConnected && MonoSingleton<NewMovement>.instance.dead)
+            return true;
+        }
+        [HarmonyPatch(nameof(EndlessGrid.SpawnOnGrid))]
+        [HarmonyPrefix]
+        static bool NoDupes(ref bool enemy)
+        {
+            if (NetworkManager.ClientAndConnected && enemy)
             {
-                DeadPatch.Respawn(FindRespawnPosition(), Quaternion.identity);
+                return false;
             }
             return true;
+        }
+        [HarmonyPatch("Update")]
+        [HarmonyPrefix]
+        static void UpdateLeft(EndlessGrid __instance, ref ActivateNextWave ___anw)
+        {
+            if (NetworkManager.ClientAndConnected)
+            {
+                __instance.currentWave = wave;
+                ___anw.deadEnemies = -5;
+            }
+        }
+        public static void DoubleCheckForSoftlock()
+        {
+            if(!NetworkManager.HostAndConnected)
+            {
+                return;
+            }
+            int alive;
+            if(NetworkPlayer.selfIsGhost)
+            {
+                alive = PlayersAlive() - 1;
+            }
+            else
+            {
+                alive = PlayersAlive();
+            }
+            if (alive < 1)
+            {
+                ItePlugin.GameOver();
+            }
         }
     }
     [HarmonyPatch(typeof(FinalCyberRank))]
-    public class DeadPatchButCyber
+    internal class CyberDeathSync
     {
         [HarmonyPatch(nameof(FinalCyberRank.GameOver))]
         [HarmonyPrefix]
-        static bool GameOvering()
+        static bool GameOverPrefix()
         {
-            // for now
-            return true;
-
-            if (!NetworkManager.InLobby)
-                return true;
-
-            int deadCount = DeadPatch.DeadPlayers;
-            int total = NetworkManager.Instance.CurrentLobby.MemberCount;
-
-            if (deadCount >= total)
+            if(!NetworkManager.InLobby)
             {
                 return true;
             }
-            foreach (var p in NetworkManager.players)
+            if (CyberSync.LastPlayerAlive() && NetworkManager.InLobby)
             {
-                if (DeadPatch.DeadPs.Contains(p.Value))
-                {
-                    Vector3 respawnPos = CyberSync.FindRespawnPosition();
-                    DeadPatch.Respawn(respawnPos, Quaternion.identity);
-                }
+                PacketWriter w = new PacketWriter();
+                NetworkManager.Instance.BroadcastPacket(PacketType.CyberGameOver, w.GetBytes());
+                return true;
             }
-            return false;
+            else
+            {
+                ItePlugin.Ghost(true);
+                return !NetworkManager.InLobby;
+            }
         }
     }
-
 }

@@ -81,5 +81,14 @@ namespace Polarite.Patches
         {
             NetworkPlayer.ToggleColsForAll(true);
         }
+        [HarmonyPatch(nameof(NewMovement.Update))]
+        [HarmonyPostfix]
+        static void UpdatePatch(NewMovement __instance)
+        {
+            if(NetworkPlayer.selfIsGhost)
+            {
+                __instance.stillHolding = false;
+            }
+        }
     }
 }

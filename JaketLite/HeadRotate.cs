@@ -12,6 +12,7 @@ namespace Polarite
     public class HeadRotate : MonoBehaviour
     {
         public Transform head;
+        public Transform arm;
         public Quaternion targetRotation;
         private Transform spine3;
 

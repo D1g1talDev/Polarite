@@ -12,6 +12,7 @@ using TMPro;
 
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 namespace Polarite.Patches
 {
@@ -32,6 +33,8 @@ namespace Polarite.Patches
                     ColorUtility.TryParseHtmlString("#91FFFF", out Color color);
                     quitButton.GetComponent<Image>().color = color;
                 }
+                // re-enable stuff disabled by pause
+                DisablePauseEffects();
             }
             else
             {
@@ -51,6 +54,32 @@ namespace Polarite.Patches
             if (NetworkManager.InLobby)
             {
                 NetworkManager.Instance.LeaveLobby();
+            }
+        }
+        [HarmonyPatch(nameof(OptionsManager.LateUpdate))]
+        [HarmonyPrefix]
+        static bool LateUpdateFix()
+        {
+            return !NetworkManager.InLobby;
+        }
+
+        public static void DisablePauseEffects()
+        {
+            MonoSingleton<AudioMixerController>.Instance.allSound.SetFloat("allPitch", 1f);
+            MonoSingleton<AudioMixerController>.Instance.doorSound.SetFloat("allPitch", 1f);
+            if (MonoSingleton<MusicManager>.Instance != null)
+            {
+                MonoSingleton<MusicManager>.Instance.UnfilterMusic();
+            }
+            MonoSingleton<NewMovement>.Instance.enabled = true;
+            // video
+            VideoPlayer[] videos = GameObject.FindObjectsOfType<VideoPlayer>();
+            foreach (var vid in videos)
+            {
+                if (vid.isPlaying)
+                {
+                    vid.Play();
+                }
             }
         }
     }

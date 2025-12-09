@@ -19,9 +19,18 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool Prefix(ref string sceneName, ref GameObject ___loadingBlocker)
         {
+            if(NetworkManager.InLobby)
+            {
+                ChatUI.Instance.ForceOff();
+            }
             if(NetworkManager.InLobby && sceneName == "Endless")
             {
-                NetworkManager.DisplayWarningChatMessage("CYBERGRIND SYNC IS INDEV!!!!");
+                NetworkManager.DisplayWarningChatMessage("CYBERGRIND SYNC IS NOW IN TESTING!!!!");
+            }
+            if(sceneName == "Main Menu" && NetworkManager.InLobby)
+            {
+                NetworkManager.Instance.LeaveLobby();
+                ItePlugin.ignoreSpectate = true;
             }
             if(sceneName == "Intermission1")
             {

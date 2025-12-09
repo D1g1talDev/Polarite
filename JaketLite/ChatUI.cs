@@ -239,11 +239,12 @@ namespace Polarite.Multiplayer
         }
         public void ForceOff()
         {
+            if(!NetworkManager.InLobby)
+            {
+                return;
+            }
             chatPanel.SetActive(false);
-            NewMovement.Instance.ActivatePlayer();
-            NewMovement.Instance.rb.isKinematic = false;
-            FistControl.Instance.enabled = true;
-            CameraController.Instance.enabled = true;
+            ItePlugin.CustomTogglePlayer(true);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             isTyping = false;
@@ -265,23 +266,16 @@ namespace Polarite.Multiplayer
 
             if (isTyping)
             {
-                NewMovement.Instance.DeactivatePlayer();
-                NewMovement.Instance.rb.isKinematic = true;
-                FistControl.Instance.enabled = false;
-                CameraController.Instance.enabled = false;
+                ItePlugin.CustomTogglePlayer(false);
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
                 chatPanel.SetActive(true);
             }
             else
             {
-                NewMovement.Instance.ActivatePlayer();
-                NewMovement.Instance.rb.isKinematic = false;
-                FistControl.Instance.enabled = true;
-                CameraController.Instance.enabled = true;
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
-                chatPanel.SetActive(false);
+                ItePlugin.CustomTogglePlayer(true);
             }
         }
 

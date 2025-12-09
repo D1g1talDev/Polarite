@@ -42,6 +42,8 @@ namespace Polarite
             Button kick = newList.Find("Kick").GetComponent<Button>();
             Button ban = newList.Find("Ban").GetComponent<Button>();
             Button steam = newList.Find("Steam").GetComponent<Button>();
+            Button mute = newList.Find("Mute").GetComponent<Button>();
+            mute.gameObject.SetActive(false);
 
             kick.interactable = NetworkManager.HostAndConnected && id != NetworkManager.Id;
             ban.interactable = NetworkManager.HostAndConnected && id != NetworkManager.Id;
@@ -58,6 +60,36 @@ namespace Polarite
             {
                 Application.OpenURL($"https://steamcommunity.com/profiles/{id}/");
             });
+            if(id != NetworkManager.Id)
+            {
+                mute.gameObject.SetActive(true);
+                TextMeshProUGUI text = mute.GetComponentInChildren<TextMeshProUGUI>();
+                if (Voice.mutedPlayers.Contains(id))
+                {
+                    text.text = "MUTED";
+                }
+                else
+                {
+                    text.text = "UNMUTED";
+                }
+                mute.onClick.AddListener(() =>
+                {
+                    if(!Voice.idToSource.ContainsKey(id))
+                    {
+                        return;
+                    }
+                    if(Voice.mutedPlayers.Contains(id))
+                    {
+                        Voice.Unmute(id);
+                        text.text = "UNMUTED";
+                    }
+                    else
+                    {
+                        Voice.Mute(id);
+                        text.text = "MUTED";
+                    }
+                });
+            }
             return newList;
         }
         public static async void FetchAvatar(Image target, Friend user)

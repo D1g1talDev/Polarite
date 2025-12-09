@@ -31,6 +31,14 @@ namespace Polarite
             {
                 if (lobby.HasValue)
                 {
+                    if (string.IsNullOrEmpty(lobby.Value.GetData("LobbyName")))
+                    {
+                        return;
+                    }
+                    if (string.IsNullOrEmpty(lobby.Value.GetData("levelName")))
+                    {
+                        return;
+                    }
                     Transform lobbyObj = SpawnLobbyObject().transform;
                     lobbyObj.Find("Name").GetComponent<TextMeshProUGUI>().text = lobby.Value.GetData("LobbyName");
                     lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>().text = TranslateDifficulty(lobby.Value.GetData("difficulty"));
