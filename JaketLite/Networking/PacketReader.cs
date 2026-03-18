@@ -87,6 +87,8 @@ namespace Polarite.Multiplayer
         RocketFreeze = 46,
         // trigger
         Trigger = 47,
+        // elevation
+        Elevator = 48
     }
 
     public static class PacketReader
@@ -241,7 +243,7 @@ namespace Polarite.Multiplayer
                         {
                             p.ToggleRig(true);
                         }
-                        if(hp <= 0 && p.rigActive)
+                        if (hp <= 0 && p.rigActive)
                         {
                             p.ToggleRig(false);
                         }
@@ -596,7 +598,7 @@ namespace Polarite.Multiplayer
                     {
                         bool val = reader.ReadBool();
                         PlayerRocketManager rm = PlayerRocketManager.Get(senderId);
-                        if(rm != null)
+                        if (rm != null)
                         {
                             rm.rocketsFrozen = val;
                         }
@@ -606,11 +608,30 @@ namespace Polarite.Multiplayer
                     {
                         GameObject trigger = SceneObjectCache.Find(reader.ReadString());
                         ObjectActivator act = trigger.GetComponent<ObjectActivator>();
-                        if(act != null)
+                        if (act != null)
                         {
                             act.activating = false;
                             act.activated = true;
                             act.events.Invoke();
+                        }
+                        break;
+                    }
+                case PacketType.Elevator:
+                    {
+                        string path = reader.ReadString();
+                        int target = reader.ReadInt();
+                        bool teleport = reader.ReadBool();
+                        Elevator e = SceneObjectCache.Find(path).GetComponent<Elevator>();
+                        if (e != null && e.targetStop != target)
+                        {
+                            if (teleport)
+                            {
+                                e.TeleportToFloor(target);
+                            }
+                            else
+                            {
+                                e.MoveToFloor(target);
+                            }
                         }
                         break;
                     }
