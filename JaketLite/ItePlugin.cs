@@ -156,6 +156,8 @@ namespace Polarite
         // adds secret death noise
         public static readonly bool cattoMode = true;
 
+        private static float killbindCooldown = 5f;
+
 
         public void Awake()
         {
@@ -302,10 +304,12 @@ namespace Polarite
                 debugSending = !debugSending;
                 LogDebug($"[POLARITE] Toggled packet messages {debugSending}.");
             }
-            if (Input.GetKeyDown(killbind.value) && NetworkManager.InLobby && MonoSingleton<NewMovement>.Instance.activated && MonoSingleton<NewMovement>.Instance.hp != 0)
+            if (Input.GetKeyDown(killbind.value) && NetworkManager.InLobby && MonoSingleton<NewMovement>.Instance.activated && MonoSingleton<NewMovement>.Instance.hp != 0 && killbindCooldown <= 0f)
             {
+                killbindCooldown = 5f;
                 ForceKillSelf("killed themselves");
             }
+            killbindCooldown -= Time.deltaTime;
         }
         public static void ForceKillSelf(string deathMsg = "died")
         {
