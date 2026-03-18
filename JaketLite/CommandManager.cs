@@ -8,7 +8,9 @@ namespace Polarite
     {
         public static readonly string[] Commands =
         {
-            "level"
+            "level",
+            "help",
+            "dummy"
         };
 
         public static bool IsCommand(string msg)
@@ -38,6 +40,9 @@ namespace Polarite
                     break;
                 case "help":
                     HelpCommand();
+                    break;
+                case "dummy":
+                    DummyMode();
                     break;
             }
         }
@@ -86,6 +91,15 @@ namespace Polarite
         private static void HelpCommand()
         {
             NetworkManager.DisplaySystemChatMessage("Commands:\n<b>/level <level name></b>\nShortcuts:\n\n<b>cybergrind\ncredits\nsandbox</b>\nExample:\nlevel p-1");
+        }
+        // adding commands just to add commands atp
+        private static void DummyMode()
+        {
+            foreach(var p in NetworkManager.players.Values)
+            {
+                p.NameTag.dummy = !p.NameTag.dummy;
+            }
+            NetworkManager.DisplayGameChatMessage("Have fun seeing everyone as just a worthless dummy");
         }
     }
 }

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HarmonyLib;
 
 using Polarite.Multiplayer;
+using Polarite.Networking;
 
 using UnityEngine;
 
@@ -22,6 +23,8 @@ namespace Polarite.Patches
             if(NetworkManager.InLobby)
             {
                 ChatUI.Instance.ForceOff();
+                Net.Pause();
+                NetworkManager.SceneLoading = true;
             }
             if(NetworkManager.InLobby && sceneName == "Endless")
             {
@@ -64,15 +67,21 @@ namespace Polarite.Patches
             return true;
         }
         [HarmonyPatch(nameof(SceneHelper.RestartScene))]
-        [HarmonyPostfix]
-        static void Postfix()
+        [HarmonyPrefix]
+        static bool Prefix()
         {
             if(NetworkManager.HostAndConnected)
             {
                 NetworkManager.Instance.CurrentLobby.SetData("forceS", "0");
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Restart, w.GetBytes());
+                return true;
             }
+            if(NetworkManager.ClientAndConnected && !ItePlugin.cameFromPacketRestart && CyberSync.Active)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }

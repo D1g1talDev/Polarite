@@ -14,7 +14,7 @@ namespace Polarite
 {
     public static class EntityStorage
     {
-        public static Dictionary<EnemyType, string> EnemyToAdd = new Dictionary<EnemyType, string>();
+        public static Dictionary<string, string> EnemyToAdd = new Dictionary<string, string>();
 
         public static void StoreAll()
         {
@@ -30,22 +30,6 @@ namespace Polarite
                         {
                             if (obj.TryGetComponent<EnemyIdentifier>(out var eid))
                             {
-                                if (keyStr.Contains("Very Can"))
-                                {
-                                    continue;
-                                }
-                                if (keyStr.Contains("Big John"))
-                                {
-                                    eid.enemyType = EnemyType.BigJohnator;
-                                }
-                                if (keyStr.Contains("Mandalore"))
-                                {
-                                    continue;
-                                }
-                                if(keyStr.Contains("Green Arm"))
-                                {
-                                    continue;
-                                }
                                 if (eid.enemyType == EnemyType.Drone && keyStr.Contains("Flesh"))
                                 {
                                     continue;
@@ -58,15 +42,19 @@ namespace Polarite
                                 {
                                     continue;
                                 }
+                                if(keyStr.Contains("Green Arm"))
+                                {
+                                    eid.overrideFullName = "V2(2)";
+                                }
                                 if (keyStr.Contains("Vertex"))
                                 {
                                     continue;
                                 }
-                                if (EnemyToAdd.ContainsKey(eid.enemyType))
+                                if (EnemyToAdd.ContainsKey(eid.FullName))
                                 {
                                     continue;
                                 }
-                                EnemyToAdd.Add(eid.enemyType, keyStr);
+                                EnemyToAdd.Add(eid.FullName, keyStr);
                             }
                             else if (obj.GetComponentInChildren<EnemyIdentifier>(true) != null && NotFake(keyStr))
                             {
@@ -103,11 +91,15 @@ namespace Polarite
                                 {
                                     continue;
                                 }
-                                if (EnemyToAdd.ContainsKey(cEid.enemyType))
+                                if (keyStr.Contains("Green Arm"))
+                                {
+                                    cEid.overrideFullName = "V2(2)";
+                                }
+                                if (EnemyToAdd.ContainsKey(cEid.FullName))
                                 {
                                     continue;
                                 }
-                                EnemyToAdd.Add(cEid.enemyType, keyStr);
+                                EnemyToAdd.Add(cEid.FullName, keyStr);
                             }
                         }
                     }
@@ -120,18 +112,16 @@ namespace Polarite
             if(keyStr.Contains("MannequinPoserWithEnemy")) return false;
             return true;
         }
-        public static EnemyIdentifier Spawn(EnemyType type, Vector3 pos, Quaternion rot, bool sandbox)
+        // no more sandbox enemies apparently
+        public static EnemyIdentifier Spawn(string name, Vector3 pos, Quaternion rot)
         {
-            if (EnemyToAdd.ContainsKey(type))
+            if (EnemyToAdd.ContainsKey(name))
             {
-                GameObject enemy = Addressables.InstantiateAsync(EnemyToAdd[type], pos, rot).WaitForCompletion();
+                GameObject enemy = Addressables.InstantiateAsync(EnemyToAdd[name], pos, rot).WaitForCompletion();
                 EnemyIdentifier eid = enemy.GetComponentInChildren<EnemyIdentifier>(true);
-                if (eid != null)
+                if(eid.GetComponent<NetworkObject>() == null)
                 {
-                    if(sandbox)
-                    {
-                        eid.gameObject.AddComponent<SandboxEnemy>();
-                    }
+                    eid.gameObject.AddComponent<NetworkObject>();
                 }
                 return eid;
             }
@@ -139,7 +129,7 @@ namespace Polarite
         }
         public static void TestSpawn(EnemyType type)
         {
-            Spawn(type, NewMovement.Instance.transform.position, Quaternion.identity, NetworkManager.Sandbox);
+            Spawn(EnemyTypes.GetEnemyName(type), NewMovement.Instance.transform.position, Quaternion.identity);
         }
     }
 }

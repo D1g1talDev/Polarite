@@ -12,14 +12,19 @@ using Polarite.Multiplayer;
 
 namespace Polarite.Patches
 {
-    [HarmonyPatch(typeof(GameStateManager))]
+    [HarmonyPatch(typeof(LeaderboardController))]
     internal class MakeItSoYouCantCheatScores
     {
-        [HarmonyPatch(nameof(GameStateManager.CanSubmitScores), MethodType.Getter)]
+        [HarmonyPatch(nameof(LeaderboardController.LeaderboardsBlocked), MethodType.Getter)]
         [HarmonyPostfix]
         static void NoScore(ref bool __result)
         {
-            __result = !NetworkManager.WasUsed;
+            if (!MonoSingleton<AssistController>.Instance.cheatsEnabled && !MonoSingleton<StatsManager>.Instance.majorUsed)
+            {
+                __result = SceneHelper.IsPlayingCustom;
+            }
+
+            __result = NetworkManager.InLobby;
         }
     }
     [HarmonyPatch(typeof(FinalRank))]

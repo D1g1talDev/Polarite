@@ -19,6 +19,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool Prefix()
         {
+            // thanks doomah
             if(!SteamClient.IsValid)
             {
                 return true;

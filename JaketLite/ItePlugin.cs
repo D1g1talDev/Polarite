@@ -7,7 +7,9 @@ using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
 using PluginConfig.API.Functionals;
+using Polarite.Debugging;
 using Polarite.Multiplayer;
+using Polarite.Networking;
 using Polarite.Patches;
 using Steamworks;
 using System.Collections;
@@ -18,9 +20,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
-
 using ULTRAKILL.Cheats;
-
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -48,10 +48,10 @@ namespace Polarite
         High
     }
 
-    [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.0.2")]
+    [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.1.0")]
     public class ItePlugin : BaseUnityPlugin
     {
-        public static PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
+        public static readonly PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
 
         public static ConfigPanel mainGameRelated = new ConfigPanel(config.rootPanel, "Gameplay Config", "gameplay");
 
@@ -63,7 +63,7 @@ namespace Polarite
 
         public static BoolField bossHpIncrease = new BoolField(mainGameRelated, "Increase boss hp by player count", "g.b", true);
 
-        public static FloatField bossHpMult = new FloatField(mainGameRelated, "Boss hp increase multiplier", "g.bm", 1.5f);
+        public static FloatField bossHpMult = new FloatField(mainGameRelated, "Boss hp increase multiplier", "g.bm", 1.3f);
 
         public static BoolField pvpOn = new BoolField(mainGameRelated, "PVP/Friendly fire", "pvp", false);
 
@@ -102,6 +102,8 @@ namespace Polarite
 
         public static BoolField timeStopDisable = new BoolField(cosmeticRelated, "Disable timestop", "timestop.disable", false);
 
+        public static KeyCodeField killbind = new KeyCodeField(config.rootPanel, "Killbind", "killbind", KeyCode.K);
+
         internal readonly Harmony harm = new Harmony("com.d1g1tal.polarite");
 
         internal static ManualLogSource log = new ManualLogSource("Polarite");
@@ -126,13 +128,18 @@ namespace Polarite
             "V2 - Arena/V2 Stuff(Clone)/Door",
             "4 - Heart Chamber/4 Stuff(Clone)/Door",
             "Main Section/9 - Boss Arena/Boss Stuff(Clone)/IntroObjects/WallCollider",
-            "Main Section/Outside/2-4/2-4 Stuff(Clone)(Clone)/GlassDoor (Skull)",
             "2 - Organ Hall/2 Stuff(Clone)/Door",
             "Exteriors/14/Cube",
             "Exteriors/Armboy/Cube",
             "3 - Fuckatorium/3 Stuff(Clone)/EntranceCloser",
             "Main/Exterior/ExteriorStuff(Clone)/SecuritySystemFight/ArenaWalls",
-            "Main/Interior/InteriorStuff(Clone)(Clone)/BrainFight/EntryForceField"
+            "Main/Interior/InteriorStuff(Clone)(Clone)/BrainFight/EntryForceField",
+            "Door (Large) With Controllers (17)/LockedDoorBlocker",
+            "Door (Large) With Controllers (18)/LockedDoorBlocker",
+            "3 - First Encounter/3 Stuff(Clone)/Blockers",
+            "4 - Heart Chamber/4 Stuff(Clone)/Backwall",
+            "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door",
+            "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door (1)"
         };
 
         // background fx
@@ -141,6 +148,13 @@ namespace Polarite
 
         public PolariteMenuManager polrMM;
         public static bool plrActive;
+        public static bool cameFromPacketRestart;
+
+        public static bool debugMode = false;
+        public static bool debugSending = false;
+
+        // adds secret death noise
+        public static readonly bool cattoMode = true;
 
 
         public void Awake()
@@ -184,7 +198,6 @@ namespace Polarite
                     NetworkManager.Instance.CurrentLobby.SetData("bh", (v) ? "1" : "0");
                 }
             };
-            /*
             pvpOn.postValueChangeEvent += (bool v) =>
             {
                 if (NetworkManager.HostAndConnected)
@@ -192,7 +205,6 @@ namespace Polarite
                     NetworkManager.Instance.CurrentLobby.SetData("pvp", (v) ? "1" : "0");
                 }
             };
-            */
             bossHpMult.postValueChangeEvent += (float v) =>
             {
                 if (NetworkManager.HostAndConnected)
@@ -202,6 +214,20 @@ namespace Polarite
             };
             mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
             TryRunDiscord();
+        }
+        public static void LogDebug(string msg, bool ignore = false)
+        {
+            if(debugMode || ignore)
+            {
+                if(SubtitleController.Instance.subtitlesEnabled)
+                {
+                    SubtitleController.Instance.DisplaySubtitle(msg);
+                }
+                else
+                {
+                    HudMessageReceiver.Instance.SendHudMessage(msg);
+                }
+            }
         }
         public void Start()
         {
@@ -225,13 +251,195 @@ namespace Polarite
                 return false;
             }
         }
+        private void Inputs()
+        {
+            if (!Net.Paused && Net.List != null && NetworkManager.InLobby)
+            {
+                Net.Tick();
+            }
+            if (debugMode && NetworkManager.InLobby)
+            {
+                NetworkPlayer lo = NetworkPlayer.LocalPlayer;
+                if (Input.GetKeyDown(KeyCode.F3))
+                {
+                    LogDebug($"[DEBUG] Currently there are {Net.List.Objects.Count} objects that are networked.");
+                }
+                else if (Input.GetKeyDown(KeyCode.F2))
+                {
+                    LogDebug($"[DEBUG] Teleported testing Dummy to your location! (Keep holding to make it follow)");
+                    lo.testPlayer = true;
+                    lo.ToggleRig(true);
+                    lo.UpdateSkin((int)skin.value);
+                }
+                else if (Input.GetKeyDown(KeyCode.F1))
+                {
+                    if (NameTag.DisabledByDebug)
+                    {
+                        NameTag.DisabledByDebug = false;
+                        foreach (var p in NetworkManager.players.Values)
+                        {
+                            p.NameTag.gameObject.SetActive(true);
+                        }
+                    }
+                    else
+                    {
+                        NameTag.DisabledByDebug = true;
+                    }
+                    LogDebug($"[DEBUG] Toggled name tags {!NameTag.DisabledByDebug}.");
+                }
+                if (!Input.GetKey(KeyCode.F2))
+                {
+                    lo.testPlayer = false;
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.F5))
+            {
+                debugMode = !debugMode;
+                LogDebug($"[POLARITE] Toggled debug mode {debugMode}.", true);
+            }
+            if (Input.GetKeyDown(KeyCode.F6) && debugMode)
+            {
+                debugSending = !debugSending;
+                LogDebug($"[POLARITE] Toggled packet messages {debugSending}.");
+            }
+            if (Input.GetKeyDown(killbind.value) && NetworkManager.InLobby && MonoSingleton<NewMovement>.Instance.activated && MonoSingleton<NewMovement>.Instance.hp != 0)
+            {
+                ForceKillSelf("killed themselves");
+            }
+        }
+        public static void ForceKillSelf(string deathMsg = "died")
+        {
+            NewMovement nM = MonoSingleton<NewMovement>.Instance;
+            DeadPatch.Death(deathMsg);
+            nM.hp = 0;
+            if (!nM.endlessMode)
+            {
+                nM.deathSequence.gameObject.SetActive(value: true);
+
+                MonoSingleton<TimeController>.Instance.controlPitch = false;
+                nM.screenHud.SetActive(value: false);
+            }
+            else
+            {
+                nM.GetComponentInChildren<FinalCyberRank>().GameOver();
+                CrowdReactions crowdReactions = MonoSingleton<CrowdReactions>.Instance;
+                if (crowdReactions != null)
+                {
+                    crowdReactions.React(crowdReactions.aww);
+                }
+            }
+
+            nM.rb.constraints = RigidbodyConstraints.None;
+            nM.rb.AddTorque(Vector3.right * -1f, ForceMode.VelocityChange);
+            if ((bool)MonoSingleton<PowerUpMeter>.Instance)
+            {
+                MonoSingleton<PowerUpMeter>.Instance.juice = 0f;
+            }
+
+            nM.cc.enabled = false;
+            if (nM.gunc == null)
+            {
+                nM.gunc = nM.GetComponentInChildren<GunControl>();
+            }
+
+            nM.gunc.NoWeapon();
+            nM.rb.constraints = RigidbodyConstraints.None;
+            nM.dead = true;
+            nM.activated = false;
+            if (nM.punch == null)
+            {
+                nM.punch = nM.GetComponentInChildren<FistControl>();
+            }
+
+            nM.punch.NoFist();
+        }
+        private void TryRunCalls()
+        {
+            try
+            {
+                if(HasDiscord)
+                {
+                    discord.RunCallbacks();
+                }
+            }
+            catch
+            {
+                HasDiscord = false;
+            }
+        }
+        private void InNet()
+        {
+            if (NetworkManager.InLobby && SceneHelper.CurrentScene != "Main Menu")
+            {
+                // so special events actually work
+                if(DisableEnemySpawns._lastInstance != null)
+                {
+                    DisableEnemySpawns._lastInstance.IsActive = true;
+                }
+                // force game to run everything even if paused or timestopped
+                if (!timeStopDisable.value)
+                {
+                    Time.timeScale = 1f;
+                }
+                Application.runInBackground = true;
+                DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
+                if (CheatsController.Instance.cheatsEnabled && NetworkManager.Instance.CurrentLobby.GetData("cheat") == "0" && NetworkManager.ClientAndConnected)
+                {
+                    CheatsController.Instance.cheatsEnabled = false;
+                }
+                if (OptionsManager.Instance.paused)
+                {
+                    CustomTogglePlayer(false);
+                }
+                else
+                {
+                    CustomTogglePlayer(true);
+                }
+                if (cam != null && lowPass != null)
+                {
+                    if (!Application.isFocused)
+                    {
+                        cam.enabled = false;
+                        lowPass.cutoffFrequency = 500f;
+                        lowPass.enabled = true;
+                    }
+                    else
+                    {
+                        cam.enabled = true;
+                        lowPass.cutoffFrequency = 1000f;
+                        if (!MonoSingleton<UnderwaterController>.Instance.inWater)
+                        {
+                            lowPass.enabled = (!NetworkPlayer.selfIsGhost) ? false : true;
+                        }
+                    }
+                }
+                if (CyberSync.Active)
+                {
+                    if (NetworkPlayer.selfIsGhost)
+                    {
+                        FistControl.Instance.NoFist();
+                        GunControl.Instance.NoWeapon();
+                        NewMovement.Instance.rb.constraints = NewMovement.Instance.defaultRBConstraints;
+                        NewMovement.Instance.dead = false;
+                        bool shouldMove = !OptionsManager.Instance.paused && !ChatUI.isTyping;
+                        NewMovement.Instance.activated = shouldMove;
+                        NewMovement.Instance.hp = 99;
+                        CameraController.Instance.enabled = true;
+                    }
+                }
+                cameFromPacketRestart = false;
+            }
+            else
+            {
+                DeadPatch.SpectateOnDeath = false;
+                Application.runInBackground = false;
+            }
+        }
 
         public void Update()
         {
-            if(HasDiscord)
-            {
-                discord.RunCallbacks();
-            }
+            Inputs();
+            TryRunCalls();
             if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
             {
                 if(polrMM != null)
@@ -277,65 +485,7 @@ namespace Polarite
             {
                 currentUi.SetActive(false);
             }
-            if (NetworkManager.InLobby && SceneHelper.CurrentScene != "Main Menu")
-            {
-                // force game to run everything even if paused or timestopped
-                if(!timeStopDisable.value)
-                {
-                    Time.timeScale = 1f;
-                }
-                Application.runInBackground = true;
-                DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
-                if (CheatsController.Instance.cheatsEnabled && NetworkManager.Instance.CurrentLobby.GetData("cheat") == "0" && NetworkManager.ClientAndConnected)
-                {
-                    CheatsController.Instance.cheatsEnabled = false;
-                }
-                if (OptionsManager.Instance.paused)
-                {
-                    CustomTogglePlayer(false);
-                }
-                else
-                {
-                    CustomTogglePlayer(true);
-                }
-                if (cam != null && lowPass != null)
-                {
-                    if (!Application.isFocused)
-                    {
-                        cam.enabled = false;
-                        lowPass.cutoffFrequency = 500f;
-                        lowPass.enabled = true;
-                    }
-                    else
-                    {
-                        cam.enabled = true;
-                        lowPass.cutoffFrequency = 1000f;
-                        if (!MonoSingleton<UnderwaterController>.Instance.inWater)
-                        {
-                            lowPass.enabled = (!NetworkPlayer.selfIsGhost) ? false : true;
-                        }
-                    }
-                }
-                if(CyberSync.Active)
-                {
-                    if (NetworkPlayer.selfIsGhost)
-                    {
-                        FistControl.Instance.NoFist();
-                        GunControl.Instance.NoWeapon();
-                        NewMovement.Instance.rb.constraints = NewMovement.Instance.defaultRBConstraints;
-                        NewMovement.Instance.dead = false;
-                        NewMovement.Instance.activated = true;
-                        NewMovement.Instance.hp = 99;
-                        CameraController.Instance.enabled = true;
-                    }
-                }
-            }
-            else
-            {
-                DeadPatch.SpectateOnDeath = false;
-                Application.runInBackground = false;
-            }
-            pvpOn.interactable = false;
+            InNet();
         }
         public void LateUpdate()
         {
@@ -349,6 +499,7 @@ namespace Polarite
                 lowPass = cam.GetComponent<AudioLowPassFilter>();
             }
         }
+        // unused but me stupid and i like being stupid
         public static void FlyToggle(bool val)
         {
             if (!CyberSync.Active)
@@ -386,10 +537,6 @@ namespace Polarite
                 val = false;
             }
             if(val == plrActive)
-            {
-                return;
-            }
-            if(NewMovement.Instance.dead)
             {
                 return;
             }
@@ -474,8 +621,7 @@ namespace Polarite
                     Button noRead = pirateGuide.Find("UsefulButton (2)").GetComponent<Button>();
 
                     gameFolder.onClick.AddListener(() => Application.OpenURL(Directory.GetParent("server_config.json").FullName));
-                    // i need someone to read over the guide for this
-                    noRead.onClick.AddListener(() => Application.OpenURL("https://www.youtube.com/watch?v=ShdRyZDFx4U"));
+                    noRead.onClick.AddListener(() => Application.OpenURL("https://www.youtube.com/watch?v=LKeof3dleS0"));
                     leave.onClick.AddListener(NetworkManager.Instance.LeaveLobby);
                     invite.onClick.AddListener(NetworkManager.Instance.ShowInviteOverlay);
                     create.onClick.AddListener(CreateLobby);
@@ -487,7 +633,8 @@ namespace Polarite
                     });
                     discord.onClick.AddListener(() =>
                     {
-                        Application.OpenURL("https://discord.gg/2jzJ9XWbS4");
+                        // new discord link :)
+                        Application.OpenURL("https://discord.gg/mNdbhdaHzH");
                     });
                     onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
                     refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
@@ -576,10 +723,10 @@ namespace Polarite
             NetworkManager.Instance.GetAllPlayersInLobby(NetworkManager.Instance.CurrentLobby, out SteamId[] ids, false);
             foreach (var id in ids)
             {
-                if (!NetworkManager.players.ContainsKey(id.Value.ToString()))
+                if (!NetworkManager.players.ContainsKey(id.Value))
                 {
                     NetworkPlayer newPlr = NetworkPlayer.Create(id.Value, NetworkManager.GetNameOfId(id));
-                    NetworkManager.players.Add(id.Value.ToString(), newPlr);
+                    NetworkManager.players.Add(id.Value, newPlr);
                 }
             }
         }
@@ -604,10 +751,7 @@ namespace Polarite
                     }
                     else
                     {
-                        if (obj.GetComponent<ForceOff>() == null)
-                        {
-                            obj.gameObject.AddComponent<ForceOff>();
-                        }
+                        Destroy(obj.gameObject);
                     }
                 }
             }
@@ -665,13 +809,8 @@ namespace Polarite
             return null;
         }
 
-
-        private void OnSceneLoaded(Scene args1, LoadSceneMode args2)
+        private void InitComps()
         {
-            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap")
-            {
-                return;
-            }
             NetworkManager netManager = gameObject.GetComponent<NetworkManager>();
             if (netManager == null)
             {
@@ -687,10 +826,29 @@ namespace Polarite
             {
                 vcManager = gameObject.AddComponent<VoiceChatManager>();
             }
-            if (MonoSingleton<CameraController>.Instance != null && MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>() == null)
+            if (MonoSingleton<CameraController>.Instance != null)
             {
-                SpectatorCam cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();
+                SpectatorCam cam = MonoSingleton<CameraController>.Instance.gameObject.GetComponent<SpectatorCam>();
+                if (MonoSingleton<CameraController>.Instance.GetComponent<SpectatorCam>() == null)
+                {
+                    cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();
+                }
+                LineTargetTool tool = MonoSingleton<CameraController>.Instance.gameObject.GetComponent<LineTargetTool>();
+                if (MonoSingleton<CameraController>.Instance.GetComponent<LineTargetTool>() == null)
+                {
+                    tool = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<LineTargetTool>();
+                }
             }
+        }
+
+
+        private void OnSceneLoaded(Scene args1, LoadSceneMode args2)
+        {
+            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap")
+            {
+                return;
+            }
+            InitComps();
             Instance.StopAllCoroutines();
             ignoreSpectate = false;
             if(SpectatorCam.isSpectating)
@@ -725,7 +883,6 @@ namespace Polarite
             }
             NetworkPlayer.ToggleColsForAll(false);
             Instance.StartCoroutine(RestartCols());
-            ui.ForceOff();
             NetworkManager.WasUsed = NetworkManager.InLobby;
             if(NetworkManager.InLobby)
             {
@@ -736,9 +893,11 @@ namespace Polarite
                     p.ToggleRig(true);
                     p.isGhost = false;
                 }
+                NetworkManager.Instance.SceneLoad();
             }
             NetworkPlayer.selfIsGhost = false;
             NetworkEnemy.Flush();
+            Instance.StartCoroutine(UnpauseNet());
         }
         public static string GetLevelName()
         {
@@ -779,6 +938,8 @@ namespace Polarite
                 return;
             }
             Instance.StartCoroutine(SpectatePlayersB(loadAll));
+            NetworkManager.SceneLoading = false;
+            Net.Unpause();
         }
 
         public static IEnumerator SpectatePlayersB(bool loadAll)
@@ -867,6 +1028,16 @@ namespace Polarite
         {
             yield return new WaitForSeconds(4f);
             NetworkPlayer.ToggleColsForAll(true);
+        }
+        public static IEnumerator UnpauseNet()
+        {
+            yield return new WaitForSeconds(0.1f);
+            Net.Unpause();
+            NetworkManager.Instance.SceneLoad();
+        }
+        public void PauseNet()
+        {
+
         }
     }
 }

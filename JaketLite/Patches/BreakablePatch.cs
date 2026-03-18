@@ -1,4 +1,6 @@
-﻿using System;
+﻿
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,7 +24,7 @@ namespace Polarite.Patches
                 SceneObjectCache.Add(__instance.gameObject);
             }
         }
-        [HarmonyPatch(nameof(Breakable.Break))]
+        [HarmonyPatch(nameof(Breakable.Break), typeof(float))]
         [HarmonyPrefix]
         static void Postfix(Breakable __instance, ref bool ___broken)
         {
@@ -35,3 +37,4 @@ namespace Polarite.Patches
         }
     }
 }
+

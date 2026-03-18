@@ -2,18 +2,21 @@
 using System.Text;
 
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class BinaryPacketReader
 {
-    public byte[] buffer;
+    private byte[] buffer;
     private int index;
+    private int length;
 
-    public BinaryPacketReader(byte[] data)
+
+    public BinaryPacketReader(byte[] data, int len)
     {
         buffer = data;
         index = 0;
+        length = len;
     }
-
     public byte ReadByte()
     {
         if (index >= buffer.Length) throw new IndexOutOfRangeException("Attempted to read past end of buffer");

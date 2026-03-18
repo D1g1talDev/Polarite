@@ -35,47 +35,83 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>libs\0Harmony.dll</HintPath>
+    <Reference Include="0Harmony, Version=2.9.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>libs\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="BepInEx">
-      <HintPath>libs\BepInEx.dll</HintPath>
+    <Reference Include="Bcl.CollectionsMarshal">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Bcl.CollectionsMarshal.dll</HintPath>
     </Reference>
-    <Reference Include="BepInEx.Harmony">
-      <HintPath>libs\BepInEx.Harmony.dll</HintPath>
+    <Reference Include="BepInEx, Version=5.4.23.4, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
-    <Reference Include="BepInEx.Preloader">
-      <HintPath>libs\BepInEx.Preloader.dll</HintPath>
+    <Reference Include="BepInEx.Harmony, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\BepInEx.Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx.Preloader, Version=5.4.23.4, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\BepInEx.Preloader.dll</HintPath>
     </Reference>
     <Reference Include="Concentus, Version=2.2.2.0, Culture=neutral, PublicKeyToken=2f7fb9b49ffdfe20, processorArchitecture=MSIL">
       <HintPath>packages\Concentus.2.2.2\lib\net452\Concentus.dll</HintPath>
     </Reference>
-    <Reference Include="Facepunch.Steamworks.Win64">
-      <HintPath>libs\Facepunch.Steamworks.Win64.dll</HintPath>
+    <Reference Include="Facepunch.Steamworks.Win64, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Facepunch.Steamworks.Win64.dll</HintPath>
     </Reference>
-    <Reference Include="HarmonyXInterop">
-      <HintPath>libs\HarmonyXInterop.dll</HintPath>
+    <Reference Include="HarmonyXInterop, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\HarmonyXInterop.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil">
-      <HintPath>libs\Mono.Cecil.dll</HintPath>
+    <Reference Include="Mono.Cecil, Version=0.10.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\Mono.Cecil.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil.Mdb">
-      <HintPath>libs\Mono.Cecil.Mdb.dll</HintPath>
+    <Reference Include="Mono.Cecil.Mdb, Version=0.10.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\Mono.Cecil.Mdb.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil.Pdb">
-      <HintPath>libs\Mono.Cecil.Pdb.dll</HintPath>
+    <Reference Include="Mono.Cecil.Pdb, Version=0.10.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\Mono.Cecil.Pdb.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil.Rocks">
-      <HintPath>libs\Mono.Cecil.Rocks.dll</HintPath>
+    <Reference Include="Mono.Cecil.Rocks, Version=0.10.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
-    <Reference Include="MonoMod.RuntimeDetour">
-      <HintPath>libs\MonoMod.RuntimeDetour.dll</HintPath>
+    <Reference Include="MonoMod.RuntimeDetour, Version=22.1.29.1, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\MonoMod.RuntimeDetour.dll</HintPath>
     </Reference>
-    <Reference Include="MonoMod.Utils">
-      <HintPath>libs\MonoMod.Utils.dll</HintPath>
+    <Reference Include="MonoMod.Utils, Version=22.1.29.1, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\BepInEx\core\MonoMod.Utils.dll</HintPath>
+    </Reference>
+    <Reference Include="Naelstrof.JigglePhysics, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Naelstrof.JigglePhysics.dll</HintPath>
+    </Reference>
+    <Reference Include="NavMeshComponents">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\NavMeshComponents.dll</HintPath>
+    </Reference>
+    <Reference Include="NewBlood.DomainReloading">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\NewBlood.DomainReloading.dll</HintPath>
+    </Reference>
+    <Reference Include="NewBlood.EngineInterop">
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\NewBlood.EngineInterop.dll</HintPath>
+    </Reference>
+    <Reference Include="NewBlood.LegacyInput, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\NewBlood.LegacyInput.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
@@ -440,30 +476,44 @@
     <Publicize Include="Assembly-CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BinaryPacketReader.cs" />
+    <Compile Include="Debugging\LineTargetTool.cs" />
+    <Compile Include="GunSync.cs" />
+    <Compile Include="Networking\BinaryPacketReader.cs" />
     <Compile Include="ChatUI.cs" />
     <Compile Include="CommandManager.cs" />
+    <Compile Include="CustomP2Event.cs" />
     <Compile Include="EntityStorage.cs" />
     <Compile Include="ForceOff.cs" />
     <Compile Include="HeadRotate.cs" />
+    <Compile Include="Networking\INetworkObject.cs" />
     <Compile Include="ItePlugin.cs" />
     <Compile Include="NameTag.cs" />
     <Compile Include="NetworkEnemy.cs" />
-    <Compile Include="NetworkIDManager.cs" />
-    <Compile Include="NetworkManager.cs" />
+    <Compile Include="Networking\NetworkIDManager.cs" />
+    <Compile Include="Networking\Net.cs" />
+    <Compile Include="Networking\NetworkList.cs" />
+    <Compile Include="Networking\NetworkManager.cs" />
+    <Compile Include="Networking\NetworkObject.cs" />
     <Compile Include="NetworkPlayer.cs" />
+    <Compile Include="NetworkSkull.cs" />
     <Compile Include="NetworkTram.cs" />
-    <Compile Include="PacketReader.cs" />
-    <Compile Include="PacketWriter.cs" />
+    <Compile Include="Networking\PacketReader.cs" />
+    <Compile Include="Networking\PacketWriter.cs" />
     <Compile Include="Patches\ArenaPatch.cs" />
     <Compile Include="Patches\BreakablePatch.cs" />
     <Compile Include="Patches\CheaterPatch.cs" />
     <Compile Include="Patches\CheckPointPatch.cs" />
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
     <Compile Include="Patches\CyberSync.cs" />
+    <Compile Include="Patches\DronePatch.cs" />
+    <Compile Include="Patches\ForceDisabled.cs" />
+    <Compile Include="Patches\GunSyncPatches.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
     <Compile Include="Patches\NoGhostSlamming.cs" />
     <Compile Include="Patches\NoGZForPlayer.cs" />
+    <Compile Include="Patches\PrisonFixes.cs" />
+    <Compile Include="Patches\SkipPatch.cs" />
+    <Compile Include="Patches\SkullSyncPatches.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />
     <Compile Include="Patches\DeadPatch.cs" />
@@ -485,9 +535,13 @@
     <Compile Include="Patches\SwapWeaponsPatch.cs" />
     <Compile Include="Patches\TextOverridePatch.cs" />
     <Compile Include="Patches\TimerForceSpectatePatch.cs" />
+    <Compile Include="Patches\TrackerPatch.cs" />
     <Compile Include="Patches\TramPatch.cs" />
+    <Compile Include="Patches\TriggerSync.cs" />
     <Compile Include="Patches\VirtuePatch.cs" />
     <Compile Include="PlayerList.cs" />
+    <Compile Include="PlayerRocket.cs" />
+    <Compile Include="PlayerRocketManager.cs" />
     <Compile Include="PolariteMenuManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PublicLobbyManager.cs" />

@@ -17,9 +17,9 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(Drone __instance)
         {
-            if (NetworkManager.InLobby && __instance.TryGetComponent<NetworkEnemy>(out var netE))
+            if (NetworkManager.InLobby && __instance.TryGetComponent<INetworkObject>(out var net))
             {
-                netE.TakeOwnership(NetworkManager.Id);
+                net.Transfer(NetworkManager.Id);
             }
         }
     }

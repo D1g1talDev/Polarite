@@ -26,6 +26,8 @@ namespace Polarite
         public float hpPulseScale = 1.15f;
         public float hpPulseSpeed = 5f;
 
+        public bool dummy;
+
         private float lastWidth;
         private float displayedHP;
         private float targetHP;
@@ -35,6 +37,8 @@ namespace Polarite
         private GameObject talking;
         private Image pfpI;
         private float disableTalkTimer;
+
+        public static bool DisabledByDebug = false;
 
         void Start()
         {
@@ -76,6 +80,11 @@ namespace Polarite
         {
             if (nameText == null) return;
 
+            if(DisabledByDebug)
+            {
+                gameObject.SetActive(false);
+            }
+
             if(disableTalkTimer > 0)
             {
                 disableTalkTimer -= Time.deltaTime;
@@ -103,8 +112,8 @@ namespace Polarite
             Transform cam = Camera.current.transform;
             Vector3 dir = (mainLookAt.transform.position - cam.position).normalized;
             mainLookAt.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-
-            nameText.text = playerName;
+            // imagine being called a dummy :steammocking:
+            nameText.text = (!dummy) ? playerName : "Dummy";
 
             bool isHost = false;
             if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0)

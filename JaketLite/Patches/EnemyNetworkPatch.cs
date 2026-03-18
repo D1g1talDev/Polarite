@@ -1,4 +1,9 @@
-﻿using System;
+﻿// can't wait to rip and tear this code apart because of fraudulent fraud :)
+// TODO: commence mass surgery
+// ^^ nevermind it works perfectly fine
+// ^^^ no it doesn't you buffoon
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,7 +26,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Spawn(EnemyIdentifier __instance)
         {
-            if (__instance.GetComponent<NetworkEnemy>() == null && __instance.gameObject.scene.name != null && NetworkManager.InLobby)
+            if (__instance.GetComponent<NetworkEnemy>() == null && __instance.gameObject.scene.name != null && NetworkManager.InLobby && __instance.GetComponent<NetworkPlayer>() == null)
             {
                 string newPath = SceneObjectCache.GetOrCreatePath(__instance.gameObject);
                 if (!SceneObjectCache.Contains(__instance.gameObject))
@@ -32,9 +37,17 @@ namespace Polarite.Patches
             }
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]
-        [HarmonyPrefix]
+        [HarmonyPostfix]
         static void Damage(EnemyIdentifier __instance, ref float multiplier, ref GameObject sourceWeapon, ref GameObject target, ref Vector3 hitPoint)
         {
+            if(__instance.hitter == "drill")
+            {
+                return;
+            }
+            if (__instance.hitter == "fire")
+            {
+                return;
+            }
             /*
             if(__instance.TryGetComponent<NetworkPlayer>(out var netP) && multiplier > 0f)
             {

@@ -27,11 +27,23 @@ namespace Polarite.Patches
             {
                 Transform menu = MonoSingleton<OptionsManager>.Instance.pauseMenu.transform;
                 Transform quitButton = menu.Find("Quit Mission");
+                Transform restart = menu.Find("Restart Mission");
                 if (quitButton != null)
                 {
                     quitButton.GetComponentInChildren<TextMeshProUGUI>().text = "LEAVE LOBBY";
                     ColorUtility.TryParseHtmlString("#91FFFF", out Color color);
                     quitButton.GetComponent<Image>().color = color;
+                }
+                if(restart != null)
+                {
+                    if(NetworkManager.InLobby)
+                    {
+                        restart.GetComponent<Button>().interactable = NetworkManager.HostAndConnected;
+                    }
+                    else
+                    {
+                        restart.GetComponent<Button>().interactable = true;
+                    }
                 }
                 // re-enable stuff disabled by pause
                 DisablePauseEffects();

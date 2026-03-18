@@ -10,6 +10,11 @@ namespace Polarite.Multiplayer
     {
         private List<byte> buffer = new List<byte>();
 
+        public void Reset()
+        {
+            buffer.Clear();
+        }
+
         public void WriteByte(byte value)
         {
             buffer.Add(value);

@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AI;
 using UnityEngine.Assertions.Must;
+using UnityEngine.Localization.Pseudo;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
@@ -44,7 +45,9 @@ namespace Polarite.Multiplayer
         private Vector3 targetPosition;
         private Quaternion targetRotation;
 
-        private float lerpSpeed = 10f;
+        private Vector3 previousPosition;
+
+        private float lerpSpeed = 15f;
 
         public static NetworkPlayer LocalPlayer;
 
@@ -56,6 +59,10 @@ namespace Polarite.Multiplayer
 
         public Coroutine updatePos;
 
+        public Transform holderObject;
+
+        public int currentSkin = 0;
+
         public void SpawnNoise()
         {
             spawnNoise.Play();
@@ -64,12 +71,12 @@ namespace Polarite.Multiplayer
         public void DeathNoise()
         {
             deathNoise.Play();
-            GameObject expA = Instantiate(MonoSingleton<DefaultReferenceManager>.Instance.explosion, transform.position, Quaternion.identity);
-            Explosion expB = expA.GetComponentInChildren<Explosion>();
-            expB.canHit = AffectedSubjects.PlayerOnly;
-            expB.damage = 0;
-            expB.harmless = true;
+            GameObject blood = Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), transform.position, Quaternion.identity);
+            GameObject ragdoll = Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), transform.position, transform.rotation);
+            blood.SetActive(true);
+            SetSkinOfRagdoll(ragdoll.GetComponentInChildren<SkinnedMeshRenderer>(), currentSkin);
             ToggleRig(false);
+            ragdoll.GetComponentInChildren<Rigidbody>().AddForce((previousPosition - targetPosition), ForceMode.VelocityChange);
         }
         public void HurtNoise()
         {
@@ -90,7 +97,7 @@ namespace Polarite.Multiplayer
             isGhost = val;
             if(val)
             {
-                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), transform, 1f);
+                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), MonoSingleton<CameraController>.Instance.transform, 1f);
             }
         }
 
@@ -143,6 +150,8 @@ namespace Polarite.Multiplayer
 
         public void SetTargetTransform(Vector3 pos, Quaternion rot)
         {
+            previousPosition = transform.position;
+
             targetPosition = pos;
             targetRotation = rot;
         }
@@ -223,13 +232,26 @@ namespace Polarite.Multiplayer
             }
         }
         */
-        public void SetWeapon(int type)
+        public void SetWeapon(bool alt, int type)
         {
             foreach(var w in weapons)
             {
-                w.SetActive(false);
+                foreach(Transform par in w.transform)
+                {
+                    par.gameObject.SetActive(false);
+                }
             }
-            weapons[type].SetActive(true);
+            GameObject parent = weapons[(alt) ? 1 : 0];
+            parent.transform.GetChild(type).gameObject.SetActive(true);
+            Material[] mats = parent.transform.GetChild(type).GetComponentInChildren<SkinnedMeshRenderer>().materials;
+            foreach (var m in mats)
+            {
+                Shader shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
+                if(m.shader != shader)
+                {
+                    m.shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
+                }
+            }
         }
         public void CoinAnim()
         {
@@ -306,7 +328,20 @@ namespace Polarite.Multiplayer
                 SetAnimation(NewMovement.Instance.sliding, !NewMovement.Instance.gc.onGround, NewMovement.Instance.walking);
                 SetHP(NewMovement.Instance.hp);
             }
-            transform.position = Vector3.Lerp(transform.position, targetPosition, Time.unscaledDeltaTime * lerpSpeed);
+            if(isGhost)
+            {
+                ToggleRig(false);
+            }
+            NameTag.dummy = this == LocalPlayer;
+            // if the position we're going to is more than 10 units away from us, snap to it instead of lerping
+            if (Vector3.Distance(transform.position, targetPosition) > 10f)
+            {
+                transform.position = targetPosition;
+            }
+            else
+            {
+                transform.position = Vector3.Lerp(transform.position, targetPosition, Time.unscaledDeltaTime * lerpSpeed);
+            }
 
             Vector3 currentEuler = transform.rotation.eulerAngles;
 
@@ -327,6 +362,7 @@ namespace Polarite.Multiplayer
         }
         public void UpdateSkin(int id)
         {
+            currentSkin = id;
             Material[] mats = mainRenderer.materials;
             switch (id)
             {
@@ -347,8 +383,8 @@ namespace Polarite.Multiplayer
                     break;
             }
             mainRenderer.materials = mats;
-            SkinnedMeshRenderer[] armsStuff = armAnimator.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var a in armsStuff)
+            SkinnedMeshRenderer[] allMats = head.gameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            foreach (var a in allMats)
             {
                 Material[] mats1 = a.materials;
                 foreach (var m in mats1)
@@ -357,17 +393,7 @@ namespace Polarite.Multiplayer
                 }
                 a.materials = mats1;
             }
-            foreach (var w in weapons)
-            {
-                SkinnedMeshRenderer s = w.GetComponentInChildren<SkinnedMeshRenderer>();
-                Material[] mats2 = s.materials;
-                foreach (var m in mats2)
-                {
-                    m.shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                }
-                s.materials = mats2;
-            }
-
+            /* going to try without it now as it will add to everything now
             // Additionally apply shader to all renderers under the specified path
             try
             {
@@ -380,6 +406,44 @@ namespace Polarite.Multiplayer
             catch (Exception e)
             {
                 Debug.LogWarning("Failed applying shader to rig path: " + e);
+            }
+            */
+        }
+
+        public static void SetSkinOfRagdoll(SkinnedMeshRenderer rend, int id)
+        {
+            Material[] mats = rend.materials;
+            switch (id)
+            {
+                case 0:
+                    for(int i = 0; i < mats.Length; i++)
+                    {
+                        if(i == 0)
+                        {
+                            mats[i] = ItePlugin.mainBundle.LoadAsset<Material>("V1Glow");
+                        }
+                        else
+                        {
+                            mats[i] = ItePlugin.mainBundle.LoadAsset<Material>("V1WingGlow");
+                        }
+                        mats[i].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
+                    }
+                    break;
+
+                case 1:
+                    for (int j = 0; j < mats.Length; j++)
+                    {
+                        if (j == 0)
+                        {
+                            mats[j] = ItePlugin.mainBundle.LoadAsset<Material>("V2Glow");
+                        }
+                        else
+                        {
+                            mats[j] = ItePlugin.mainBundle.LoadAsset<Material>("V2WingGlow");
+                        }
+                        mats[j].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
+                    }
+                    break;
             }
         }
 
@@ -419,7 +483,10 @@ namespace Polarite.Multiplayer
 
         public void HandleFriendlyFire(ulong whoDidIt, int damage)
         {
-            /*
+            if(NetworkManager.Instance.CurrentLobby.GetData("pvp") == "0")
+            {
+                return;
+            }
             if(damage == 0)
             {
                 damage = 1;
@@ -433,7 +500,6 @@ namespace Polarite.Multiplayer
                 // for testing
                 DoFriendlyDamage(whoDidIt, damage);
             }
-            */
         }
 
         public static NetworkPlayer Find(ulong id)
@@ -453,9 +519,10 @@ namespace Polarite.Multiplayer
             if (possibleCopy != null)
             {
                 Destroy(possibleCopy.gameObject);
-                NetworkManager.players.Remove(id.ToString());
+                NetworkManager.players.Remove(id);
             }
             GameObject v2Rig = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("NetworkRig"));
+            v2Rig.GetComponent<Collider>().enabled = false;
 
             AudioClip spawn = v2Rig.GetComponent<V2>().wingChangeEffect.GetComponent<AudioSource>().clip;
             AudioClip death = v2Rig.GetComponent<V2>().KoScream.GetComponent<AudioSource>().clip;
@@ -494,6 +561,8 @@ namespace Polarite.Multiplayer
             headR.head = headT;
             headR.arm = armT;
 
+            Transform holder = v2Rig.transform.Find("v2_combined/metarig/spine/spine.001/spine.002/spine.003/Arms/Feedbacker/Armature/UpperArm/Forearm/Hand/HoldPos");
+
             EnsureAllObjectsAreCleaned(v2Rig.transform, id == NetworkManager.Id);
 
             Destroy(v2Rig.GetComponent<EnemyIdentifier>());
@@ -520,6 +589,8 @@ namespace Polarite.Multiplayer
                 nameT.SetActive(false);
             }
             NetworkPlayer plr = v2Rig.AddComponent<NetworkPlayer>();
+            PlayerRocketManager rm = v2Rig.AddComponent<PlayerRocketManager>();
+            rm.owner = id;
             plr.NameTag = NameTag;
             plr.spawnNoise = spawnS;
             plr.deathNoise = deathS;
@@ -531,12 +602,13 @@ namespace Polarite.Multiplayer
             plr.weapons = weapons;
             plr.head = headR;
             plr.mainRenderer = smr;
+            plr.holderObject = holder;
             plr.Init(id, name);
             return plr;
         }
         public void ToggleRig(bool value)
         {
-            if(this == LocalPlayer)
+            if(this == LocalPlayer && !testPlayer)
             {
                 transform.Find("v2_combined").gameObject.SetActive(false);
                 NameTag.gameObject.SetActive(false);
@@ -555,13 +627,9 @@ namespace Polarite.Multiplayer
                 {
                     continue;
                 }
-                c.tag = "Floor";
-                c.gameObject.layer = 0;
-                if(c.GetComponent<Collider>() != null && local)
-                {
-                    c.GetComponent<Collider>().enabled = false;
-                }
-                if(c.GetComponent<EnemyIdentifierIdentifier>() != null)
+                t.tag = "Floor";
+                t.gameObject.layer = 0;
+                if (c.GetComponent<EnemyIdentifierIdentifier>() != null)
                 {
                     Destroy(c.GetComponent<EnemyIdentifierIdentifier>());
                 }
@@ -574,10 +642,12 @@ namespace Polarite.Multiplayer
         }
         public static void ToggleCols(Transform t, bool value)
         {
+            /*
             foreach (Collider col in t.GetComponentsInChildren<Collider>(true))
             {
                 col.enabled = value;
             }
+            */
         }
         
 
@@ -595,10 +665,10 @@ namespace Polarite.Multiplayer
             EnemyIdentifier eid = t.GetComponent<EnemyIdentifier>();
             eid.enabled = value;
             eid.dead = false;
-            eid.health = Mathf.Infinity;* 
+            eid.health = Mathf.Infinity;
+            eid.beenGasolined = false;
             */
         }
-
         public static void ToggleEidForAll(bool value)
         {
             /*
@@ -611,10 +681,8 @@ namespace Polarite.Multiplayer
 
         public static void DoFriendlyDamage(ulong whoDidIt, int damage)
         {
-            /*
-            MonoSingleton<NewMovement>.instance.GetHurt(damage, false);
+            MonoSingleton<NewMovement>.Instance.GetHurt(damage, false);
             DeadPatch.Death("was friendly fired by ", whoDidIt);
-            */
         }
     }
 }

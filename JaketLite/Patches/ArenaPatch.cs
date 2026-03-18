@@ -1,4 +1,7 @@
-﻿using System;
+﻿// who is "methodName =," and why is he haunting this code :(
+// YESSSSSSS I'M FREE FROM THE CURSE OF METHODNAME
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -45,7 +48,7 @@ namespace Polarite.Patches
             NetworkManager.Instance.BroadcastPacket(PacketType.Arena, w.GetBytes());
             return true;
         }
-        [HarmonyPatch("OnEnable")]
+        [HarmonyPatch(nameof(ActivateArena.OnEnable))]
         [HarmonyPrefix]
         static bool ActivatePrefixB(ActivateArena __instance)
         {
@@ -68,3 +71,4 @@ namespace Polarite.Patches
         }
     }
 }
+

@@ -7,18 +7,17 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Polarite.Networking;
 
 namespace Polarite.Multiplayer
 {
     public class ChatUI : MonoBehaviour
     {
-        [Header("UI References")]
         public GameObject chatPanel;
         public TMP_InputField inputField;
         public TextMeshProUGUI chatLog, placeholder;
         public ScrollRect scrollRect;
 
-        [Header("Settings")]
         public KeyCode toggleKey = KeyCode.T;
         public int maxMessages = 15;
 
@@ -190,7 +189,7 @@ namespace Polarite.Multiplayer
                 {
                     // prioritise DEV tag if this user is a developer
                     string author;
-                    if (NetworkManager.Id == 76561198893363168 || NetworkManager.Id == 76561199078878250)
+                    if (Net.Dev(NetworkManager.Id))
                         author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
                     else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
                         author = $"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";

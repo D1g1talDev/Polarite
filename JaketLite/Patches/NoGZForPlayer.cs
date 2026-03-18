@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 using HarmonyLib;
 
@@ -24,6 +25,13 @@ namespace Polarite.Patches
                 return false;
             }
             return true;
+        }
+        [HarmonyPatch(nameof(GoreZone.DestroyNextFrame))]
+        [HarmonyPrefix]
+        static void Prefix2(GoreZone __instance)
+        {
+            NetworkPlayer p = __instance.toDestroy.Select(o => o?.GetComponent<NetworkPlayer>()).FirstOrDefault(c => c != null);
+            __instance.toDestroy.Remove(p.gameObject);
         }
     }
 }

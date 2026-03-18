@@ -341,7 +341,7 @@ namespace Polarite.Multiplayer
             // ignore voice packets when not in a valid lobby or Steam not initialized
             if (NetworkManager.Instance == null || NetworkManager.Instance.CurrentLobby.Id == 0 || !SteamClient.IsValid) return;
             // ignore packets from users not in our current player list
-            if (!NetworkManager.players.ContainsKey(sender.Value.ToString())) return;
+            if (!NetworkManager.players.ContainsKey(sender.Value)) return;
 
             // minimal header check: magic + sr + channels + codec + samples
             if (length < 1 + 2 + 1 + 1 + 2) return;

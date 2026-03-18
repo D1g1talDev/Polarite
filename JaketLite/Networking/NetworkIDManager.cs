@@ -6,12 +6,7 @@ using System.Text;
 using Polarite.Patches;
 
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.SceneManagement;
-
-using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
 {
@@ -27,15 +22,13 @@ namespace Polarite.Multiplayer
 
         public static void Initialize()
         {
-            if (initialized)
-                Clear();
+            if (initialized) Clear();
 
             CoroutineRunner.EnsureExists();
 
             CoroutineRunner.forceInvokeAction += () =>
             {
                 scheduledRebuild = false;
-
                 if (needsRebuild)
                 {
                     needsRebuild = false;
@@ -54,14 +47,12 @@ namespace Polarite.Multiplayer
         private static void FlagRebuild()
         {
             needsRebuild = true;
-
             if (scheduledRebuild) return;
-            scheduledRebuild = true;
 
+            scheduledRebuild = true;
             CoroutineRunner.InvokeNextFrame(() =>
             {
                 scheduledRebuild = false;
-
                 if (needsRebuild)
                 {
                     needsRebuild = false;
@@ -72,6 +63,8 @@ namespace Polarite.Multiplayer
 
         public static void Rebuild()
         {
+            if (NetworkManager.SceneLoading) return;
+
             var scenes = GetLoadedScenes().ToArray();
 
             lock (sync)
@@ -81,16 +74,31 @@ namespace Polarite.Multiplayer
 
                 foreach (var scene in scenes)
                 {
-                    if (!scene.IsValid() || !scene.isLoaded)
-                        continue;
-
+                    if (!scene.IsValid() || !scene.isLoaded) continue;
                     foreach (var root in scene.GetRootGameObjects())
-                        AddRecursive(root, scene);
+                        AddRecursive(root);
                 }
             }
         }
 
-        private static void AddRecursive(GameObject obj, Scene scene)
+        private static GameObject FindBySimpleID(string simpleId)
+        {
+            if (string.IsNullOrEmpty(simpleId)) return null;
+
+            lock (sync)
+            {
+                foreach (var obj in pathToObject.Values)
+                {
+                    if (obj == null) continue;
+                    if (obj.TryGetComponent(out INetworkObject net) && net.SimpleID == simpleId)
+                        return obj;
+                }
+            }
+
+            return null;
+        }
+
+        private static void AddRecursive(GameObject obj)
         {
             if (obj == null) return;
 
@@ -103,142 +111,41 @@ namespace Polarite.Multiplayer
             }
 
             foreach (Transform child in obj.transform)
-                AddRecursive(child.gameObject, scene);
+                AddRecursive(child.gameObject);
         }
 
-        public static EnemyIdentifier TrySpawnEnemy(string path, EnemyType fallback, Vector3 pos, Quaternion rot)
+        private static string ResolveSimpleId(GameObject obj)
         {
-            try
-            {
-                GameObject obj = Find(path);
-                if (obj == null)
-                {
-                    EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
-                    if (newE != null && !Contains(newE.gameObject))
-                    {
-                        Add(newE.gameObject);
-                    }
-                    return newE;
-                }
-                else
-                {
-                    obj.SetActive(true);
-                    obj.transform.position = pos;
-                    obj.transform.rotation = rot;
-                    return obj.GetComponent<EnemyIdentifier>();
-                }
-            }
-            catch
-            {
-                EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, NetworkManager.Sandbox);
-                if (newE != null && !Contains(newE.gameObject))
-                {
-                    Add(newE.gameObject);
-                }
-                return newE;
-            }
-        }
+            if (obj == null) return "Unknown";
 
-        private static string BuildUniquePath(GameObject obj)
-        {
-            Transform t = obj.transform;
-            List<string> parts = new List<string>();
+            if (obj.TryGetComponent(out INetworkObject netObj) && !string.IsNullOrEmpty(netObj.SimpleID))
+                return netObj.SimpleID;
 
-            while (t != null)
-            {
-                int index = t.GetSiblingIndex();
-                parts.Add($"{EscapeSegment(t.name)}[{index}]");
-                t = t.parent;
-            }
-
-            parts.Reverse();
-
-            string sceneName = obj.scene.name;
-
-            return $"U:{sceneName}/{string.Join("/", parts)}";
-        }
-
-
-        private static string BuildScenePath(GameObject obj, Scene scene)
-        {
-            StringBuilder sb = new StringBuilder();
-            Transform t = obj.transform;
-
-            while (t != null)
-            {
-                sb.Insert(0, "/" + EscapeSegment(t.name));
-                t = t.parent;
-            }
-
-            return $"{scene.name}{sb}";
-        }
-
-        private static string EscapeSegment(string segment)
-        {
-            return segment.Replace("/", "%2F");
-        }
-
-        private static string UnescapeSegment(string segment)
-        {
-            return segment.Replace("%2F", "/");
+            return "Scene";
         }
 
         private static bool ShouldUseUniquePath(GameObject obj)
         {
             if (obj == null) return false;
-
-            if (obj.GetComponent<EnemyIdentifier>() != null)
-                return true;
-
-            return false;
+            return obj.GetComponent<INetworkObject>() != null;
         }
 
-        private static string BuildPathForObject(GameObject obj)
+        private static string BuildUniquePathBody(GameObject obj)
         {
-            if (obj == null) return "";
+            List<string> parts = new List<string>();
+            Transform t = obj.transform;
 
-            if (ShouldUseUniquePath(obj))
-                return BuildUniquePath(obj);
+            while (t != null)
+            {
+                parts.Add(EscapeSegment(t.name));
+                t = t.parent;
+            }
 
-            return BuildPureHierarchyPath(obj);
+            parts.Reverse();
+            return $"{obj.scene.name}/{string.Join("/", parts)}";
         }
 
-        public static string GetScenePath(GameObject obj)
-        {
-            if (obj == null)
-                return "";
-
-            int id = obj.GetInstanceID();
-
-            lock (sync)
-            {
-                if (idToPath.TryGetValue(id, out string cached))
-                {
-                    bool cachedIsUnique = cached != null && cached.StartsWith("U:");
-                    bool wantUnique = ShouldUseUniquePath(obj);
-
-                    if (cachedIsUnique != wantUnique)
-                    {
-                        pathToObject.Remove(cached);
-                        idToPath.Remove(id);
-                    }
-                    else
-                    {
-                        return cached;
-                    }
-                }
-            }
-            string newPath = BuildPathForObject(obj);
-
-            lock (sync)
-            {
-                pathToObject[newPath] = obj;
-                idToPath[id] = newPath;
-            }
-            return newPath;
-        }
-
-        private static string BuildPureHierarchyPath(GameObject obj)
+        private static string BuildPureHierarchyPathBody(GameObject obj)
         {
             StringBuilder sb = new StringBuilder();
             Transform t = obj.transform;
@@ -252,19 +159,83 @@ namespace Polarite.Multiplayer
             return $"{obj.scene.name}{sb}";
         }
 
-        public static string GetOrCreatePath(GameObject obj)
+        private static string BuildPathForObject(GameObject obj)
         {
             if (obj == null) return "";
 
-            return GetScenePath(obj);
+            string simpleId = ResolveSimpleId(obj);
+            string body = ShouldUseUniquePath(obj) ? BuildUniquePathBody(obj) : BuildPureHierarchyPathBody(obj);
+
+            return $"{simpleId}:{body}";
         }
+
+        public static string GetScenePath(GameObject obj)
+        {
+            if (obj == null) return "";
+
+            int id = obj.GetInstanceID();
+
+            lock (sync)
+            {
+                if (idToPath.TryGetValue(id, out string cached))
+                {
+                    return cached;
+                }
+            }
+
+            string newPath = BuildPathForObject(obj);
+
+            lock (sync)
+            {
+                pathToObject[newPath] = obj;
+                idToPath[id] = newPath;
+            }
+
+            return newPath;
+        }
+
+        public static EnemyIdentifier TrySpawnEnemy(string path, string fallback, Vector3 pos, Quaternion rot, ulong owner)
+        {
+            try
+            {
+                GameObject obj = Find(path);
+
+                if (obj == null)
+                {
+                    EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot);
+                    if (newE != null && !Contains(newE.gameObject))
+                    {
+                        Add(newE.gameObject);
+                    }
+                    newE.GetComponent<NetworkObject>().owner = owner;
+                    return newE;
+                }
+
+                obj.SetActive(true);
+                obj.transform.SetPositionAndRotation(pos, rot);
+                obj.GetComponent<NetworkObject>().owner = owner;
+                return obj.GetComponent<EnemyIdentifier>();
+            }
+            catch
+            {
+                GameObject existing = Find(path);
+                if (existing != null) return existing.GetComponent<EnemyIdentifier>();
+
+                EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot);
+                if (newE != null && !Contains(newE.gameObject))
+                {
+                    Add(newE.gameObject);
+                }
+                newE.GetComponent<NetworkObject>().owner = owner;
+                return newE;
+            }
+        }
+
+        public static string GetOrCreatePath(GameObject obj) => GetScenePath(obj);
+
         public static GameObject Find(string path)
         {
-            if (string.IsNullOrEmpty(path))
-                return null;
-
-            if (needsRebuild)
-                Rebuild();
+            if (string.IsNullOrEmpty(path)) return null;
 
             CleanupDestroyed();
 
@@ -276,6 +247,7 @@ namespace Polarite.Multiplayer
 
             return null;
         }
+
         public static void Add(GameObject obj)
         {
             if (obj == null) return;
@@ -319,20 +291,16 @@ namespace Polarite.Multiplayer
         public static bool Contains(GameObject obj)
         {
             if (obj == null) return false;
-
-            lock (sync)
-                return idToPath.ContainsKey(obj.GetInstanceID());
+            lock (sync) return idToPath.ContainsKey(obj.GetInstanceID());
         }
 
         public static bool Contains(string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
-
             CleanupDestroyed();
-
-            lock (sync)
-                return pathToObject.ContainsKey(path);
+            lock (sync) return pathToObject.ContainsKey(path);
         }
+
         public static void Clear()
         {
             lock (sync)
@@ -344,8 +312,11 @@ namespace Polarite.Multiplayer
                 scheduledRebuild = false;
             }
         }
+
         private static void CleanupDestroyed()
         {
+            if (pathToObject.Count < idToPath.Count + 8) return;
+
             lock (sync)
             {
                 foreach (var key in pathToObject.Where(k => k.Value == null).Select(k => k.Key).ToList())
@@ -358,17 +329,21 @@ namespace Polarite.Multiplayer
                 }
             }
         }
+
         private static IEnumerable<Scene> GetLoadedScenes()
         {
             int count = SceneManager.sceneCount;
-
-            for (int i = 0; i < count; i++)
-                yield return SceneManager.GetSceneAt(i);
+            for (int i = 0; i < count; i++) yield return SceneManager.GetSceneAt(i);
         }
+
+        private static string EscapeSegment(string segment)
+        {
+            return segment.Replace("/", "%2F");
+        }
+
         public class CoroutineRunner : MonoBehaviour
         {
             private static CoroutineRunner instance;
-
             public static Action forceInvokeAction;
 
             public static void EnsureExists()
@@ -386,6 +361,7 @@ namespace Polarite.Multiplayer
                 EnsureExists();
                 instance.StartCoroutine(instance.InvokeAfterFrame(action));
             }
+
             public static void ForceInvokeFrame()
             {
                 InvokeNextFrame(forceInvokeAction);
@@ -394,10 +370,9 @@ namespace Polarite.Multiplayer
             private System.Collections.IEnumerator InvokeAfterFrame(Action action)
             {
                 yield return null;
-
-                try
-                {
-                    action?.Invoke();
+                try 
+                {   
+                    action?.Invoke(); 
                 }
                 catch (Exception ex)
                 {

@@ -1,16 +1,13 @@
-﻿using System;
+﻿using HarmonyLib;
+using Polarite.Multiplayer;
+using Steamworks;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-using HarmonyLib;
-
-using Polarite.Multiplayer;
-
-using Steamworks;
-
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Polarite.Patches
 {
@@ -27,7 +24,8 @@ namespace Polarite.Patches
             "exploded",
             "was slain by {0}",
             "was shot by {0}",
-            "was smited"
+            "was smited",
+            "killed themselves"
         };
 
         public static int DeadPlayers = 0;
@@ -65,10 +63,18 @@ namespace Polarite.Patches
             string msg = DeathMessages[deathMessage];
             ulong id = Arg;
             if (deathMessage == 1) msg += NetworkManager.GetNameOfId(id);
-            else if (id != 0) msg += ((EnemyType)id).ToString();
+            else if (id != 0) msg += id.ToString();
             msg = msg.Replace("{0}", "");
             NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + msg);
-            NetworkPlayer.ToggleEidForAll(false);
+            if (ItePlugin.cattoMode)
+            {
+                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("mpdeath"), 1, CameraController.Instance.transform, 1);
+            }
+            GameObject blood = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), CameraController.Instance.transform.position, Quaternion.identity);
+            GameObject ragdoll = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), CameraController.Instance.transform.position, CameraController.Instance.transform.rotation);
+            blood.SetActive(true);
+            NetworkPlayer.SetSkinOfRagdoll(ragdoll.GetComponentInChildren<SkinnedMeshRenderer>(), (int)ItePlugin.skin.value);
+            ragdoll.GetComponentInChildren<Rigidbody>().AddForce(MonoSingleton<NewMovement>.Instance.rb.velocity, ForceMode.VelocityChange);
         }
 
         public static void Respawn(Vector3 pos, Quaternion rot)

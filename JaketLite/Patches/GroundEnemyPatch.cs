@@ -19,9 +19,9 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(GroundCheckEnemy __instance)
         {
-            if(NetworkManager.InLobby && __instance.transform.parent.TryGetComponent<NetworkEnemy>(out var netE))
+            if(NetworkManager.InLobby && __instance.transform.parent.TryGetComponent<INetworkObject>(out var net))
             {
-                netE.TakeOwnership(NetworkManager.Id);
+                net.Transfer(NetworkManager.Id);
             }
         }
     }
