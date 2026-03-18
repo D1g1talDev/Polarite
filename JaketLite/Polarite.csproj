@@ -503,6 +503,7 @@
     <Compile Include="Patches\BreakablePatch.cs" />
     <Compile Include="Patches\CheaterPatch.cs" />
     <Compile Include="Patches\CheckPointPatch.cs" />
+    <Compile Include="Patches\CoinLag.cs" />
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
     <Compile Include="Patches\CyberSync.cs" />
     <Compile Include="Patches\DronePatch.cs" />
