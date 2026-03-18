@@ -28,6 +28,7 @@ namespace Polarite.Patches
                 Transform menu = MonoSingleton<OptionsManager>.Instance.pauseMenu.transform;
                 Transform quitButton = menu.Find("Quit Mission");
                 Transform restart = menu.Find("Restart Mission");
+                Transform checkpoint = menu.Find("Restart Checkpoint");
                 if (quitButton != null)
                 {
                     quitButton.GetComponentInChildren<TextMeshProUGUI>().text = "LEAVE LOBBY";
@@ -44,6 +45,10 @@ namespace Polarite.Patches
                     {
                         restart.GetComponent<Button>().interactable = true;
                     }
+                }
+                if(checkpoint != null)
+                {
+                    checkpoint.GetComponent<Button>().interactable = !ItePlugin.immuneToDeath;
                 }
                 // re-enable stuff disabled by pause
                 DisablePauseEffects();

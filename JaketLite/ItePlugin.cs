@@ -157,6 +157,8 @@ namespace Polarite
 
         private static float killbindCooldown = 5f;
 
+        public static bool immuneToDeath = false;
+
 
         public void Awake()
         {
@@ -303,7 +305,7 @@ namespace Polarite
                 debugSending = !debugSending;
                 LogDebug($"[POLARITE] Toggled packet messages {debugSending}.");
             }
-            if (Input.GetKeyDown(killbind.value) && NetworkManager.InLobby && MonoSingleton<NewMovement>.Instance.activated && MonoSingleton<NewMovement>.Instance.hp != 0 && killbindCooldown <= 0f)
+            if (Input.GetKeyDown(killbind.value) && NetworkManager.InLobby && MonoSingleton<NewMovement>.Instance.activated && MonoSingleton<NewMovement>.Instance.hp != 0 && killbindCooldown <= 0f && !immuneToDeath)
             {
                 killbindCooldown = 5f;
                 ForceKillSelf("killed themselves");
@@ -370,15 +372,24 @@ namespace Polarite
                 HasDiscord = false;
             }
         }
+        public bool ShouldBeImmune()
+        {
+            if(SceneHelper.CurrentScene == "Level 8-4" && StatsManager.Instance.kills >= 7)
+            {
+                return true;
+            }
+            return false;
+        }
         private void InNet()
         {
             if (NetworkManager.InLobby && SceneHelper.CurrentScene != "Main Menu")
             {
-                // so special events actually work
-                if(DisableEnemySpawns._lastInstance != null)
+                if(immuneToDeath)
                 {
-                    DisableEnemySpawns._lastInstance.IsActive = true;
+                    NewMovement mo = MonoSingleton<NewMovement>.Instance;
+                    mo.hp = 100;
                 }
+                immuneToDeath = ShouldBeImmune();
                 // force game to run everything even if paused or timestopped
                 if (!timeStopDisable.value)
                 {
@@ -436,6 +447,7 @@ namespace Polarite
             {
                 DeadPatch.SpectateOnDeath = false;
                 Application.runInBackground = false;
+                immuneToDeath = false;
             }
         }
 
@@ -900,6 +912,7 @@ namespace Polarite
             }
             NetworkPlayer.selfIsGhost = false;
             NetworkEnemy.Flush();
+            immuneToDeath = false;
             Instance.StartCoroutine(UnpauseNet());
         }
         public static string GetLevelName()

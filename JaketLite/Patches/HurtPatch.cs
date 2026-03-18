@@ -1,13 +1,10 @@
-﻿using System;
+﻿using HarmonyLib;
+using Polarite.Multiplayer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-using HarmonyLib;
-
-using Polarite.Multiplayer;
-
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -17,14 +14,20 @@ namespace Polarite.Patches
     internal class HurtPatch
     {
         [HarmonyPatch(nameof(NewMovement.GetHurt))]
-        [HarmonyPostfix]
-        static void Postfix(ref int damage, ref bool invincible)
+        [HarmonyPrefix]
+        static bool Prefix(ref int damage, ref bool invincible)
         {
+            if(ItePlugin.immuneToDeath)
+            {
+                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("SlamFail"), Random.Range(0.95f, 1.15f), MonoSingleton<CameraController>.Instance.transform, 1f);
+                return false;
+            }
             if(NetworkManager.InLobby && damage > 0)
             {
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Hurt, w.GetBytes());
             }
+            return true;
         }
         [HarmonyPatch(nameof(NewMovement.Respawn))]
         [HarmonyPostfix]
