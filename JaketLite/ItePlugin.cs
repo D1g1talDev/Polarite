@@ -159,6 +159,9 @@ namespace Polarite
 
         public static bool immuneToDeath = false;
 
+        public static readonly bool ReleaseBuild = false;
+        public static readonly string Version = "1.1.0-beta";
+
 
         public void Awake()
         {

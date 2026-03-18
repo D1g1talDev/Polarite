@@ -233,6 +233,11 @@ namespace Polarite.Multiplayer
         {
             if (!SteamClient.IsValid) return;
             if (InLobby) LeaveLobby();
+            if (!ItePlugin.ReleaseBuild && lobbyType == LobbyType.Public)
+            {
+                DisplayError("You cannot make public lobbies on beta builds.");
+                return;
+            }
 
             Lobby? lobby = await SteamMatchmaking.CreateLobbyAsync(maxPlayers);
 
@@ -265,6 +270,7 @@ namespace Polarite.Multiplayer
                 CurrentLobby.SetData("bhm", ItePlugin.bossHpMult.value.ToString());
                 CurrentLobby.SetData("pvp", (ItePlugin.pvpOn.value) ? "1" : "0");
                 CurrentLobby.SetData("priv", lobbyType == LobbyType.Private ? "1" : "0");
+                CurrentLobby.SetData("ver", ItePlugin.Version);
                 PrivateLobby = lobbyType == LobbyType.Private;
                 onJoin?.Invoke(LobbyCodeUtil.ToBase36(CurrentLobby.Id));
                 SetRichPresenceForLobby(CurrentLobby);
@@ -290,6 +296,12 @@ namespace Polarite.Multiplayer
             Lobby? lobby = await SteamMatchmaking.JoinLobbyAsync(lobbyId);
             if (lobby.HasValue)
             {
+                if (lobby.Value.GetData("ver") != ItePlugin.Version)
+                {
+                    DisplayError("This lobby is running a different version of the mod.");
+                    lobby.Value.Leave();
+                    return;
+                }
                 if (lobby.Value.GetData("banned_" + Id.ToString()) == "1")
                 {
                     DisplayError("You were banned from this lobby.");
