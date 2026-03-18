@@ -153,8 +153,7 @@ namespace Polarite
         public static bool debugMode = false;
         public static bool debugSending = false;
 
-        // adds secret death noise
-        public static readonly bool cattoMode = true;
+        // rip catto mode value :(
 
         private static float killbindCooldown = 5f;
 

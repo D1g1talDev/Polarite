@@ -143,10 +143,6 @@ namespace Polarite.Multiplayer
 
                         NetworkPlayer.Find(senderId)?.DeathNoise();
                         NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId) + " " + msg);
-                        if(ItePlugin.cattoMode)
-                        {
-                            ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("mpdeath"), 1, CameraController.Instance.transform, 1);
-                        }
                         /*
                         if(DeadPatch.SpectateOnDeath)
                         {

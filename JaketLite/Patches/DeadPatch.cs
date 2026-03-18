@@ -66,10 +66,7 @@ namespace Polarite.Patches
             else if (id != 0) msg += id.ToString();
             msg = msg.Replace("{0}", "");
             NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + msg);
-            if (ItePlugin.cattoMode)
-            {
-                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("mpdeath"), 1, CameraController.Instance.transform, 1);
-            }
+
             GameObject blood = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), CameraController.Instance.transform.position, Quaternion.identity);
             GameObject ragdoll = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), CameraController.Instance.transform.position, CameraController.Instance.transform.rotation);
             blood.SetActive(true);
