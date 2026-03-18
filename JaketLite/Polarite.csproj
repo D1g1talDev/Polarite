@@ -507,7 +507,6 @@
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
     <Compile Include="Patches\CyberSync.cs" />
     <Compile Include="Patches\DronePatch.cs" />
-    <Compile Include="Patches\ForceDisabled.cs" />
     <Compile Include="Patches\GunSyncPatches.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
     <Compile Include="Patches\NoGhostSlamming.cs" />

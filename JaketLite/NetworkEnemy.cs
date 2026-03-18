@@ -35,7 +35,6 @@ namespace Polarite.Multiplayer
 
         public static NetworkEnemy Create(string id, EnemyIdentifier eid, ulong owner)
         {
-
             if (eid.GetComponent<NetworkPlayer>() != null)
                 return null;
 
@@ -61,9 +60,6 @@ namespace Polarite.Multiplayer
 
         public override void Start()
         {
-            // DIE!
-            Destroy(gameObject);
-
             if (Enemy == null) return;
             if (Owner == 0) Owner = NetworkManager.Instance.CurrentLobby.Owner.Id.Value;
             simpleId = Enemy.FullName;
@@ -108,8 +104,8 @@ namespace Polarite.Multiplayer
 
         public override void OnDestroy()
         {
-            // allEnemies.Remove(ID);
-            // SceneObjectCache.Remove(gameObject);
+            allEnemies.Remove(ID);
+            SceneObjectCache.Remove(gameObject);
             base.OnDestroy();
         }
 

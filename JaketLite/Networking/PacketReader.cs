@@ -282,8 +282,6 @@ namespace Polarite.Multiplayer
 
                 case PacketType.ObjectState:
                     {
-                        // disabling code for now
-                        break;
                         string id = reader.ReadString();
 
                         Vector3 pos = reader.ReadVector3();
@@ -296,8 +294,6 @@ namespace Polarite.Multiplayer
 
                 case PacketType.EnemyDmg:
                     {
-                        // disabling code for now
-                        break;
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
                         INetworkObject e = Net.Get(id, senderId, pos);
@@ -308,8 +304,6 @@ namespace Polarite.Multiplayer
 
                 case PacketType.DeathEnemy:
                     {
-                        // disabling code for now
-                        break;
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
                         INetworkObject e = Net.Get(id, senderId, pos);
@@ -320,8 +314,6 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Ownership:
                     {
-                        // disabling code for now
-                        break;
                         string id = reader.ReadString();
                         ulong newOwner = reader.ReadULong();
                         Vector3 pos = reader.ReadVector3();
@@ -333,8 +325,6 @@ namespace Polarite.Multiplayer
 
                 case PacketType.EnemySpawn:
                     {
-                        // disabling code for now
-                        break;
                         ulong owner = reader.ReadULong();
                         string name = reader.ReadString();
                         string path = reader.ReadString();
