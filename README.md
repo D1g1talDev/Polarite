@@ -16,7 +16,8 @@ Works with **Steam**
 - Enemy spawns, Enemy positions and rotations, damage to enemies
 - Breakables, hook points, checkpoints
 - Arenas
-- Cybergrind and Sandbox
+- Cybergrind and Sandbox (WIP)
+- Triggers and Fraud Elevators
 
 ## Manual Installation
 1. Make sure you have **BepInEx** for ULTRAKILL
