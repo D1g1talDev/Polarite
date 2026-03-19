@@ -160,7 +160,7 @@ namespace Polarite
         public static bool immuneToDeath = false;
 
         public static readonly bool ReleaseBuild = false;
-        public static readonly string Version = "1.1.0-beta";
+        public static readonly string Version = "v1.1.0-beta";
 
 
         public void Awake()
@@ -603,6 +603,7 @@ namespace Polarite
                     Transform playerList = pMM.transform.Find("Main").Find("PlayerList");
                     Transform pirateGuide = pMM.transform.Find("Main").Find("PiratesGuide").Find("PiratesGuideBG");
                     Transform blueScreen = pMM.transform.parent.Find("BackgroundStuff");
+                    TextMeshProUGUI ver = pMM.transform.Find("Main").Find("Ver").GetComponent<TextMeshProUGUI>();
 
                     pMM.maxP = host.Find("MaxPlayers").GetComponent<TMP_InputField>();
                     pMM.lobbyName = host.Find("UsefulInputField").GetComponent<TMP_InputField>();
@@ -660,6 +661,9 @@ namespace Polarite
 
                     PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
                     PlayerList.ContentB = playerList.Find("List").Find("Content");
+
+                    ver.text = Version;
+                    ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
 
                     leaveButton = leave.gameObject;
                     joinButton = joinL.gameObject;
