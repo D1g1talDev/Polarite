@@ -1070,9 +1070,5 @@ namespace Polarite
             Net.Unpause();
             NetworkManager.Instance.SceneLoad();
         }
-        public void PauseNet()
-        {
-
-        }
     }
 }

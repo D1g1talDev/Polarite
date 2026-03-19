@@ -291,6 +291,7 @@ namespace Polarite.Multiplayer
         public async Task JoinLobby(ulong lobbyId)
         {
             if (!SteamClient.IsValid) return;
+            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap") return;
             if (InLobby) LeaveLobby();
 
             Lobby? lobby = await SteamMatchmaking.JoinLobbyAsync(lobbyId);
@@ -356,6 +357,7 @@ namespace Polarite.Multiplayer
         public async Task JoinLobbyByCode(string code)
         {
             if (!SteamClient.IsValid) return;
+            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap") return;
             if (InLobby) LeaveLobby();
 
             ulong lobbyId = LobbyCodeUtil.FromBase36(code);
