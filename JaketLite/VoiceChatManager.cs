@@ -699,8 +699,15 @@ namespace Polarite.Multiplayer
         }
         public static void Add(ulong id, AudioSource source)
         {
-            idToSource.Add(id, source);
-            if(mutedPlayers.Contains(id) && source != null)
+            if(idToSource.ContainsKey(id))
+            {
+                idToSource[id] = source;
+            }
+            else
+            {
+                idToSource.Add(id, source);
+            }
+            if (mutedPlayers.Contains(id) && source != null)
             {
                 source.mute = true;
             }
