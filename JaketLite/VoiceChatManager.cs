@@ -103,6 +103,11 @@ namespace Polarite.Multiplayer
 
             if (mode == VoiceMode.PushToTalk)
             {
+                if (ChatUI.isTyping)
+                {
+                    StopTalking();
+                    return;
+                }
                 if (Input.GetKeyDown(configured)) StartTalking();
                 if (Input.GetKeyUp(configured)) StopTalking();
                 return;
@@ -110,6 +115,11 @@ namespace Polarite.Multiplayer
 
             if (mode == VoiceMode.ToggleToTalk)
             {
+                if(ChatUI.isTyping)
+                {
+                    StopTalking();
+                    return;
+                }
                 if (Input.GetKeyDown(configured))
                 {
                     if (isTalking) StopTalking();
