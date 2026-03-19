@@ -566,7 +566,7 @@ namespace Polarite
             GameStateManager.Instance.CameraLocked = !val;
             GameStateManager.Instance.TimerModifier = 1f;
             GameStateManager.Instance.PlayerInputLocked = !val;
-            CameraController.Instance.enabled = val;
+            CameraController.Instance.activated = val;
             GunControl.Instance.activated = val;
             if(val)
             {
@@ -924,7 +924,15 @@ namespace Polarite
             NetworkPlayer.selfIsGhost = false;
             NetworkEnemy.Flush();
             immuneToDeath = false;
+            if(SceneHelper.CurrentScene == "Level 0-4" && StockMapInfo.Instance != null && NetworkManager.InLobby)
+            {
+                StockMapInfo.Instance.levelName = $"A {NetworkManager.Instance.CurrentLobby.MemberCount}-MACHINE ARMY";
+            }
             Instance.StartCoroutine(UnpauseNet());
+            if(NetworkManager.InLobby)
+            {
+                CustomTogglePlayer(true);
+            }
         }
         public static string GetLevelName()
         {

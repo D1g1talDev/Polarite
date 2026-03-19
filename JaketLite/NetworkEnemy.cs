@@ -11,6 +11,7 @@ using Steamworks;
 using ULTRAKILL.Cheats;
 using System.Linq;
 using Polarite.Networking;
+using ULTRAKILL.Enemy;
 
 namespace Polarite.Multiplayer
 {

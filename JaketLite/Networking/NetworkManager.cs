@@ -698,7 +698,6 @@ namespace Polarite.Multiplayer
 
             SceneLoading = false;
             SceneObjectCache.Rebuild();
-            Net.Unpause();
         }
 
         void Update()
