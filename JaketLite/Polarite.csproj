@@ -513,6 +513,7 @@
     <Compile Include="Patches\NoGhostSlamming.cs" />
     <Compile Include="Patches\NoGZForPlayer.cs" />
     <Compile Include="Patches\PrisonFixes.cs" />
+    <Compile Include="Patches\RandomPatch.cs" />
     <Compile Include="Patches\SkipPatch.cs" />
     <Compile Include="Patches\SkullSyncPatches.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
