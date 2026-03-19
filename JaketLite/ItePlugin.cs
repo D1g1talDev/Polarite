@@ -160,8 +160,8 @@ namespace Polarite
         public static bool immuneToDeath = false;
 
         public static readonly bool ReleaseBuild = false;
-        public static readonly string Version = "v1.1.0-beta";
-        public static readonly string MOTD = "Hello everyone, This is the MOTD";
+        public static readonly string Version = "v1.1.0-beta1";
+        public static readonly string MOTD = "Slomp!";
 
 
         public void Awake()
