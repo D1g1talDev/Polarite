@@ -161,6 +161,7 @@ namespace Polarite
 
         public static readonly bool ReleaseBuild = false;
         public static readonly string Version = "v1.1.0-beta";
+        public static readonly string MOTD = "Hello everyone, This is the MOTD";
 
 
         public void Awake()
@@ -604,6 +605,7 @@ namespace Polarite
                     Transform pirateGuide = pMM.transform.Find("Main").Find("PiratesGuide").Find("PiratesGuideBG");
                     Transform blueScreen = pMM.transform.parent.Find("BackgroundStuff");
                     TextMeshProUGUI ver = pMM.transform.Find("Main").Find("Ver").GetComponent<TextMeshProUGUI>();
+                    TextMeshProUGUI motd = pMM.transform.Find("Main").Find("MOTD").GetComponent<TextMeshProUGUI>();
 
                     pMM.maxP = host.Find("MaxPlayers").GetComponent<TMP_InputField>();
                     pMM.lobbyName = host.Find("UsefulInputField").GetComponent<TMP_InputField>();
@@ -664,6 +666,8 @@ namespace Polarite
 
                     ver.text = Version;
                     ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
+                    
+                    motd.text = MOTD;
 
                     leaveButton = leave.gameObject;
                     joinButton = joinL.gameObject;
