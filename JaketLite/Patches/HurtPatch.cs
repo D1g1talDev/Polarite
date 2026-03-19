@@ -37,6 +37,7 @@ namespace Polarite.Patches
             {
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Respawn, w.GetBytes());
+                CameraController.Instance.cameraShaking = 0;
             }
         }
 
