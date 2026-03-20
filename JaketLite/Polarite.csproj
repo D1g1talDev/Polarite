@@ -506,6 +506,7 @@
     <Compile Include="Patches\CoinLag.cs" />
     <Compile Include="Patches\CutsceneSkipPatch.cs" />
     <Compile Include="Patches\CyberSync.cs" />
+    <Compile Include="Patches\DeathcatcherPatch.cs" />
     <Compile Include="Patches\DronePatch.cs" />
     <Compile Include="Patches\ElevatorPatch.cs" />
     <Compile Include="Patches\GunSyncPatches.cs" />
