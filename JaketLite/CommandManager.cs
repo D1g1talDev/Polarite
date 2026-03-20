@@ -10,7 +10,8 @@ namespace Polarite
         {
             "level",
             "help",
-            "dummy"
+            "dummy",
+            "forcecomp"
         };
 
         public static bool IsCommand(string msg)
@@ -43,6 +44,17 @@ namespace Polarite
                     break;
                 case "dummy":
                     DummyMode();
+                    break;
+                case "forcecomp":
+                    if(NetworkManager.InLobby)
+                    {
+                        // ensure you get no rank at all
+                        StatsManager.Instance.kills = 0;
+                        StatsManager.Instance.challengeComplete = false;
+                        StatsManager.Instance.stylePoints = 0;
+                        StatsManager.Instance.rankScore = 0;
+                        SceneHelper.SpawnFinalPitAndFinish();
+                    }
                     break;
             }
         }
@@ -90,7 +102,7 @@ namespace Polarite
         }
         private static void HelpCommand()
         {
-            NetworkManager.DisplaySystemChatMessage("Commands:\n<b>/level <level name></b>\nShortcuts:\n\n<b>cybergrind\ncredits\nsandbox</b>\nExample:\nlevel p-1");
+            NetworkManager.DisplaySystemChatMessage("Commands:\n<b>/level <level name></b>\nShortcuts:\n\n<b>cybergrind\ncredits\nsandbox</b>\nExample:\nlevel p-1\n\n<b>/forcecomp</b>\n\nBeats the level with a D rank");
         }
         // adding commands just to add commands atp
         private static void DummyMode()
