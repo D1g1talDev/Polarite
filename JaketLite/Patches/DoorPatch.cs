@@ -63,11 +63,5 @@ namespace Polarite.Patches
             }
             return !NetworkManager.InLobby;
         }
-        [HarmonyPatch(nameof(Door.Optimize))]
-        [HarmonyPrefix]
-        static bool PrefixTwo()
-        {
-            return !NetworkManager.InLobby;
-        }
     }
 }
