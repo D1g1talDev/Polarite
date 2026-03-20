@@ -616,6 +616,8 @@ namespace Polarite.Multiplayer
                         {
                             act.activating = false;
                             act.activated = true;
+                            // ensure all objects stay active
+                            Array.Clear(act.events.toDisActivateObjects, 0, act.events.toDisActivateObjects.Length);
                             act.events.Invoke();
                         }
                         break;
