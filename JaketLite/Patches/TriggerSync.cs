@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Polarite.Multiplayer;
 
 using HarmonyLib;
+using UnityEngine;
 
 namespace Polarite.Patches
 {
@@ -23,6 +24,11 @@ namespace Polarite.Patches
                 w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));
                 NetworkManager.Instance.BroadcastPacket(PacketType.Trigger, w.GetBytes());
             }
+        }
+
+        public static bool IsRoom(GameObject obj)
+        {
+            return obj.GetComponentInChildren<GoreZone>(true) != null;
         }
     }
 }

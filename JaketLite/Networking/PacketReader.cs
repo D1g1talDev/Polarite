@@ -616,9 +616,14 @@ namespace Polarite.Multiplayer
                         {
                             act.activating = false;
                             act.activated = true;
-                            // ensure all objects stay active
-                            Array.Clear(act.events.toDisActivateObjects, 0, act.events.toDisActivateObjects.Length);
                             act.events.Invoke();
+                            foreach(var obj in act.events.toDisActivateObjects)
+                            {
+                                if(TriggerSync.IsRoom(obj))
+                                {
+                                    obj.SetActive(true);
+                                }
+                            }
                         }
                         break;
                     }
