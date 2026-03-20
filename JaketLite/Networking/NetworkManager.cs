@@ -643,25 +643,37 @@ namespace Polarite.Multiplayer
                 JoinLobby(lobbyId).Forget();
             }
         }
-        public void BroadcastPacket(PacketType type, byte[] data)
+        public void BroadcastPacket(PacketType type, byte[] data, ulong owner = 0)
         {
             if (CurrentLobby.Id == 0 || !SteamClient.IsValid) return;
+
+            if(ClientAndConnected)
+            {
+                // funnel to host
+                SendToHost(type, data);
+                return;
+            }
 
             foreach (var member in CurrentLobby.Members)
             {
                 if (member.Id != NetworkManager.Id)
                 {
-                    SendPacket(type, data, member.Id.Value);
+                    SendPacket(type, data, member.Id.Value, owner);
                 }
             }
         }
 
-        public void SendPacket(PacketType type, byte[] data, ulong targetId)
+        public void SendPacket(PacketType type, byte[] data, ulong targetId, ulong owner = 0)
         {
+            if(owner == 0)
+            {
+                owner = Id;
+            }
+
             PacketWriter w = new PacketWriter();
 
             w.WriteByte((byte)type);
-            w.WriteULong(Id);
+            w.WriteULong(owner);
             w.WriteInt(data.Length);
             w.WriteBytes(data);
 
@@ -672,7 +684,6 @@ namespace Polarite.Multiplayer
 
 
         // send to host only
-        // ^ wow i never use this
         public void SendToHost(PacketType type, byte[] payload)
         {
             if (CurrentLobby.Owner.Id == NetworkManager.Id) return;
@@ -764,6 +775,12 @@ namespace Polarite.Multiplayer
                         continue;
                     if (sender != id)
                         continue;
+
+                    if(HostAndConnected)
+                    {
+                        // send it to everyone else
+                        BroadcastPacket(type, data, sender);
+                    }
 
                     Handle(type, data, (int)packetSize, sender);
                 }
