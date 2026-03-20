@@ -8,7 +8,7 @@ using Polarite.Patches;
 using Steamworks;
 
 using TMPro;
-
+using ULTRAKILL.Enemy;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AI;
@@ -21,10 +21,31 @@ using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
 {
-    public class NetworkPlayer : MonoBehaviour
+    public class NetworkPlayer : MonoBehaviour, ITarget
     {
         public ulong SteamId { get; private set; }
         public string PlayerName { get; private set; }
+
+        // ITarget implementation
+        public int Id => 4545;
+
+        public TargetType Type => TargetType.PLAYER;
+
+        public bool isPlayer => true;
+        public bool isEnemy => false;
+
+        public EnemyIdentifier EID => null;
+
+        public GameObject GameObject => gameObject;
+
+        public Rigidbody Rigidbody => null;
+        public Transform Transform => transform;
+
+        public Vector3 Position => transform.position;
+
+        public Vector3 HeadPosition => head.transform.position;
+
+
 
         public NameTag NameTag;
 
@@ -683,6 +704,16 @@ namespace Polarite.Multiplayer
         {
             MonoSingleton<NewMovement>.Instance.GetHurt(damage, false);
             DeadPatch.Death("was friendly fired by ", whoDidIt);
+        }
+
+        public void SetData(ref TargetData data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateCachedTransformData()
+        {
+            throw new NotImplementedException();
         }
     }
 }
