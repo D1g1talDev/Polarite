@@ -9,7 +9,7 @@ using Polarite.Multiplayer;
 namespace Polarite.Patches
 {
     [HarmonyPatch(typeof(EnemySpawnRadius))]
-    internal class SuicideTreePatch
+    internal class SuicideTreePatchSpawn
     {
         [HarmonyPatch(nameof(EnemySpawnRadius.SpawnEnemy))]
         [HarmonyPrefix]
@@ -20,6 +20,21 @@ namespace Polarite.Patches
                 return !NetworkManager.ClientAndConnected;
             }
             return true;
+        }
+    }
+    [HarmonyPatch(typeof(BloodFiller))]
+    internal class SuicideTreePatchFill
+    {
+        [HarmonyPatch(nameof(BloodFiller.FullyFilled))]
+        [HarmonyPrefix]
+        static void SyncFill(BloodFiller __instance)
+        {
+            if (NetworkManager.InLobby && !__instance.fullyFilled)
+            {
+                PacketWriter w = new PacketWriter();
+                w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));
+                NetworkManager.Instance.BroadcastPacket(PacketType.SuicideFill, w.GetBytes());
+            }
         }
     }
 }

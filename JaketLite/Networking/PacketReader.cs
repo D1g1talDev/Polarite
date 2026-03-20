@@ -88,7 +88,9 @@ namespace Polarite.Multiplayer
         // trigger
         Trigger = 47,
         // elevation
-        Elevator = 48
+        Elevator = 48,
+        // suicide trees
+        SuicideFill = 49
     }
 
     public static class PacketReader
@@ -362,7 +364,7 @@ namespace Polarite.Multiplayer
                         if (hasHp) eid.HealthBuff(hpMod);
                         if (hasSpeed) eid.SpeedBuff(speedMod);
                         if (hasDamage) eid.DamageBuff(damageMod);
-                        if(bloodPup) eid.PuppetSpawn();
+                        if (bloodPup) eid.PuppetSpawn();
                         break;
                     }
 
@@ -634,6 +636,16 @@ namespace Polarite.Multiplayer
                             {
                                 e.MoveToFloor(target);
                             }
+                        }
+                        break;
+                    }
+                case PacketType.SuicideFill:
+                    {
+                        string path = reader.ReadString();
+                        BloodFiller fill = SceneObjectCache.Find(path).GetComponent<BloodFiller>();
+                        if (fill != null)
+                        {
+                            fill.FullyFilled();
                         }
                         break;
                     }
