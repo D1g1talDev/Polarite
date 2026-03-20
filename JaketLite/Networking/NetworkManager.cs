@@ -643,11 +643,15 @@ namespace Polarite.Multiplayer
                 JoinLobby(lobbyId).Forget();
             }
         }
+        /// <summary>
+        /// Don't set the owner value to anything to make packet funnel to host
+        /// </summary>
         public void BroadcastPacket(PacketType type, byte[] data, ulong owner = 0)
         {
+            // fix infinite loop using the fact owner starts off at 0
             if (CurrentLobby.Id == 0 || !SteamClient.IsValid) return;
 
-            if(ClientAndConnected)
+            if(ClientAndConnected && owner == 0)
             {
                 // funnel to host
                 SendToHost(type, data);
