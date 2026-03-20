@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using HarmonyLib;
+using Polarite.Multiplayer;
 
 namespace Polarite.Patches
 {
@@ -15,8 +16,11 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Never(CutsceneSkip __instance)
         {
-            MonoSingleton<CutsceneSkipText>.Instance.Hide();
-            __instance.waitingForInput = false;
+            if(NetworkManager.InLobby)
+            {
+                MonoSingleton<CutsceneSkipText>.Instance.Hide();
+                __instance.waitingForInput = false;
+            }
         }
     }
 }
