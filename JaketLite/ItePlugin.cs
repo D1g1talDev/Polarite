@@ -161,7 +161,7 @@ namespace Polarite
 
         public static readonly bool ReleaseBuild = false;
         public static readonly string Version = "v1.1.0-beta1";
-        public static readonly string MOTD = "Slomp!";
+        public static readonly string MOTD = "Welcome back, to slomp live!";
 
 
         public void Awake()
