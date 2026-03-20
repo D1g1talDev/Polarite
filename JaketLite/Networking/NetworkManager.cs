@@ -660,7 +660,7 @@ namespace Polarite.Multiplayer
 
             foreach (var member in CurrentLobby.Members)
             {
-                if (member.Id != NetworkManager.Id)
+                if (member.Id != Id && member.Id != owner)
                 {
                     SendPacket(type, data, member.Id.Value, owner);
                 }
