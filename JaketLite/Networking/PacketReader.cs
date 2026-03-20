@@ -336,6 +336,7 @@ namespace Polarite.Multiplayer
                         bool hasHp = reader.ReadBool();
                         bool hasSpeed = reader.ReadBool();
                         bool hasDamage = reader.ReadBool();
+                        bool bloodPup = reader.ReadBool();
                         float hpMod = reader.ReadFloat();
                         float speedMod = reader.ReadFloat();
                         float damageMod = reader.ReadFloat();
@@ -361,6 +362,7 @@ namespace Polarite.Multiplayer
                         if (hasHp) eid.HealthBuff(hpMod);
                         if (hasSpeed) eid.SpeedBuff(speedMod);
                         if (hasDamage) eid.DamageBuff(damageMod);
+                        if(bloodPup) eid.PuppetSpawn();
                         break;
                     }
 

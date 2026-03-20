@@ -152,6 +152,7 @@ namespace Polarite.Multiplayer
             w.WriteBool(Enemy.healthBuff);
             w.WriteBool(Enemy.speedBuff);
             w.WriteBool(Enemy.damageBuff);
+            w.WriteBool(Enemy.puppet);
             w.WriteFloat(Enemy.healthBuffModifier);
             w.WriteFloat(Enemy.speedBuffModifier);
             w.WriteFloat(Enemy.damageBuffModifier);
