@@ -535,6 +535,7 @@
     <Compile Include="Patches\ProjectilePatch.cs" />
     <Compile Include="Patches\PunchPatch.cs" />
     <Compile Include="Patches\SteamPatch.cs" />
+    <Compile Include="Patches\SuicideTreePatch.cs" />
     <Compile Include="Patches\SwapWeaponsPatch.cs" />
     <Compile Include="Patches\TextOverridePatch.cs" />
     <Compile Include="Patches\TimerForceSpectatePatch.cs" />
