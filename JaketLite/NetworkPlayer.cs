@@ -31,7 +31,7 @@ namespace Polarite.Multiplayer
         // ITarget implementation
         public int Id => GetInstanceID();
 
-        public TargetType Type => TargetType.ENEMY;
+        public TargetType Type => TargetType.PLAYER;
 
         public bool isPlayer => false;
         public bool isEnemy => false;
