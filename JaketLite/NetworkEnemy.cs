@@ -12,12 +12,16 @@ using ULTRAKILL.Cheats;
 using System.Linq;
 using Polarite.Networking;
 using ULTRAKILL.Enemy;
+using static ULTRAKILL.Enemy.VisionQuery;
+using ULTRAKILL.Portal;
+using System.Threading;
 
 namespace Polarite.Multiplayer
 {
     public class NetworkEnemy : NetworkObject
     {
         public EnemyIdentifier Enemy;
+        public Enemy EE => Enemy.GetComponent<Enemy>();
         public bool IsAlive = true;
         public bool IgnoreSpawnSync = false;
         public bool HelpedWithKill;
@@ -179,10 +183,43 @@ namespace Polarite.Multiplayer
             if (Enemy == null || !IsAlive) return;
             if (Enemy.attackEnemies || Enemy.prioritizeEnemiesUnlessAttacked) return;
             if (SceneHelper.CurrentScene == "Level 0-2" && Enemy.enemyType == EnemyType.Swordsmachine) return;
-            Enemy.target = GetClosestTarget();
+            EnemyTarget tar = GetClosestTarget();
+            Enemy.target = tar;
+            TargetTrackerStuff();
         }
 
-        private EnemyTarget GetClosestTarget()
+        private void TargetTrackerStuff()
+        {
+            if (Enemy == null || !IsAlive) return;
+            ITarget target = null;
+            EnemyTarget target1 = GetClosestTarget();
+            CancellationToken tok = new CancellationToken();
+            if (target1.targetTransform.GetComponent<NewMovement>() != null)
+            {
+                target = target1.targetTransform.GetComponent<NewMovement>();
+                tok = target1.targetTransform.GetComponent<NewMovement>().destroyCancellationToken;
+            }
+            else if (target1.targetTransform.GetComponent<NetworkPlayer>() != null)
+            {
+                target = target1.targetTransform.GetComponent<NetworkPlayer>();
+                tok = target1.targetTransform.GetComponent<NetworkPlayer>().destroyCancellationToken;
+            }
+            TargetTracker tracker = PortalManagerV2.Instance.TargetTracker;
+            if(tracker != null)
+            {
+                if(!tracker.targets.Contains(target) && !tracker.newTargets.Contains(target))
+                {
+                    tracker.RegisterTarget(target, tok);
+                }
+            }
+        }
+        public static TargetHandle CreateHandleFrom(Vector3 pos)
+        {
+            TargetHandle handle = new TargetHandle(GetITargetFrom(pos));
+            return handle;
+        }
+
+        public EnemyTarget GetClosestTarget()
         {
             Transform[] players = GetAllPlayers();
             Transform closest = null;
@@ -198,10 +235,17 @@ namespace Polarite.Multiplayer
                     closest = player;
                 }
             }
-            return (closest != null) ? new EnemyTarget(closest) : (NetworkManager.ClientAndConnected) ? new EnemyTarget(NetworkManager.players[NetworkManager.Instance.CurrentLobby.Owner.Id.Value].transform) : new EnemyTarget(MonoSingleton<NewMovement>.Instance.transform);
+            return (closest != null) ? CreateTarget(closest) : (NetworkManager.ClientAndConnected) ? CreateTarget(NetworkManager.players[NetworkManager.Instance.CurrentLobby.Owner.Id.Value].transform) : CreateTarget(MonoSingleton<NewMovement>.Instance.transform);
+        }
+        private static EnemyTarget CreateTarget(Transform t)
+        {
+            EnemyTarget target = new EnemyTarget(t);
+            target.isPlayer = false;
+            target.enemyIdentifier = null;
+            return target;
         }
 
-        private Transform[] GetAllPlayers()
+        public static Transform[] GetAllPlayers()
         {
             List<Transform> players = new List<Transform>();
             foreach (var player in NetworkManager.players)
@@ -213,6 +257,38 @@ namespace Polarite.Multiplayer
                 players.Add(localPlayer.transform);
 
             return players.ToArray();
+        }
+        public static EnemyTarget GetClosestTargetFrom(Vector3 from)
+        {
+            Transform[] players = GetAllPlayers();
+            Transform closest = null;
+            float closestDist = float.MaxValue;
+
+            Vector3 pos = from;
+            foreach (var player in players)
+            {
+                float dist = (pos - player.position).sqrMagnitude;
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    closest = player;
+                }
+            }
+            return (closest != null) ? CreateTarget(closest) : (NetworkManager.ClientAndConnected) ? CreateTarget(NetworkManager.players[NetworkManager.Instance.CurrentLobby.Owner.Id.Value].transform) : CreateTarget(MonoSingleton<NewMovement>.Instance.transform);
+        }
+        public static ITarget GetITargetFrom(Vector3 pos)
+        {
+            ITarget target = null;
+            EnemyTarget target1 = GetClosestTargetFrom(pos);
+            if (target1.targetTransform.GetComponent<NewMovement>() != null)
+            {
+                target = target1.targetTransform.GetComponent<NewMovement>();
+            }
+            else if (target1.targetTransform.GetComponent<NetworkPlayer>() != null)
+            {
+                target = target1.targetTransform.GetComponent<NetworkPlayer>();
+            }
+            return target;
         }
 
         public void SetHealth(float hp)

@@ -21,6 +21,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TMPro;
 using ULTRAKILL.Cheats;
+using ULTRAKILL.Enemy;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -163,6 +164,8 @@ namespace Polarite
         public static readonly string Version = "v1.1.0-beta1";
         public static readonly string MOTD = "Welcome back, to slomp live!";
 
+        public static TargetData playerData;
+
 
         public void Awake()
         {
@@ -221,6 +224,7 @@ namespace Polarite
             };
             mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
             TryRunDiscord();
+            playerData = new TargetData();
         }
         public static void LogDebug(string msg, bool ignore = false)
         {
@@ -388,7 +392,7 @@ namespace Polarite
         {
             if (NetworkManager.InLobby && SceneHelper.CurrentScene != "Main Menu")
             {
-                if(immuneToDeath)
+                if (immuneToDeath)
                 {
                     NewMovement mo = MonoSingleton<NewMovement>.Instance;
                     mo.hp = 100;
@@ -454,11 +458,22 @@ namespace Polarite
                 immuneToDeath = false;
             }
         }
+        public void HandleTargetData()
+        {
+            playerData.portalMatrix = Matrix4x4.identity;
+            playerData.handle = new TargetHandle(NewMovement.Instance);
+            playerData.position = NewMovement.Instance.transform.position;
+            playerData.rotation = NewMovement.Instance.transform.rotation;
+            playerData.headPosition = CameraController.Instance.transform.position;
+            playerData.velocity = NewMovement.Instance.targetVel;
+        }
 
         public void Update()
         {
             Inputs();
             TryRunCalls();
+            if(NewMovement.Instance != null) HandleTargetData();
+
             if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
             {
                 if(polrMM != null)

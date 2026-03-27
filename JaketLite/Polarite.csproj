@@ -179,8 +179,9 @@
     <Reference Include="Unity.Localization">
       <HintPath>libs\Unity.Localization.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.Mathematics">
-      <HintPath>libs\Unity.Mathematics.dll</HintPath>
+    <Reference Include="Unity.Mathematics, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Unity.Mathematics.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Polybrush">
       <HintPath>libs\Unity.Polybrush.dll</HintPath>
@@ -499,6 +500,7 @@
     <Compile Include="NetworkTram.cs" />
     <Compile Include="Networking\PacketReader.cs" />
     <Compile Include="Networking\PacketWriter.cs" />
+    <Compile Include="Patches\VisionPatch.cs" />
     <Compile Include="Patches\ArenaPatch.cs" />
     <Compile Include="Patches\BreakablePatch.cs" />
     <Compile Include="Patches\CheaterPatch.cs" />
@@ -509,7 +511,9 @@
     <Compile Include="Patches\DeathcatcherPatch.cs" />
     <Compile Include="Patches\DronePatch.cs" />
     <Compile Include="Patches\ElevatorPatch.cs" />
+    <Compile Include="Patches\EnemyScriptPatch.cs" />
     <Compile Include="Patches\GunSyncPatches.cs" />
+    <Compile Include="Patches\NewMovementPatchII.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
     <Compile Include="Patches\NoGhostSlamming.cs" />
     <Compile Include="Patches\NoGZForPlayer.cs" />
@@ -537,6 +541,7 @@
     <Compile Include="Patches\SteamPatch.cs" />
     <Compile Include="Patches\SuicideTreePatch.cs" />
     <Compile Include="Patches\SwapWeaponsPatch.cs" />
+    <Compile Include="Patches\TargetPatch.cs" />
     <Compile Include="Patches\TextOverridePatch.cs" />
     <Compile Include="Patches\TimerForceSpectatePatch.cs" />
     <Compile Include="Patches\TrackerPatch.cs" />

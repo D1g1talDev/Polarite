@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 using Polarite.Patches;
@@ -11,6 +12,7 @@ using TMPro;
 using ULTRAKILL.Enemy;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.AddressableAssets.Initialization;
 using UnityEngine.AI;
 using UnityEngine.Assertions.Must;
 using UnityEngine.Localization.Pseudo;
@@ -27,11 +29,11 @@ namespace Polarite.Multiplayer
         public string PlayerName { get; private set; }
 
         // ITarget implementation
-        public int Id => 4545;
+        public int Id => GetInstanceID();
 
-        public TargetType Type => TargetType.PLAYER;
+        public TargetType Type => TargetType.ENEMY;
 
-        public bool isPlayer => true;
+        public bool isPlayer => false;
         public bool isEnemy => false;
 
         public EnemyIdentifier EID => null;
@@ -43,7 +45,7 @@ namespace Polarite.Multiplayer
 
         public Vector3 Position => transform.position;
 
-        public Vector3 HeadPosition => head.transform.position;
+        public Vector3 HeadPosition => head.head.position;
 
 
 
@@ -84,6 +86,10 @@ namespace Polarite.Multiplayer
 
         public int currentSkin = 0;
 
+        // for targetting purposes
+
+        public TargetData customData;
+
         public void SpawnNoise()
         {
             spawnNoise.Play();
@@ -116,7 +122,7 @@ namespace Polarite.Multiplayer
         public void SetGhost(bool val)
         {
             isGhost = val;
-            if(val)
+            if (val)
             {
                 ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), MonoSingleton<CameraController>.Instance.transform, 1f);
             }
@@ -138,6 +144,10 @@ namespace Polarite.Multiplayer
             }
             DontDestroyOnLoad(gameObject);
             SpawnNoise();
+
+            customData = new TargetData();
+            customData.ResetToDefault();
+            customData.handle = new TargetHandle(this);
         }
         private void OnSceneLoaded(Scene args, LoadSceneMode args2)
         {
@@ -180,7 +190,7 @@ namespace Polarite.Multiplayer
         {
             animator.SetBool("Sliding", slide);
             animator.SetBool("InAir", air);
-            if(!air)
+            if (!air)
             {
                 if (walk)
                 {
@@ -255,9 +265,9 @@ namespace Polarite.Multiplayer
         */
         public void SetWeapon(bool alt, int type)
         {
-            foreach(var w in weapons)
+            foreach (var w in weapons)
             {
-                foreach(Transform par in w.transform)
+                foreach (Transform par in w.transform)
                 {
                     par.gameObject.SetActive(false);
                 }
@@ -268,7 +278,7 @@ namespace Polarite.Multiplayer
             foreach (var m in mats)
             {
                 Shader shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                if(m.shader != shader)
+                if (m.shader != shader)
                 {
                     m.shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
                 }
@@ -338,7 +348,7 @@ namespace Polarite.Multiplayer
 
         private void Update()
         {
-            if(updatePos == null && SteamId == NetworkManager.Id)
+            if (updatePos == null && SteamId == NetworkManager.Id)
             {
                 updatePos = StartCoroutine(UpdatePos());
             }
@@ -349,7 +359,7 @@ namespace Polarite.Multiplayer
                 SetAnimation(NewMovement.Instance.sliding, !NewMovement.Instance.gc.onGround, NewMovement.Instance.walking);
                 SetHP(NewMovement.Instance.hp);
             }
-            if(isGhost)
+            if (isGhost)
             {
                 ToggleRig(false);
             }
@@ -375,6 +385,10 @@ namespace Polarite.Multiplayer
             transform.rotation = newRotation;
 
             head.targetRotation = targetRotation;
+
+            customData.position = transform.position;
+            customData.rotation = transform.rotation;
+            customData.headPosition = head.head.position;
         }
 
         public void SetHP(int hp)
@@ -437,9 +451,9 @@ namespace Polarite.Multiplayer
             switch (id)
             {
                 case 0:
-                    for(int i = 0; i < mats.Length; i++)
+                    for (int i = 0; i < mats.Length; i++)
                     {
-                        if(i == 0)
+                        if (i == 0)
                         {
                             mats[i] = ItePlugin.mainBundle.LoadAsset<Material>("V1Glow");
                         }
@@ -504,11 +518,11 @@ namespace Polarite.Multiplayer
 
         public void HandleFriendlyFire(ulong whoDidIt, int damage)
         {
-            if(NetworkManager.Instance.CurrentLobby.GetData("pvp") == "0")
+            if (NetworkManager.Instance.CurrentLobby.GetData("pvp") == "0")
             {
                 return;
             }
-            if(damage == 0)
+            if (damage == 0)
             {
                 damage = 1;
             }
@@ -516,7 +530,7 @@ namespace Polarite.Multiplayer
             w.WriteULong(whoDidIt);
             w.WriteInt(damage);
             NetworkManager.Instance.SendPacket(PacketType.PVP, w.GetBytes(), SteamId);
-            if(this == LocalPlayer)
+            if (this == LocalPlayer)
             {
                 // for testing
                 DoFriendlyDamage(whoDidIt, damage);
@@ -629,7 +643,7 @@ namespace Polarite.Multiplayer
         }
         public void ToggleRig(bool value)
         {
-            if(this == LocalPlayer && !testPlayer)
+            if (this == LocalPlayer && !testPlayer)
             {
                 transform.Find("v2_combined").gameObject.SetActive(false);
                 NameTag.gameObject.SetActive(false);
@@ -642,9 +656,9 @@ namespace Polarite.Multiplayer
         }
         public static void EnsureAllObjectsAreCleaned(Transform t, bool local)
         {
-            foreach(Transform c in t)
+            foreach (Transform c in t)
             {
-                if(c.name == "StandableCube")
+                if (c.name == "StandableCube")
                 {
                     continue;
                 }
@@ -654,7 +668,7 @@ namespace Polarite.Multiplayer
                 {
                     Destroy(c.GetComponent<EnemyIdentifierIdentifier>());
                 }
-                if(c.childCount > 0)
+                if (c.childCount > 0)
                 {
                     EnsureAllObjectsAreCleaned(c, local);
                     continue;
@@ -670,7 +684,7 @@ namespace Polarite.Multiplayer
             }
             */
         }
-        
+
 
         public static void ToggleColsForAll(bool value)
         {
@@ -708,12 +722,19 @@ namespace Polarite.Multiplayer
 
         public void SetData(ref TargetData data)
         {
-            throw new NotImplementedException();
+            data.position = transform.position;
+            data.rotation = transform.rotation;
+            data.headPosition = head.head.position;
         }
 
         public void UpdateCachedTransformData()
         {
             throw new NotImplementedException();
+        }
+
+        public static bool IsPlayer(GameObject obj)
+        {
+            return obj.GetComponent<NetworkPlayer>() != null || obj.GetComponent<NewMovement>() != null;
         }
     }
 }
