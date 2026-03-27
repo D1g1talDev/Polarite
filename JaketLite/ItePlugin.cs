@@ -167,8 +167,7 @@ namespace Polarite
         public static bool immuneToDeath = false;
 
         public static readonly bool ReleaseBuild = false;
-        public static readonly string Version = "v1.1.0-beta1";
-        public static readonly string MOTD = "Welcome back, to slomp live!";
+        public static readonly string Version = "v1.1.0-beta2";
 
         public static TargetData playerData;
 
