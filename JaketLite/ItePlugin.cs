@@ -746,6 +746,25 @@ namespace Polarite
                         });
                     });
 
+                    pMM.uiOpen.onClick.AddListener(() =>
+                    {
+                        XServers.HasInternet((val) =>
+                        {
+                            if (val)
+                            {
+                                img.sprite = unknown;
+                                textMsg.text = "???";
+                                textName.text = "(Loading MOTD...)";
+                                XServers.GetMOTD((pfp, user, msg) =>
+                                {
+                                    img.sprite = pfp;
+                                    textName.text = $"(MOTD wrote by{user})";
+                                    textMsg.text = msg;
+                                });
+                            }
+                        });
+                    });
+
                     PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
                     PlayerList.ContentB = playerList.Find("List").Find("Content");
 
