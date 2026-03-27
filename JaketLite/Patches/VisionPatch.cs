@@ -19,7 +19,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool Prefix(Vision __instance, VisionQuery __0, ref TargetDataRef __1, ref bool __result)
         {
-            if(NetworkManager.InLobby)
+            if(NetworkManager.InLobby && !__instance.filter.HasType(TargetType.GLASS))
             {
                 __1 = PortalManagerV2.Instance.TargetTracker.GetDataReference(NetworkEnemy.CreateHandleFrom(__instance.sourcePos));
                 __result = true;

@@ -513,7 +513,6 @@
     <Compile Include="Patches\ElevatorPatch.cs" />
     <Compile Include="Patches\EnemyScriptPatch.cs" />
     <Compile Include="Patches\GunSyncPatches.cs" />
-    <Compile Include="Patches\NewMovementPatchII.cs" />
     <Compile Include="Patches\NoCheatsOnType.cs" />
     <Compile Include="Patches\NoGhostSlamming.cs" />
     <Compile Include="Patches\NoGZForPlayer.cs" />
@@ -541,7 +540,6 @@
     <Compile Include="Patches\SteamPatch.cs" />
     <Compile Include="Patches\SuicideTreePatch.cs" />
     <Compile Include="Patches\SwapWeaponsPatch.cs" />
-    <Compile Include="Patches\TargetPatch.cs" />
     <Compile Include="Patches\TextOverridePatch.cs" />
     <Compile Include="Patches\TimerForceSpectatePatch.cs" />
     <Compile Include="Patches\TrackerPatch.cs" />
