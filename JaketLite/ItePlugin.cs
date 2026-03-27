@@ -140,7 +140,9 @@ namespace Polarite
             "3 - First Encounter/3 Stuff(Clone)/Blockers",
             "4 - Heart Chamber/4 Stuff(Clone)/Backwall",
             "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door",
-            "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door (1)"
+            "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door (1)",
+            "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door/Door (1)",
+            "Pre-Space/Rooms/7 - Heart Chamber/7 Nonstuff/Void/Backwall"
         };
 
         // background fx
