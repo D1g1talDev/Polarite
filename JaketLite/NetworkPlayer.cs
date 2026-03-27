@@ -729,7 +729,7 @@ namespace Polarite.Multiplayer
 
         public void UpdateCachedTransformData()
         {
-            throw new NotImplementedException();
+            // not implemented
         }
 
         public static bool IsPlayer(GameObject obj)
