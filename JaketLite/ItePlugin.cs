@@ -146,7 +146,8 @@ namespace Polarite
             "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door",
             "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door (1)",
             "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door/Door (1)",
-            "Pre-Space/Rooms/7 - Heart Chamber/7 Nonstuff/Void/Backwall"
+            "Pre-Space/Rooms/7 - Heart Chamber/7 Nonstuff/Void/Backwall",
+            "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door"
         };
 
         // background fx
