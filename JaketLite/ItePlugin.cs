@@ -1185,6 +1185,7 @@ namespace Polarite
             {
                 onComplete?.Invoke(true);
                 XServers.internet = true;
+                ping.DestroyPing();
                 yield break;
             }
             XServers.internet = false;
