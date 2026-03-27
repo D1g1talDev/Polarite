@@ -610,23 +610,17 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.Trigger:
                     {
-                        /*
-                        GameObject trigger = SceneObjectCache.Find(reader.ReadString());
-                        ObjectActivator act = trigger.GetComponent<ObjectActivator>();
-                        if (act != null)
+                        if(SceneHelper.CurrentScene == "Level 8-4")
                         {
-                            act.activating = false;
-                            act.activated = true;
-                            act.events.Invoke();
-                            foreach(var obj in act.events.toDisActivateObjects)
+                            GameObject trigger = SceneObjectCache.Find(reader.ReadString());
+                            ObjectActivator act = trigger.GetComponent<ObjectActivator>();
+                            if (act != null)
                             {
-                                if(TriggerSync.IsRoom(obj))
-                                {
-                                    obj.SetActive(true);
-                                }
+                                act.activating = false;
+                                act.activated = true;
+                                act.events.Invoke();
                             }
                         }
-                        */
                         break;
                     }
                 case PacketType.Elevator:
