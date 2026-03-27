@@ -610,6 +610,7 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.Trigger:
                     {
+                        /*
                         GameObject trigger = SceneObjectCache.Find(reader.ReadString());
                         ObjectActivator act = trigger.GetComponent<ObjectActivator>();
                         if (act != null)
@@ -625,6 +626,7 @@ namespace Polarite.Multiplayer
                                 }
                             }
                         }
+                        */
                         break;
                     }
                 case PacketType.Elevator:
