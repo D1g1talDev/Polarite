@@ -194,7 +194,7 @@ namespace Polarite.Multiplayer
             return newPath;
         }
 
-        public static EnemyIdentifier TrySpawnEnemy(string path, string fallback, Vector3 pos, Quaternion rot, ulong owner)
+        public static EnemyIdentifier TrySpawnEnemy(string path, EnemyType fallback, Vector3 pos, Quaternion rot, ulong owner)
         {
             try
             {

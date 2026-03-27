@@ -246,10 +246,6 @@ namespace Polarite
                 }
             }
         }
-        public void Start()
-        {
-            EntityStorage.StoreAll();
-        }
         public void OnApplicationQuit()
         {
             discord.Dispose();

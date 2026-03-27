@@ -67,9 +67,9 @@ namespace Polarite.Networking
                 return null;
             }
             INetworkObject obj = null;
-            if (!string.IsNullOrEmpty(simpleId))
+            if (Enum.TryParse<EnemyType>(simpleId, true, out EnemyType type))
             {
-                EnemyIdentifier eid = SceneObjectCache.TrySpawnEnemy(id, simpleId, pos, Quaternion.identity, sender);
+                EnemyIdentifier eid = SceneObjectCache.TrySpawnEnemy(id, type, pos, Quaternion.identity, sender);
                 NetworkEnemy enemy = NetworkEnemy.Create(id, eid, sender);
                 obj = enemy.GetComponent<INetworkObject>();
                 if (obj != null && !List.Contains(obj))

@@ -352,7 +352,11 @@ namespace Polarite.Multiplayer
                         {
                             return;
                         }
-                        EnemyIdentifier eid = SceneObjectCache.TrySpawnEnemy(path, fallback, pos, rot, owner);
+                        if(!Enum.TryParse<EnemyType>(fallback, true, out EnemyType fall))
+                        {
+                            return;
+                        }
+                        EnemyIdentifier eid = SceneObjectCache.TrySpawnEnemy(path, fall, pos, rot, owner);
                         eid.name = name;
                         eid.isBoss = boss;
                         if (boss && eid.GetComponent<BossHealthBar>() == null)

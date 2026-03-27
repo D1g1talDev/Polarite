@@ -67,7 +67,7 @@ namespace Polarite.Multiplayer
         {
             if (Enemy == null) return;
             if (Owner == 0) Owner = NetworkManager.Instance.CurrentLobby.Owner.Id.Value;
-            simpleId = Enemy.FullName;
+            simpleId = Enemy.enemyType.ToString();
             DestroyOnCheckpointRestart destroyComp = Enemy.GetComponent<DestroyOnCheckpointRestart>();
             if (destroyComp != null) Destroy(destroyComp);
 
@@ -150,7 +150,7 @@ namespace Polarite.Multiplayer
             w.WriteULong(owner);
             w.WriteString(name);
             w.WriteString(ID);
-            w.WriteString(Enemy.FullName);
+            w.WriteString(simpleId);
             w.WriteVector3(Enemy.transform.position);
             w.WriteQuaternion(Enemy.transform.rotation);
             w.WriteBool(Enemy.healthBuff);
