@@ -11,6 +11,7 @@ using Polarite.Debugging;
 using Polarite.Multiplayer;
 using Polarite.Networking;
 using Polarite.Patches;
+using Polarite.Web;
 using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,13 +19,16 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TMPro;
 using ULTRAKILL.Cheats;
 using ULTRAKILL.Enemy;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static UnityEngine.GraphicsBuffer;
 using LobbyType = Polarite.Multiplayer.LobbyType;
 using NetworkManager = Polarite.Multiplayer.NetworkManager;
 
@@ -615,6 +619,32 @@ namespace Polarite
                     pMM.uiOpen = pMM.transform.Find("Activate").GetComponent<Button>();
                     pMM.uiOpen.onClick.AddListener(pMM.ToggleMainPanel);
 
+                    Transform motd = pMM.transform.Find("Main").Find("MOTD");
+
+                    Image img = motd.Find("MOTDPfp").GetComponent<Image>();
+                    TextMeshProUGUI textName = motd.Find("MOTDUser").GetComponent<TextMeshProUGUI>();
+                    TextMeshProUGUI textMsg = motd.Find("MOTDText").GetComponent<TextMeshProUGUI>();
+
+                    Sprite unknown = mainBundle.LoadAsset<Sprite>("unknown");
+
+                    pMM.uiOpen.interactable = false;
+                    XServers.HasInternet((val) =>
+                    {
+                        pMM.uiOpen.interactable = val;
+                        if(val)
+                        {
+                            img.sprite = unknown;
+                            textMsg.text = "???";
+                            textName.text = "(Loading MOTD...)";
+                            XServers.GetMOTD((pfp, user, msg) =>
+                            {
+                                img.sprite = pfp;
+                                textName.text = $"(MOTD wrote by{user})";
+                                textMsg.text = msg;
+                            });
+                        }
+                    });
+
                     Transform host = pMM.transform.Find("Main").Find("Host");
                     Transform join = pMM.transform.Find("Main").Find("Join");
                     Transform publicLobbies = pMM.transform.Find("Main").Find("PublicLobbies");
@@ -622,7 +652,6 @@ namespace Polarite
                     Transform pirateGuide = pMM.transform.Find("Main").Find("PiratesGuide").Find("PiratesGuideBG");
                     Transform blueScreen = pMM.transform.parent.Find("BackgroundStuff");
                     TextMeshProUGUI ver = pMM.transform.Find("Main").Find("Ver").GetComponent<TextMeshProUGUI>();
-                    TextMeshProUGUI motd = pMM.transform.Find("Main").Find("MOTD").GetComponent<TextMeshProUGUI>();
 
                     pMM.maxP = host.Find("MaxPlayers").GetComponent<TMP_InputField>();
                     pMM.lobbyName = host.Find("UsefulInputField").GetComponent<TMP_InputField>();
@@ -657,6 +686,8 @@ namespace Polarite
                     Button discord = pMM.transform.Find("Main").Find("JoinDiscord").GetComponent<Button>();
                     Button gameFolder = pirateGuide.Find("UsefulButton").GetComponent<Button>();
                     Button noRead = pirateGuide.Find("UsefulButton (2)").GetComponent<Button>();
+                    Button refreshMotd = motd.Find("MOTDRefresh").GetComponent<Button>();
+                    Button backTrack = pMM.transform.Find("Main").Find("BackTrackLikeItsBackOnTrack").GetComponent<Button>();
 
                     gameFolder.onClick.AddListener(() => Application.OpenURL(Directory.GetParent("server_config.json").FullName));
                     noRead.onClick.AddListener(() => Application.OpenURL("https://www.youtube.com/watch?v=LKeof3dleS0"));
@@ -677,6 +708,43 @@ namespace Polarite
                     onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
                     refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
                     pList.onClick.AddListener(PlayerList.UpdatePList);
+                    refreshMotd.onClick.AddListener(() =>
+                    {
+                        XServers.HasInternet((val) =>
+                        {
+                            if (val)
+                            {
+                                img.sprite = unknown;
+                                textMsg.text = "???";
+                                textName.text = "(Refreshing MOTD...)";
+                                XServers.GetMOTD((pfp, user, msg) =>
+                                {
+                                    img.sprite = pfp;
+                                    textName.text = $"(MOTD wrote by{user})";
+                                    textMsg.text = msg;
+                                });
+                            }
+                        });
+                    });
+
+                    backTrack.onClick.AddListener(() =>
+                    {
+                        XServers.HasInternet((val) =>
+                        {
+                            if (val)
+                            {
+                                img.sprite = unknown;
+                                textMsg.text = "???";
+                                textName.text = "(Loading MOTD...)";
+                                XServers.GetMOTD((pfp, user, msg) =>
+                                {
+                                    img.sprite = pfp;
+                                    textName.text = $"(MOTD wrote by{user})";
+                                    textMsg.text = msg;
+                                });
+                            }
+                        });
+                    });
 
                     PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
                     PlayerList.ContentB = playerList.Find("List").Find("Content");
@@ -684,7 +752,6 @@ namespace Polarite
                     ver.text = Version;
                     ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
                     
-                    motd.text = MOTD;
 
                     leaveButton = leave.gameObject;
                     joinButton = joinL.gameObject;
@@ -701,6 +768,7 @@ namespace Polarite
                     copyCode.gameObject.SetActive(false);
                     playerList.gameObject.SetActive(false);
                     pList.gameObject.SetActive(false);
+                    backTrack.gameObject.SetActive(false);
                     pirateGuide.parent.gameObject.SetActive(false);
                     pMM.mainPanel.SetActive(false);
 
@@ -1086,6 +1154,96 @@ namespace Polarite
             yield return new WaitForSeconds(0.1f);
             Net.Unpause();
             NetworkManager.Instance.SceneLoad();
+        }
+        public IEnumerator GooglePing(string ip, System.Action<bool> onComplete)
+        {
+            Ping ping = new Ping(ip);
+            while (!ping.isDone)
+            {
+                yield return null;
+            }
+            if(ping.time > 0 && ping.time < 8000)
+            {
+                onComplete?.Invoke(true);
+                XServers.internet = true;
+                yield break;
+            }
+            XServers.internet = false;
+            ping.DestroyPing();
+            onComplete?.Invoke(false);
+        }
+        // code by Xulfur, thank you :)
+        public IEnumerator MOTDGet(System.Action<Sprite, string, string> onComplete)
+        {
+            byte[] rawbytes;
+            Texture2D texture = new Texture2D(2, 2);
+            string username = "username";
+            string message = "MOTD";
+            using (UnityWebRequest www = UnityWebRequest.Get("https://polarite.xulfur.me/motd/motd.txt"))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result != UnityWebRequest.Result.Success)
+                {
+                    LogDebug(www.error + " " + www.downloadHandler.text);
+                }
+                else
+                {
+                    LogDebug("Server replied with: " + www.downloadHandler.text + " Proceeding to extract user PFP.");
+                    string regex = @"pfp:.[^ ]+";
+                    RegexOptions options = RegexOptions.Multiline;
+                    string output = string.Empty;
+                    string urlimg = string.Empty;
+
+                    foreach (Match m in Regex.Matches(www.downloadHandler.text, regex, options))
+                    {
+                        output = output + www.downloadHandler.text.Replace(m.Value, string.Empty);
+                        urlimg = urlimg + m.Value.Replace("pfp:", string.Empty);
+                    }
+                    LogDebug("User and message: " + output + "User PFP Url: " + urlimg);
+                    using (UnityWebRequest img = UnityWebRequest.Get(urlimg))
+                    {
+                        yield return img.SendWebRequest();
+                        if (img.result != UnityWebRequest.Result.Success)
+                        {
+                            LogDebug(img.error + " " + img.downloadHandler.text);
+                        }
+                        else
+                        {
+                            LogDebug("Server replied with bytes: " + img.downloadHandler.data);
+                            //reconstruct image
+                            Texture2D tex = new Texture2D(2, 2);
+                            rawbytes = img.downloadHandler.data;
+                            if (ImageConversion.LoadImage(tex, rawbytes))
+                            {
+                                texture = tex;
+                                LogDebug("Set image");
+                            }
+                            else
+                            {
+                                LogDebug("Failed to set image");
+                            }
+                            LogDebug("In regex part");
+                            string usernameregex = @".+:";
+                            RegexOptions usernamer = RegexOptions.IgnoreCase;
+                            // only needs one match, more than one could break it
+                            Match m = Regex.Match(output, usernameregex, usernamer);
+                            if (m.Success)
+                            {
+                                string usernameout = m.Groups[0].Value;
+                                usernameout = usernameout.Replace(":", string.Empty);
+                                username = usernameout;
+                                output = output.Replace(m.Groups[0].Value, string.Empty);
+                                message = output;
+                                Sprite sprite = Sprite.Create(texture, new Rect(0, 0, 800, 800), Vector3.zero);
+                                sprite.texture.filterMode = FilterMode.Point;
+
+                                onComplete?.Invoke(sprite, username, message);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

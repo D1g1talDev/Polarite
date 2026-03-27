@@ -564,6 +564,7 @@
     <Compile Include="SamTTS\TextReader.cs" />
     <Compile Include="SpectatorCam.cs" />
     <Compile Include="VoiceChatManager.cs" />
+    <Compile Include="Web\XServers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
