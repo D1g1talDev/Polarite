@@ -38,6 +38,10 @@ namespace Polarite.Patches
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Respawn, w.GetBytes());
                 CameraController.Instance.cameraShaking = 0;
+                foreach(var pince in GameObject.FindObjectsOfType<Pincer>(true))
+                {
+                    GameObject.Destroy(pince.gameObject);
+                }
             }
         }
 
