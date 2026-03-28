@@ -23,17 +23,13 @@ namespace Polarite
         }
         public IEnumerator WaitToTrigger()
         {
-            yield return new WaitForSeconds(50f);
+            yield return new WaitForSeconds(30f);
             HudMessageReceiver hud = HudMessageReceiver.Instance;
             hud.aud.pitch = 0.5f;
             hud.clickAud.pitch = 0.1f;
             pri.aud.Play();
             pri.enabled = false;
             yield return new WaitForSeconds(2f);
-            hud.SendHudMessage("<color=red>W H A T ? </color>");
-            yield return new WaitForSeconds(2f);
-            hud.SendHudMessage("<color=red>T H I S  S H O U L D N ' T  B E  H A P P E N I N G . </color>");
-            yield return new WaitForSeconds(3f);
             MonoSingleton<CameraController>.Instance.CameraShake(10f);
             pri.TryGetComponent<Statue>(out var stat);
             stat.DeathEnd();
