@@ -1237,6 +1237,7 @@ namespace Polarite
                             }
                             else
                             {
+                                texture = mainBundle.LoadAsset<Sprite>("unknown").texture;
                                 LogDebug("Failed to set image");
                             }
                             LogDebug("In regex part");
@@ -1251,7 +1252,7 @@ namespace Polarite
                                 username = usernameout;
                                 output = output.Replace(m.Groups[0].Value, string.Empty);
                                 message = output;
-                                Sprite sprite = Sprite.Create(texture, new Rect(0, 0, 800, 800), Vector3.zero);
+                                Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector3.zero);
                                 sprite.texture.filterMode = FilterMode.Point;
 
                                 onComplete?.Invoke(sprite, username, message);
