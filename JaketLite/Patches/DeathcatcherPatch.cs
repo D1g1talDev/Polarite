@@ -13,12 +13,24 @@ namespace Polarite.Patches
     {
         [HarmonyPatch(nameof(Deathcatcher.Update))]
         [HarmonyPrefix]
-        static void Update(Deathcatcher __instance)
+        static bool UpdatePrefix(Deathcatcher __instance)
         {
-            if(NetworkManager.InLobby)
+            if(NetworkManager.InLobby && NetworkManager.ClientAndConnected)
             {
-                __instance.active = !NetworkManager.ClientAndConnected;
-            } 
+                return false;
+            }
+            return true;
+        }
+        [HarmonyPatch(nameof(Deathcatcher.RespawnPuppets))]
+        [HarmonyPostfix]
+        static void SyncEffect(Deathcatcher __instance)
+        {
+            if (NetworkManager.InLobby && !NetworkManager.ClientAndConnected)
+            {
+                PacketWriter w = new PacketWriter();
+                w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));
+                NetworkManager.Instance.BroadcastPacket(PacketType.DeathcatchRespawn, w.GetBytes());
+            }
         }
     }
 }

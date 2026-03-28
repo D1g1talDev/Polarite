@@ -90,7 +90,9 @@ namespace Polarite.Multiplayer
         // elevation
         Elevator = 48,
         // suicide trees
-        SuicideFill = 49
+        SuicideFill = 49,
+        // deathcatchers
+        DeathcatchRespawn = 50
     }
 
     public static class PacketReader
@@ -653,6 +655,16 @@ namespace Polarite.Multiplayer
                         if (fill != null)
                         {
                             fill.FullyFilled();
+                        }
+                        break;
+                    }
+                case PacketType.DeathcatchRespawn:
+                    {
+                        string path = reader.ReadString();
+                        Deathcatcher catcher = SceneObjectCache.Find(path).GetComponent<Deathcatcher>();
+                        if(catcher != null)
+                        {
+                            GameObject.Instantiate(catcher.respawnEffect, catcher.chargeSphere.transform.position, Quaternion.identity);
                         }
                         break;
                     }
