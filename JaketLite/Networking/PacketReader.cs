@@ -142,7 +142,7 @@ namespace Polarite.Multiplayer
 
                         string msg = DeadPatch.DeathMessages[msgB];
                         if (msgB == 1) msg += NetworkManager.GetNameOfId(id);
-                        else if (id != 0) msg += id.ToString();
+                        else if (id != 0) msg += ((EnemyType)id).ToString();
                         msg = msg.Replace("{0}", "");
 
                         NetworkPlayer.Find(senderId)?.DeathNoise();

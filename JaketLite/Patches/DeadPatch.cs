@@ -63,7 +63,7 @@ namespace Polarite.Patches
             string msg = DeathMessages[deathMessage];
             ulong id = Arg;
             if (deathMessage == 1) msg += NetworkManager.GetNameOfId(id);
-            else if (id != 0) msg += id.ToString();
+            else if (id != 0) msg += ((EnemyType)id).ToString();
             msg = msg.Replace("{0}", "");
             NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id) + " " + msg);
 
