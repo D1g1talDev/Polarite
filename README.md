@@ -10,7 +10,7 @@ Works with **Steam**
 
 
 ## What Syncs
-- Player movement, animations, and health  
+- Player movement, animations, health, and bullets  
 - Weapons equipped
 - Respawning, and dying
 - Enemy spawns, Enemy positions and rotations, damage to enemies
