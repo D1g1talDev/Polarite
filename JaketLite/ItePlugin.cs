@@ -25,6 +25,7 @@ using TMPro;
 using ULTRAKILL.Cheats;
 using ULTRAKILL.Enemy;
 using UnityEngine;
+using UnityEngine.Localization.SmartFormat.Core.Output;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -51,6 +52,20 @@ namespace Polarite
         Low,
         Medium,
         High
+    }
+
+    public struct Typewriter
+    {
+        public string text;
+        public float delay;
+        public TextMeshProUGUI target;
+
+        public Typewriter(string text, float delay, TextMeshProUGUI target)
+        {
+            this.text = text;
+            this.delay = delay;
+            this.target = target;
+        }
     }
 
     [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.1.0")]
@@ -171,6 +186,8 @@ namespace Polarite
         public static readonly string Version = "v1.1.0-beta2";
 
         public static TargetData playerData;
+
+        public static List<Typewriter> typewriters = new List<Typewriter>();
 
 
         public void Awake()
@@ -604,6 +621,7 @@ namespace Polarite
         private void CreatePolariteUI()
         {
             GameObject uiObj = Instantiate(mainBundle.LoadAsset<GameObject>("PolariteCanvas"));
+            GameObject notifUi = Instantiate(mainBundle.LoadAsset<GameObject>("NotifBoxCanvas"));
             if(uiObj != null)
             {
                 DontDestroyOnLoad(uiObj);
@@ -635,8 +653,8 @@ namespace Polarite
                             XServers.GetMOTD((pfp, user, msg) =>
                             {
                                 img.sprite = pfp;
-                                textName.text = $"(MOTD wrote by{user})";
-                                textMsg.text = msg;
+                                Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                Typewriter(msg, 0.001f, textMsg);
                             });
                         }
                     });
@@ -716,8 +734,8 @@ namespace Polarite
                                 XServers.GetMOTD((pfp, user, msg) =>
                                 {
                                     img.sprite = pfp;
-                                    textName.text = $"(MOTD wrote by{user})";
-                                    textMsg.text = msg;
+                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                    Typewriter(msg, 0.001f, textMsg);
                                 });
                             }
                         });
@@ -735,8 +753,8 @@ namespace Polarite
                                 XServers.GetMOTD((pfp, user, msg) =>
                                 {
                                     img.sprite = pfp;
-                                    textName.text = $"(MOTD wrote by{user})";
-                                    textMsg.text = msg;
+                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                    Typewriter(msg, 0.001f, textMsg);
                                 });
                             }
                         });
@@ -754,8 +772,8 @@ namespace Polarite
                                 XServers.GetMOTD((pfp, user, msg) =>
                                 {
                                     img.sprite = pfp;
-                                    textName.text = $"(MOTD wrote by{user})";
-                                    textMsg.text = msg;
+                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                    Typewriter(msg, 0.001f, textMsg);
                                 });
                             }
                         });
@@ -764,7 +782,7 @@ namespace Polarite
                     PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
                     PlayerList.ContentB = playerList.Find("List").Find("Content");
 
-                    ver.text = Version;
+                    Typewriter(Version, 0.025f, ver);
                     ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
                     
 
@@ -788,6 +806,8 @@ namespace Polarite
                     pMM.mainPanel.SetActive(false);
 
                     pMM.lobbyName.text = $"{NetworkManager.GetNameOfId(NetworkManager.Id)}'s Lobby";
+                    pMM.notifBox = notifUi;
+                    DontDestroyOnLoad(notifUi);
                     polrMM = pMM;
                 }
             }
@@ -1033,6 +1053,12 @@ namespace Polarite
             {
                 CustomTogglePlayer(true);
             }
+            AttemptToAddListener();
+            if(polrMM != null)
+            {
+                Transform box = polrMM.notifBox.transform.Find("Box");
+                Instance.StartCoroutine(MoveY(box.GetComponent<RectTransform>(), 1400f));
+            }
         }
         public static string GetLevelName()
         {
@@ -1153,6 +1179,20 @@ namespace Polarite
                 NetworkManager.Instance.BroadcastPacket(PacketType.ReviveGhost, w.GetBytes());
             }
         }
+        public void AttemptToAddListener()
+        {
+            XServers.HasInternet((wedo) =>
+            {
+                if(wedo)
+                {
+                    GlobalNotificationListener listener = gameObject.GetComponent<GlobalNotificationListener>();
+                    if (listener == null)
+                    {
+                        listener = gameObject.AddComponent<GlobalNotificationListener>();
+                    }
+                }
+            });
+        }
         public static void GameOver()
         {
             Ghost(false);
@@ -1261,6 +1301,117 @@ namespace Polarite
                     }
                 }
             }
+        }
+        public IEnumerator PFPGet(System.Action<Sprite> onComplete, string url)
+        {
+            byte[] rawbytes;
+            Texture2D texture = new Texture2D(2, 2);
+            using (UnityWebRequest img = UnityWebRequest.Get(url))
+            {
+                yield return img.SendWebRequest();
+                if (img.result != UnityWebRequest.Result.Success)
+                {
+                    LogDebug(img.error + " " + img.downloadHandler.text);
+                }
+                else
+                {
+                    LogDebug("Server replied with bytes: " + img.downloadHandler.data);
+                    //reconstruct image
+                    Texture2D tex = new Texture2D(2, 2);
+                    rawbytes = img.downloadHandler.data;
+                    if (ImageConversion.LoadImage(tex, rawbytes))
+                    {
+                        texture = tex;
+                        LogDebug("Set image");
+                    }
+                    else
+                    {
+                        texture = mainBundle.LoadAsset<Sprite>("unknown").texture;
+                        LogDebug("Failed to set image");
+                    }
+                    LogDebug("Line 1");
+                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector3.zero);
+                    LogDebug("Line 2");
+                    sprite.texture.filterMode = FilterMode.Point;
+                    LogDebug("Line 3");
+
+                    onComplete?.Invoke(sprite);
+                    LogDebug("End");
+                }
+            }
+        }
+        public static IEnumerator TypeEffect(string str, float typeRate, TextMeshProUGUI text)
+        {
+            string current = "";
+            foreach(char c in str)
+            {
+                current += c;
+                text.text = current;
+                yield return new WaitForSecondsRealtime(typeRate / 2);
+            }
+            typewriters.Remove(new Typewriter(str, typeRate, text));
+        }
+        public static void Typewriter(string str, float typeRate, TextMeshProUGUI text)
+        {
+            if(!typewriters.Contains(new Typewriter(str, typeRate, text)))
+            {
+                typewriters.Add(new Typewriter(str, typeRate, text));
+                Instance.StartCoroutine(TypeEffect(str, typeRate, text));
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        public void ShowNotif(GlobalNotification notif)
+        {
+            XServers.canShowNotif = false;
+            Instance.StartCoroutine(ShowGlobal(notif));
+        }
+
+        public IEnumerator ShowGlobal(GlobalNotification notif)
+        {
+            if (polrMM == null)
+            {
+                yield break;
+            }
+            GameObject boxCanvas = polrMM.notifBox;
+            if(boxCanvas != null)
+            {
+                Transform box = boxCanvas.transform.Find("Box");
+                TextMeshProUGUI user = box.Find("User").GetComponent<TextMeshProUGUI>();
+                TextMeshProUGUI msg = box.Find("Message").GetComponent<TextMeshProUGUI>();
+                TextMeshProUGUI type = box.Find("Type").GetComponent<TextMeshProUGUI>();
+                Image pfp = box.Find("PFP").GetComponent<Image>();
+
+                XServers.ExtractPFP(notif.pfp, pfp);
+                Typewriter(notif.user, 0.1f, user);
+                Typewriter(notif.message, 0.1f, msg);
+                Typewriter(notif.type, 0.25f, type);
+
+                box.GetComponent<AudioSource>().Play();
+
+                RectTransform rect = box.GetComponent<RectTransform>();
+                if(rect != null)
+                {
+                    yield return Instance.StartCoroutine(MoveY(rect, 930f));
+                    yield return new WaitForSecondsRealtime(7f);
+                    yield return Instance.StartCoroutine(MoveY(rect, 1400f));
+                    XServers.canShowNotif = true;
+                    yield break;
+                }
+            }
+        }
+        public IEnumerator MoveY(RectTransform rect, float y)
+        {
+            while(Mathf.Abs(rect.position.y - y) > 0.1f)
+            {
+                float newY = Mathf.Lerp(rect.position.y, y, Time.unscaledDeltaTime * 5f);
+                rect.position = new Vector3(rect.position.x, newY, rect.position.z);
+                yield return null;
+            }
+            rect.position = new Vector3(rect.position.x, y, rect.position.z);
         }
     }
 }

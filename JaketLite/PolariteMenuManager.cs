@@ -20,6 +20,8 @@ namespace Polarite
         public TextMeshProUGUI statusHost, statusJoin;
         public string codeHost;
 
+        public GameObject notifBox;
+
         public void CallHost()
         {
             host.Invoke();

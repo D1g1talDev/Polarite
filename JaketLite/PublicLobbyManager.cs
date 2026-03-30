@@ -40,9 +40,9 @@ namespace Polarite
                         return;
                     }
                     Transform lobbyObj = SpawnLobbyObject().transform;
-                    lobbyObj.Find("Name").GetComponent<TextMeshProUGUI>().text = lobby.Value.GetData("LobbyName");
-                    lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>().text = TranslateDifficulty(lobby.Value.GetData("difficulty"));
-                    lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>().text = lobby.Value.GetData("levelName");
+                    ItePlugin.Typewriter(lobby.Value.GetData("LobbyName"), 0.025f, lobbyObj.Find("Name").GetComponent<TextMeshProUGUI>());
+                    ItePlugin.Typewriter(TranslateDifficulty(lobby.Value.GetData("difficulty")), 0.01f, lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>());
+                    ItePlugin.Typewriter(lobby.Value.GetData("levelName"), 0.01f, lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>());
                     Button button = lobbyObj.Find("UsefulButton").GetComponent<Button>();
                     button.onClick.AddListener(async () =>
                     {
@@ -51,6 +51,7 @@ namespace Polarite
                     bool canJoin = lobby.Value.MemberCount < lobby.Value.MaxMembers && !NetworkManager.InLobby;
                     button.interactable = canJoin;
                     lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>().text = $"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}";
+                    ItePlugin.Typewriter($"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}", 0.05f, lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>());
                 }
             });
         }
