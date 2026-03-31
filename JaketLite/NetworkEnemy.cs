@@ -322,7 +322,7 @@ namespace Polarite.Multiplayer
             w.WriteString(ID);
             w.WriteVector3(Enemy.transform.position);
             NetworkManager.Instance.BroadcastPacket(PacketType.DeathEnemy, w.GetBytes());
-            if (Helpers.Count > 0)
+            if (Helpers.Count > 1 && !Enemy.puppet)
             {
                 if (HelpedWithKill)
                 {
