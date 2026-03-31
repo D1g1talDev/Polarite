@@ -104,6 +104,7 @@ namespace Polarite.Multiplayer
             {
                 SyncSpawn();
             }
+            UpdateTarget();
             base.Start();
         }
 

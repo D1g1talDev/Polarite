@@ -42,6 +42,7 @@ namespace Polarite
             Button kick = newList.Find("Kick").GetComponent<Button>();
             Button ban = newList.Find("Ban").GetComponent<Button>();
             Button steam = newList.Find("Steam").GetComponent<Button>();
+            Button grab = newList.Find("GrabID").GetComponent<Button>();
             Button mute = newList.Find("Mute").GetComponent<Button>();
             mute.gameObject.SetActive(false);
 
@@ -59,6 +60,11 @@ namespace Polarite
             steam.onClick.AddListener(() =>
             {
                 Application.OpenURL($"https://steamcommunity.com/profiles/{id}/");
+            });
+            grab.onClick.AddListener(() =>
+            {
+                GUIUtility.systemCopyBuffer = id.ToString();
+                NetworkManager.DisplaySystemChatMessage($"Copied {NetworkManager.GetNameOfId(id)}'s Steam ID to your clipboard.");
             });
             if(id != NetworkManager.Id)
             {

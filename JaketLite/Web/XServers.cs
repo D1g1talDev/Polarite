@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Polarite.Multiplayer;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -26,9 +27,9 @@ namespace Polarite.Web
         /// order in action: pfp, name, message
         /// </summary>
         /// <param name="complete"></param>
-        public static void GetMOTD(Action<Sprite, string, string> onComplete)
+        public static void GetMOTD(Action<Sprite, string, string> onComplete, Action<Sprite, string, string> onFail)
         {
-            ItePlugin.Instance.StartCoroutine(ItePlugin.Instance.MOTDGet(onComplete));
+            ItePlugin.Instance.StartCoroutine(ItePlugin.Instance.MOTDGet(onComplete, onFail));
         }
 
         public static void ExtractPFP(string url, Image img)
@@ -54,11 +55,12 @@ namespace Polarite.Web
         public async Task Listen()
         {
             HttpClient client = new HttpClient();
-            try
+            while (listening)
             {
-                while (listening)
+                HttpResponseMessage response = null;
+                try
                 {
-                    var response = await client.GetAsync(link, HttpCompletionOption.ResponseHeadersRead);
+                    response = await client.GetAsync(link, HttpCompletionOption.ResponseHeadersRead);
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStreamAsync();
@@ -74,13 +76,13 @@ namespace Polarite.Web
                             }
                         }
                     }
-                    await Task.Delay(2000);
                 }
-
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error while listening for global notifications: {ex.Message}");
+                catch (Exception ex)
+                {
+                    ItePlugin.LogDebug($"Error while listening for global notifications: {ex.Message}");
+                }
+                response?.Dispose();
+                await Task.Delay(2000);
             }
         }
         public void Update()
@@ -89,11 +91,27 @@ namespace Polarite.Web
             {
                 while (notifications.TryDequeue(out GlobalNotification notif))
                 {
-                    if (ShouldFlag(notif))
+                    if(ShouldFlag(notif))
                     {
-                        ItePlugin.Instance.ShowNotif(notif);
+                        HandleNotif(notif);
                     }
                 }
+            }
+        }
+        public void HandleNotif(GlobalNotification notif)
+        {
+            ulong target = ulong.Parse(notif.userreference);
+            if (target != 0)
+            {
+                if(NetworkManager.Id == target)
+                {
+                    notif.type = "targeted";
+                    ItePlugin.Instance.ShowNotif(notif);
+                }
+            }
+            else
+            {
+                ItePlugin.Instance.ShowNotif(notif);
             }
         }
         public static bool ShouldFlag(GlobalNotification notif)
@@ -111,5 +129,6 @@ namespace Polarite.Web
         public string pfp;
         public string user;
         public string message;
+        public string userreference;
     }
 }

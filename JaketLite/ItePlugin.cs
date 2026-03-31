@@ -30,6 +30,7 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UnityEngine.GraphicsBuffer;
+using static UnityEngine.UIElements.UxmlAttributeDescription;
 using LobbyType = Polarite.Multiplayer.LobbyType;
 using NetworkManager = Polarite.Multiplayer.NetworkManager;
 
@@ -655,6 +656,11 @@ namespace Polarite
                                 img.sprite = pfp;
                                 Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
                                 Typewriter(msg, 0.001f, textMsg);
+                            }, (pfpF, userF, msgF) =>
+                            {
+                                img.sprite = pfpF;
+                                Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                Typewriter(msgF, 0.001f, textMsg);
                             });
                         }
                     });
@@ -736,6 +742,11 @@ namespace Polarite
                                     img.sprite = pfp;
                                     Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
                                     Typewriter(msg, 0.001f, textMsg);
+                                }, (pfpF, userF, msgF) =>
+                                {
+                                    img.sprite = pfpF;
+                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                    Typewriter(msgF, 0.001f, textMsg);
                                 });
                             }
                         });
@@ -755,6 +766,11 @@ namespace Polarite
                                     img.sprite = pfp;
                                     Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
                                     Typewriter(msg, 0.001f, textMsg);
+                                }, (pfpF, userF, msgF) =>
+                                {
+                                    img.sprite = pfpF;
+                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                    Typewriter(msgF, 0.001f, textMsg);
                                 });
                             }
                         });
@@ -774,6 +790,11 @@ namespace Polarite
                                     img.sprite = pfp;
                                     Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
                                     Typewriter(msg, 0.001f, textMsg);
+                                }, (pfpF, userF, msgF) =>
+                                {
+                                    img.sprite = pfpF;
+                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                    Typewriter(msgF, 0.001f, textMsg);
                                 });
                             }
                         });
@@ -1229,7 +1250,7 @@ namespace Polarite
             onComplete?.Invoke(false);
         }
         // code by Xulfur, thank you :)
-        public IEnumerator MOTDGet(System.Action<Sprite, string, string> onComplete)
+        public IEnumerator MOTDGet(System.Action<Sprite, string, string> onComplete, System.Action<Sprite, string, string> onFail)
         {
             byte[] rawbytes;
             Texture2D texture = new Texture2D(2, 2);
@@ -1242,6 +1263,8 @@ namespace Polarite
                 if (www.result != UnityWebRequest.Result.Success)
                 {
                     LogDebug(www.error + " " + www.downloadHandler.text);
+                    onFail?.Invoke(mainBundle.LoadAsset<Sprite>("unknown"), "???", $"Failed to retrieve MOTD. ({www.error})");
+                    yield break;
                 }
                 else
                 {
@@ -1256,13 +1279,14 @@ namespace Polarite
                         output = output + www.downloadHandler.text.Replace(m.Value, string.Empty);
                         urlimg = urlimg + m.Value.Replace("pfp:", string.Empty);
                     }
-                    LogDebug("User and message: " + output + "User PFP Url: " + urlimg);
                     using (UnityWebRequest img = UnityWebRequest.Get(urlimg))
                     {
                         yield return img.SendWebRequest();
                         if (img.result != UnityWebRequest.Result.Success)
                         {
                             LogDebug(img.error + " " + img.downloadHandler.text);
+                            onFail?.Invoke(mainBundle.LoadAsset<Sprite>("unknown"), "???", $"Failed to retrieve MOTD. ({img.error})");
+                            yield break;
                         }
                         else
                         {
@@ -1273,14 +1297,11 @@ namespace Polarite
                             if (ImageConversion.LoadImage(tex, rawbytes))
                             {
                                 texture = tex;
-                                LogDebug("Set image");
                             }
                             else
                             {
                                 texture = mainBundle.LoadAsset<Sprite>("unknown").texture;
-                                LogDebug("Failed to set image");
                             }
-                            LogDebug("In regex part");
                             string usernameregex = @".+:";
                             RegexOptions usernamer = RegexOptions.IgnoreCase;
                             // only needs one match, more than one could break it
@@ -1322,21 +1343,15 @@ namespace Polarite
                     if (ImageConversion.LoadImage(tex, rawbytes))
                     {
                         texture = tex;
-                        LogDebug("Set image");
                     }
                     else
                     {
                         texture = mainBundle.LoadAsset<Sprite>("unknown").texture;
-                        LogDebug("Failed to set image");
                     }
-                    LogDebug("Line 1");
                     Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector3.zero);
-                    LogDebug("Line 2");
                     sprite.texture.filterMode = FilterMode.Point;
-                    LogDebug("Line 3");
 
                     onComplete?.Invoke(sprite);
-                    LogDebug("End");
                 }
             }
         }
@@ -1380,6 +1395,7 @@ namespace Polarite
             if(boxCanvas != null)
             {
                 Transform box = boxCanvas.transform.Find("Box");
+                Transform boxD = boxCanvas.transform.Find("BoxDown");
                 TextMeshProUGUI user = box.Find("User").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI msg = box.Find("Message").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI type = box.Find("Type").GetComponent<TextMeshProUGUI>();
@@ -1393,11 +1409,15 @@ namespace Polarite
                 box.GetComponent<AudioSource>().Play();
 
                 RectTransform rect = box.GetComponent<RectTransform>();
-                if(rect != null)
+                RectTransform canvas = rect.GetComponentInParent<Canvas>().GetComponent<RectTransform>();
+
+                float y1 = boxD.GetComponent<RectTransform>().position.y;
+                float y2 = canvas.rect.height * 1.25f;
+                if (rect != null)
                 {
-                    yield return Instance.StartCoroutine(MoveY(rect, 930f));
+                    yield return Instance.StartCoroutine(MoveY(rect, y1));
                     yield return new WaitForSecondsRealtime(7f);
-                    yield return Instance.StartCoroutine(MoveY(rect, 1400f));
+                    yield return Instance.StartCoroutine(MoveY(rect, y2));
                     XServers.canShowNotif = true;
                     yield break;
                 }
@@ -1408,10 +1428,10 @@ namespace Polarite
             while(Mathf.Abs(rect.position.y - y) > 0.1f)
             {
                 float newY = Mathf.Lerp(rect.position.y, y, Time.unscaledDeltaTime * 5f);
-                rect.position = new Vector3(rect.position.x, newY, rect.position.z);
+                rect.position = new Vector3(rect.position.x, newY, 0);
                 yield return null;
             }
-            rect.position = new Vector3(rect.position.x, y, rect.position.z);
+            rect.position = new Vector3(rect.position.x, y, 0);
         }
     }
 }
