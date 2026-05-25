@@ -6,18 +6,15 @@ A simple multiplayer mod for **ULTRAKILL** inspired by **Jaket**.
 
 Works with **Steam**
 
-[![Watch the trailer](https://img.youtube.com/vi/RvO-dnHlCfE/maxresdefault.jpg)](https://www.youtube.com/watch?v=RvO-dnHlCfE)
-
-
 ## What Syncs
 - Player movement, animations, health, and bullets  
 - Weapons equipped
 - Respawning, and dying
-- Enemy spawns, Enemy positions and rotations, damage to enemies
+- Enemy spawns, Enemy positions and rotations, damage to enemies, radiance
 - Breakables, hook points, checkpoints
 - Arenas
-- Cybergrind and Sandbox (WIP)
-- Triggers and Fraud Elevators
+- Cybergrind and Sandbox
+- Fraud Elevators
 
 ## Manual Installation
 1. Make sure you have **BepInEx** for ULTRAKILL
