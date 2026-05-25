@@ -24,7 +24,7 @@ namespace Polarite.Patches
                 __result = SceneHelper.IsPlayingCustom;
             }
 
-            __result = NetworkManager.InLobby;
+            __result = NetworkManager.WasUsed;
         }
     }
     [HarmonyPatch(typeof(FinalRank))]
@@ -46,7 +46,8 @@ namespace Polarite.Patches
             if (ColorUtility.TryParseHtmlString("#91FFFF", out Color color) && NetworkManager.WasUsed)
             {
                 __instance.totalRank.transform.parent.GetComponent<Image>().color = color;
-                __instance.totalRank.text = Regex.Replace(__instance.totalRank.text, "<.*?>", "");
+                __instance.totalRank.text = "-";
+                __instance.totalRank.alignment = TextAlignmentOptions.Center;
             }
         }
     }

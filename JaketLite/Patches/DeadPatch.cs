@@ -25,7 +25,8 @@ namespace Polarite.Patches
             "was slain by {0}",
             "was shot by {0}",
             "was smited",
-            "killed themselves"
+            "killed themselves",
+            "broke the law"
         };
 
         public static int DeadPlayers = 0;
@@ -70,19 +71,27 @@ namespace Polarite.Patches
             GameObject blood = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), CameraController.Instance.transform.position, Quaternion.identity);
             GameObject ragdoll = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), CameraController.Instance.transform.position, CameraController.Instance.transform.rotation);
             blood.SetActive(true);
-            NetworkPlayer.SetSkinOfRagdoll(ragdoll.GetComponentInChildren<SkinnedMeshRenderer>(), (int)ItePlugin.skin.value);
+            ragdoll.AddComponent<Ragdoll>().SetValues(ItePlugin.currentSkin, NetworkManager.Id);
             ragdoll.GetComponentInChildren<Rigidbody>().AddForce(MonoSingleton<NewMovement>.Instance.rb.velocity, ForceMode.VelocityChange);
         }
 
-        public static void Respawn(Vector3 pos, Quaternion rot)
+        public static void Respawn(Vector3 pos, Quaternion rot, bool ignoreCgCheck = false)
         {
             NewMovement m = MonoSingleton<NewMovement>.Instance;
             if(m.hp > 0)
             {
                 return;
             }
-            m.transform.position = pos;
-            m.transform.rotation = rot;
+            if(SceneHelper.CurrentScene == "Endless" || ignoreCgCheck)
+            {
+                m.transform.position = pos;
+                m.transform.rotation = rot;
+            }
+            else
+            {
+                // launch player up incase they fell into a pit
+                m.rb.AddForce(Vector3.up * 4f, ForceMode.VelocityChange);
+            }
             m.cc.ResetCamera(m.transform.eulerAngles.y + 0.01f);
             m.dead = false;
             m.activated = true;

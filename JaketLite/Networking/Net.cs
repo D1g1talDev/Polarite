@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using Polarite.Debugging;
 using Polarite.Multiplayer;
-
+using Polarite.Networking.Extensions;
 using Steamworks;
 
 using UnityEngine;
@@ -23,20 +23,22 @@ namespace Polarite.Networking
         }
         public static bool Dev(ulong id)
         {
-            return id == 76561198893363168 || id == 76561199078878250;
+            return id == 76561198893363168 || id == 76561199078878250 || id == 76561198709095584 || id == 76561198728009961;
         }
         public static void Setup()
         {
             List?.Clear();
             List = new NetworkList();
+            Logs.Info("Setup network list", name: "Net");
         }
         public static void End()
         {
             List?.Clear();
             List = null;
+            Logs.Info("Cleared network list", name: "Net");
         }
 
-        public static INetworkObject Get(string path, ulong sender, Vector3 fallbackPos)
+        public static INetworkObject Get(string path, ulong sender, Vector3 fallbackPos, bool noRecovery = false)
         {
             if(Paused)
             {
@@ -45,7 +47,7 @@ namespace Polarite.Networking
             GameObject found = SceneObjectCache.Find(path);
             if (found != null)
             {
-                INetworkObject netObj = found.GetComponent<INetworkObject>();
+                INetworkObject netObj = found.NetObject();
                 if (netObj != null)
                     return netObj;
             }
@@ -56,7 +58,14 @@ namespace Polarite.Networking
                     return obj;
             }
 
-            return Recover(GetSimpleId(path), path, sender, fallbackPos);
+            if(!noRecovery && !List.Blacklist.Contains(path))
+            {
+                return Recover(GetSimpleId(path), path, sender, fallbackPos);
+            }
+            else
+            {
+                return null;
+            }
         }
 
 
@@ -70,14 +79,15 @@ namespace Polarite.Networking
             if (Enum.TryParse<EnemyType>(simpleId, true, out EnemyType type))
             {
                 EnemyIdentifier eid = SceneObjectCache.TrySpawnEnemy(id, type, pos, Quaternion.identity, sender);
-                NetworkEnemy enemy = NetworkEnemy.Create(id, eid, sender);
-                obj = enemy.GetComponent<INetworkObject>();
+                obj = eid.gameObject.NetObject();
+                obj.Base.simpleId = simpleId;
+                obj.Base.owner = sender;
                 if (obj != null && !List.Contains(obj))
                 {
                     List.Add(obj);
                 }
             }
-            ItePlugin.LogDebug($"[OBJECT {simpleId}] Recovering object for sender {sender}.");
+            Logs.Debug($"[OBJECT {simpleId}] Recovering object for sender {sender}.", name: "Net");
             return obj;
         }
 
@@ -87,17 +97,23 @@ namespace Polarite.Networking
             if (string.IsNullOrEmpty(id))
                 return string.Empty;
 
-            int index = id.IndexOf(':');
-            return index == -1 ? id : id.Substring(0, index);
+            var parts = id.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 3)
+            {
+                return parts[2];
+            }
+            return string.Empty;
         }
 
         public static void Pause()
         {
             Paused = true;
+            Logs.Info("Network paused", name: "Net");
         }
         public static void Unpause()
         {
             Paused = false;
+            Logs.Info("Network unpaused", name: "Net");
         }
 
         public static void Tick()

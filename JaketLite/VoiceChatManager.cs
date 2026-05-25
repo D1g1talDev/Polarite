@@ -12,6 +12,7 @@ using SteamImage = Steamworks.Data.Image;
 using Concentus.Structs;
 using Concentus.Enums;
 using TMPro;
+using Polarite.Debugging;
 
 // class made by doomahreal, also IM BECOMING THE BOILED ONE WITH THIS CODE AHHHHHHHHHHHHHH WHY DOES IT KEEP SOUNDING SHITTY!!!!!!!!
 
@@ -281,7 +282,7 @@ namespace Polarite.Multiplayer
                         micPosition += chunkSamples;
                         if (micPosition >= micClip.samples) micPosition -= micClip.samples;
                         samplesAvailable -= chunkSamples;
-                        Debug.Log("oops, no encoder");
+                        Logs.Info("oops, no encoder", this);
                         continue;
                     }
 
@@ -296,7 +297,7 @@ namespace Polarite.Multiplayer
                     }
                     catch (Exception e)
                     {
-                        Debug.LogWarning("[Voice] Opus encode failed: " + e);
+                        Logs.Warn("[Voice] Opus encode failed: " + e, this);
                         encodedLen = 0;
                     }
 
@@ -328,8 +329,20 @@ namespace Polarite.Multiplayer
                             NetworkPlayer plr = kv.Value;
                             if (plr == null || plr.SteamId == NetworkManager.Id) continue;
                             if (Vector3.Distance(myPos, plr.transform.position) > range) continue;
-                            try { SteamNetworking.SendP2PPacket(plr.SteamId, payload); }
-                            catch (Exception e) { Debug.LogWarning("[Voice] Failed sending P2P packet: " + e); }
+
+                            try
+                            {
+                                if (NetworkManager.ClientAndConnected)
+                                {
+                                    NetworkManager.ClientToHost.Connection.SendMessage(payload, SendType.Unreliable);
+                                }
+                                else
+                                {
+                                    NetworkManager.connections.TryGetValue(plr.SteamId, out var con);
+                                    con.SendMessage(payload, SendType.Unreliable);
+                                }
+                            }
+                            catch (Exception e) { Logs.Warn("[Voice] Failed sending packet: " + e, this); }
                         }
                     }
 
@@ -382,7 +395,7 @@ namespace Polarite.Multiplayer
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning("[Voice] Failed to create Opus decoder: " + e);
+                    Logs.Warn("[Voice] Failed to create Opus decoder: " + e, this);
                     return;
                 }
             }
@@ -552,6 +565,8 @@ namespace Polarite.Multiplayer
             }
 
             AudioSource src = go.AddComponent<AudioSource>();
+            AudioDistortionFilter fil = src.gameObject.AddComponent<AudioDistortionFilter>();
+            fil.distortionLevel = 0.25f;
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
             src.minDistance = 100f; // music kinda overlaps voice so this will make it so you can hear voice better with music

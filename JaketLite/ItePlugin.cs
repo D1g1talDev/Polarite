@@ -29,10 +29,12 @@ using UnityEngine.Localization.SmartFormat.Core.Output;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using plog;
 using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.UIElements.UxmlAttributeDescription;
 using LobbyType = Polarite.Multiplayer.LobbyType;
 using NetworkManager = Polarite.Multiplayer.NetworkManager;
+using Polarite.Networking.Skins;
 
 namespace Polarite
 {
@@ -68,6 +70,11 @@ namespace Polarite
             this.target = target;
         }
     }
+    public struct BuildTag
+    {
+        public bool debug;
+        public string buildName;
+    }
 
     [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.1.0")]
     public class ItePlugin : BaseUnityPlugin
@@ -80,13 +87,19 @@ namespace Polarite
 
         public static ConfigPanel cosmeticRelated = new ConfigPanel(config.rootPanel, "Cosmetic Config", "cosmetic");
 
-        public static ConfigHeader hostControl = new ConfigHeader(mainGameRelated, "<color=orange>These values are controlled by the host.</color>");
+        public static BoolField canBeFriendlyFired = new BoolField(mainGameRelated, "Can be friendly fired", "gameplay.client.friendlyfire", true);
 
-        public static BoolField bossHpIncrease = new BoolField(mainGameRelated, "Increase boss hp by player count", "g.b", true);
+        public static BoolField timeStopDisable = new BoolField(mainGameRelated, "Disable timestop changes", "timestop.disable", false);
 
-        public static FloatField bossHpMult = new FloatField(mainGameRelated, "Boss hp increase multiplier", "g.bm", 1.3f);
+        public static KeyCodeField killbind = new KeyCodeField(mainGameRelated, "Killbind", "killbind", KeyCode.K);
 
-        public static BoolField pvpOn = new BoolField(mainGameRelated, "PVP/Friendly fire", "pvp", false);
+        public static ConfigPanel hostPanel = new ConfigPanel(mainGameRelated, "Extra host settings", "gameplay.host");
+
+        public static ConfigHeader hostControl = new ConfigHeader(hostPanel, "<color=orange>These values are controlled by the host.</color>");
+
+        public static BoolField bossHpIncrease = new BoolField(hostPanel, "Increase boss HP by player count", "g.b", true);
+
+        public static FloatField bossHpMult = new FloatField(hostPanel, "Boss HP increase multiplier", "g.bm", 1.3f);
 
         public static KeyCodeField buttonToChat = new KeyCodeField(config.rootPanel, "Open chat key", "chat.key", KeyCode.T);
 
@@ -102,7 +115,7 @@ namespace Polarite
         // voice quality setting
         public static EnumField<VoiceQuality> voiceQuality = new EnumField<VoiceQuality>(voiceRelated, "Voice quality", "voice.quality", VoiceQuality.High); // medium didn't sound good to other people
 
-        public static BoolField disableVoiceChatTip = new BoolField(voiceRelated, "Disable voice chat tip message", "voice.tip.disable", false);
+        public static BoolField disableVoiceChatTip = new BoolField(config.rootPanel, "Disable voice chat tip message", "voice.tip.disable", false);
 
         // which microphone index to use (0 = first device)
         public static IntField voiceMicIndex = new IntField(voiceRelated, "Microphone index", "voice.mic", 0);
@@ -115,19 +128,53 @@ namespace Polarite
         // whether to receive/hear voice chat
         public static BoolField receiveVoice = new BoolField(voiceRelated, "Hear players voices", "voice.receive", true);
 
-        public static EnumField<SkinType> skin = new EnumField<SkinType>(cosmeticRelated, "Player skin (only others can see)", "player.skin", SkinType.V1);
+        // skins
+        public static ConfigPanel skinsMenu = new ConfigPanel(cosmeticRelated, "Skin Config", "skins");
+
+        public static KeyCodeField previewSkin = new KeyCodeField(skinsMenu, "Preview skin key", "skin.preview", KeyCode.LeftAlt);
+        public static KeyCodeField screenShotSkin = new KeyCodeField(skinsMenu, "Screenshot skin key", "skin.screenie", KeyCode.RightAlt);
+
+        // saving skins
+        public static ConfigPanel savePanel = new ConfigPanel(skinsMenu, "Saving/loading skins", "save.skins");
+
+        public static ConfigHeader tutorial = new ConfigHeader(savePanel, "<color=yellow>To load other peoples skin, add their .polarskin file into the saved skins folder and refresh.</color>");
+        public static ButtonField openLocation = new ButtonField(savePanel, "Open saved skins folder", "skin.openloc");
+        public static ButtonField refresh = new ButtonField(savePanel, "Refresh loaded skins", "skin.refresh");
+
+        public static ConfigPanel saveSkinPanel = new ConfigPanel(savePanel, "Save skin", "save.skin");
+
+        public static ConfigHeader loadedArea = new ConfigHeader(savePanel, "--- Loaded skins ---");
+
+        // saving
+        public static StringField saveName = new StringField(saveSkinPanel, "Skin name", "skin.name", "My skin");
+        public static ButtonField save = new ButtonField(saveSkinPanel, "Save", "save.skin.reallysave");
+
+        public static ColorField baseColor = new ColorField(skinsMenu, "Base color", "skin.base", Color.white);
+        public static ColorField lightColor = new ColorField(skinsMenu, "Base light color", "skin.light", Color.white);
+        public static ColorField wingLightColor = new ColorField(skinsMenu, "Wing light color", "skin.light.wing", Color.white);
+        public static ColorField metalColor = new ColorField(skinsMenu, "Metal color", "skin.metal", Color.gray);
+        public static FloatSliderField shinyness = new FloatSliderField(skinsMenu, "Shinyness", "skin.SHINY", new System.Tuple<float, float>(0f, 1f), 0.5f);
+
+        public static StringField namePlate = new StringField(skinsMenu, "V-Model nameplate", "name.plate", "V?");
+        public static ColorField namePlateColor = new ColorField(skinsMenu, "V-Model nameplate color", "name.plate.color", Color.black);
+
+        public static ButtonField apply = new ButtonField(skinsMenu, "Apply skin", "skin.apply");
+        public static ButtonField random = new ButtonField(skinsMenu, "Randomize skin", "skin.random");
+
+        public static BoolField disableSkinTip = new BoolField(config.rootPanel, "Disable skin tip message", "skin.tip.disable", false);
+
+        public static BoolField chatNoise = new BoolField(cosmeticRelated, "Chat noise", "chat.noise", true);
 
         public static ConfigHeader ttsbad = new ConfigHeader(cosmeticRelated, "<color=yellow>TTS can crash the game!</color>");
 
         public static BoolField canTTS = new BoolField(cosmeticRelated, "Play TTS on chat message", "tts", false);
 
-        public static BoolField timeStopDisable = new BoolField(cosmeticRelated, "Disable timestop", "timestop.disable", false);
-
-        public static KeyCodeField killbind = new KeyCodeField(config.rootPanel, "Killbind", "killbind", KeyCode.K);
+        public static BoolField hasHadRandomSkin = new BoolField(config.rootPanel, "Had random skin", "skin.randomized", false);
+        public static BoolField openedPolariteMenu = new BoolField(config.rootPanel, "Pressed globe", "pressed.globe", false);
 
         internal readonly Harmony harm = new Harmony("com.d1g1tal.polarite");
 
-        internal static ManualLogSource log = new ManualLogSource("Polarite");
+        internal static ManualLogSource log;
 
         public static ItePlugin Instance;
 
@@ -176,85 +223,260 @@ namespace Polarite
 
         public static bool debugMode = false;
         public static bool debugSending = false;
-
-        // rip catto mode value :(
+        public static bool showNetDebug = false;
 
         private static float killbindCooldown = 5f;
 
         public static bool immuneToDeath = false;
+        public static bool canBecomeGhost = false;
 
         public static readonly bool ReleaseBuild = false;
-        public static readonly string Version = "v1.1.0-beta2";
+        public static readonly string Version = "v1.1.0-beta3";
 
         public static TargetData playerData;
 
+        public static Skin currentSkin;
+
         public static List<Typewriter> typewriters = new List<Typewriter>();
+
+        public static AudioClip message;
+
+        public static Coroutine currentMoveY;
 
 
         public void Awake()
         {
-            var asm = Assembly.GetExecutingAssembly();
-            var stream = asm.GetManifestResourceStream("Polarite.Concentus.dll");
-            var ms = new MemoryStream();
-            stream.CopyTo(ms);
-            Assembly.Load(ms.ToArray());
-            ms.Dispose();
-            stream.Dispose();
-            if (Instance == null)
+            try
             {
-                Instance = this;
-            }
-            harm.PatchAll();
-            NetworkManager netManager = gameObject.GetComponent<NetworkManager>();
-            if (netManager == null)
-            {
-                netManager = gameObject.AddComponent<NetworkManager>();
-            }
-            SceneManager.sceneLoaded += OnSceneLoaded;
-            config.SetIconWithURL("file://" + Path.Combine(Directory.GetParent(Info.Location).FullName, "globehaha.png"));
-            skin.postValueChangeEvent += (SkinType skin) =>
-            {
-                if(NetworkManager.InLobby)
+                var asm = Assembly.GetExecutingAssembly();
+                var stream = asm.GetManifestResourceStream("Polarite.Concentus.dll");
+                var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                Assembly.Load(ms.ToArray());
+                ms.Dispose();
+                stream.Dispose();
+                if (Instance == null)
                 {
-                    PacketWriter write = new PacketWriter();
-                    write.WriteEnum(ItePlugin.skin.value);
-                    NetworkManager.Instance.BroadcastPacket(PacketType.Skin, write.GetBytes());
-                    if (NetworkPlayer.LocalPlayer.testPlayer)
+                    Instance = this;
+                }
+                log = Logger;
+                harm.PatchAll();
+                NetworkManager netManager = gameObject.GetComponent<NetworkManager>();
+                if (netManager == null)
+                {
+                    netManager = gameObject.AddComponent<NetworkManager>();
+                }
+                SceneManager.sceneLoaded += OnSceneLoaded;
+                config.SetIconWithURL("file://" + Path.Combine(Directory.GetParent(Info.Location).FullName, "icon.png"));
+                apply.onClick += () =>
+                {
+                    HandleSkin();
+                    SpawnSound(mainBundle.LoadAsset<AudioClip>("SkinChange"), 1f, MonoSingleton<CameraController>.Instance.transform, 1f);
+                };
+                random.onClick += () =>
+                {
+                    baseColor.value = Random.ColorHSV();
+                    lightColor.value = Random.ColorHSV();
+                    wingLightColor.value = Random.ColorHSV();
+                    metalColor.value = Random.ColorHSV();
+                    shinyness.value = Random.Range(0f, 1f);
+                    namePlate.value = $"V{Random.Range(1, 1000)}";
+                    namePlateColor.value = Random.ColorHSV();
+                    HandleSkin();
+                    SpawnSound(mainBundle.LoadAsset<AudioClip>("SkinChange"), 1f, MonoSingleton<CameraController>.Instance.transform, 1f);
+                };
+                bossHpIncrease.postValueChangeEvent += (bool v) =>
+                {
+                    if (NetworkManager.HostAndConnected)
                     {
-                        NetworkPlayer.LocalPlayer.UpdateSkin((int)skin);
+                        NetworkManager.Instance.CurrentLobby.SetData("bh", (v) ? "1" : "0");
+                    }
+                };
+                bossHpMult.postValueChangeEvent += (float v) =>
+                {
+                    if (NetworkManager.HostAndConnected)
+                    {
+                        NetworkManager.Instance.CurrentLobby.SetData("bhm", v.ToString());
+                    }
+                };
+                openLocation.onClick += () =>
+                {
+                    Application.OpenURL(SkinSaver.Path);
+                };
+                refresh.onClick += () =>
+                {
+                    SkinSaver.Clear();
+                    SkinSaver.LoadAllSkins();
+                };
+                save.onClick += () =>
+                {
+                    Skin data = GetSkin(baseColor.value, lightColor.value, wingLightColor.value, metalColor.value, shinyness.value, namePlate.value, namePlateColor.value);
+                    SkinSaver.SaveSkin(new SaveableSkin()
+                    {
+                        name = saveName.value,
+                        data = data
+                    });
+                };
+                mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
+                TryRunDiscord();
+                playerData = new TargetData();
+                hasHadRandomSkin.hidden = true;
+                openedPolariteMenu.hidden = true;
+                SkinSaver.LoadAllSkins();
+                SkinSaver.Init();
+                SkinScreenshotter.Init();
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError("Polarite failed to load! Error message: " + ex.Message);
+                harm.UnpatchSelf();
+            }
+        }
+        public Skin DefaultSkin()
+        {
+            Skin skin = new Skin();
+            skin.Base = Color.gray;
+            skin.Light = Color.white;
+            skin.WingLight = Color.white;
+            skin.Metal = Color.gray;
+            skin.Shinyness = 0.5f;
+            skin.Nameplate = "V?";
+            skin.NameplateColor = Color.black;
+            return skin;
+        }
+        public Skin GetSkin(Color baseColor, Color lightColor, Color wingLight, Color metal, float shiny, string name, Color namePlateColor)
+        {
+            Skin skin = new Skin();
+            skin.Base = baseColor;
+            skin.Light = lightColor;
+            skin.WingLight = wingLight;
+            skin.Metal = metal;
+            skin.Shinyness = shiny;
+            skin.Nameplate = name;
+            skin.NameplateColor = namePlateColor;
+            return skin;
+        }
+        public static void ArmCheck(bool alt)
+        {
+            try
+            {
+                Transform arm = MonoSingleton<GunControl>.Instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
+                if (arm != null)
+                {
+                    SkinnedMeshRenderer r = arm.GetComponent<SkinnedMeshRenderer>();
+                    SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.RIGHT_ARM_MASK, "RArm" + NetworkManager.Id, 0, true);
+                }
+            }
+            catch
+            {
+                // welp seems the player doesn't have the revolver out (or theres no skin for the arm)
+            }
+            try
+            {
+                // arms
+                foreach(var rend in FistControl.Instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    if(rend.name == "Feedbacker")
+                    {
+                        SkinManagerV2.CustomColor(rend, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.FEEDBACKER_MASK, "Feedbacker" + NetworkManager.Id, 0, true);
+                    }
+                    if(rend.name == "arm_lp")
+                    {
+                        SkinManagerV2.CustomColor(rend, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.KNUCKLEBLASTER_MASK, "KB" + NetworkManager.Id, 0, true);
+                    }
+                    if(rend.name == "Arm" || rend.name == "Hook")
+                    {
+                        SkinManagerV2.CustomColor(rend, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.WHIPLASH_MASK, "Whip" + NetworkManager.Id, 0, true);
                     }
                 }
-            };
-            bossHpIncrease.postValueChangeEvent += (bool v) =>
+            }
+            catch
             {
-                if(NetworkManager.HostAndConnected)
-                {
-                    NetworkManager.Instance.CurrentLobby.SetData("bh", (v) ? "1" : "0");
-                }
-            };
-            pvpOn.postValueChangeEvent += (bool v) =>
+                // skip
+            }
+        }
+        public static void ReverseArmCheck(bool alt)
+        {
+            try
             {
-                if (NetworkManager.HostAndConnected)
+                Transform arm = MonoSingleton<GunControl>.Instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
+                if (arm != null)
                 {
-                    NetworkManager.Instance.CurrentLobby.SetData("pvp", (v) ? "1" : "0");
+                    SkinnedMeshRenderer r = arm.GetComponent<SkinnedMeshRenderer>();
+                    SkinManagerV2.Reset("RArm" + NetworkManager.Id);
                 }
-            };
-            bossHpMult.postValueChangeEvent += (float v) =>
+            }
+            catch
             {
-                if (NetworkManager.HostAndConnected)
+                // welp seems the player doesn't have the revolver out
+            }
+            try
+            {
+                // arms
+                SkinManagerV2.Reset("Feedbacker" + NetworkManager.Id);
+                SkinManagerV2.Reset("KB" + NetworkManager.Id);
+                SkinManagerV2.Reset("Whip" + NetworkManager.Id);
+            }
+            catch
+            {
+                // skip
+            }
+        }
+        public static void AnimationCheck()
+        {
+            if (MonoSingleton<NewMovement>.Instance != null)
+            {
+                PlayerAnimations rig = MonoSingleton<NewMovement>.Instance.gc.GetComponentInChildren<PlayerAnimations>();
+                if (rig != null)
                 {
-                    NetworkManager.Instance.CurrentLobby.SetData("bhm", v.ToString());
+                    SkinnedMeshRenderer r = rig.transform.Find("v1_mdl").GetComponent<SkinnedMeshRenderer>();
+                    for (int i = 0; i < r.materials.Length; i++)
+                    {
+                        if (i == 0)
+                        {
+                            SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.V1_BASE_MASK, "Base" + NetworkManager.Id, i);
+                        }
+                        else
+                        {
+                            // turn the emissive flag off
+                            r.materials[i].DisableKeyword("EMISSIVE");
+                            SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.WingLight, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.V1_WING_MASK, "Wing" + NetworkManager.Id, i);
+                        }
+                    }
                 }
-            };
-            mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
-            TryRunDiscord();
-            playerData = new TargetData();
+            }
+        }
+        public static void ReverseAnimationCheck()
+        {
+            if (MonoSingleton<NewMovement>.Instance != null)
+            {
+                PlayerAnimations rig = MonoSingleton<NewMovement>.Instance.gc.GetComponentInChildren<PlayerAnimations>();
+                if (rig != null)
+                {
+                    SkinnedMeshRenderer r = rig.transform.Find("v1_mdl").GetComponent<SkinnedMeshRenderer>();
+                    Material main = mainBundle.LoadAsset<Material>("V1");
+                    Material wing = mainBundle.LoadAsset<Material>("V1Wing");
+                    for (int i = 0; i < r.materials.Length; i++)
+                    {
+                        if (i == 0)
+                        {
+                            r.materials[i].mainTexture = main.mainTexture;
+                        }
+                        else
+                        {
+                            // turn the emissive flag back on
+                            r.materials[i].EnableKeyword("EMISSIVE");
+                            r.materials[i].mainTexture = wing.mainTexture;
+                        }
+                    }
+                }
+            }
         }
         public static void LogDebug(string msg, bool ignore = false)
         {
-            if(debugMode || ignore)
+            if (debugMode || ignore)
             {
-                if(SubtitleController.Instance.subtitlesEnabled)
+                if (SubtitleController.Instance.subtitlesEnabled)
                 {
                     SubtitleController.Instance.DisplaySubtitle(msg);
                 }
@@ -278,7 +500,7 @@ namespace Polarite
             }
             catch
             {
-                log.LogWarning("User doesn't have discord in the background, Skipping discord!");
+                Logger.LogWarning("User doesn't have discord in the background, Skipping discord!");
                 return false;
             }
         }
@@ -288,19 +510,20 @@ namespace Polarite
             {
                 Net.Tick();
             }
-            if (debugMode && NetworkManager.InLobby)
+            if (debugMode && NetworkManager.InLobby && !ReleaseBuild)
             {
                 NetworkPlayer lo = NetworkPlayer.LocalPlayer;
                 if (Input.GetKeyDown(KeyCode.F3))
                 {
-                    LogDebug($"[DEBUG] Currently there are {Net.List.Objects.Count} objects that are networked.");
+                    showNetDebug = !showNetDebug;
+                    LogDebug($"[DEBUG] Toggled networking debugging UI {showNetDebug}.");
                 }
                 else if (Input.GetKeyDown(KeyCode.F2))
                 {
                     LogDebug($"[DEBUG] Teleported testing Dummy to your location! (Keep holding to make it follow)");
                     lo.testPlayer = true;
                     lo.ToggleRig(true);
-                    lo.UpdateSkin((int)skin.value);
+                    lo.UpdateSkin(currentSkin);
                 }
                 else if (Input.GetKeyDown(KeyCode.F1))
                 {
@@ -323,7 +546,7 @@ namespace Polarite
                     lo.testPlayer = false;
                 }
             }
-            if (Input.GetKeyDown(KeyCode.F5))
+            if (Input.GetKeyDown(KeyCode.F5) && !ReleaseBuild)
             {
                 debugMode = !debugMode;
                 LogDebug($"[POLARITE] Toggled debug mode {debugMode}.", true);
@@ -390,7 +613,7 @@ namespace Polarite
         {
             try
             {
-                if(HasDiscord)
+                if (HasDiscord)
                 {
                     discord.RunCallbacks();
                 }
@@ -402,7 +625,7 @@ namespace Polarite
         }
         public bool ShouldBeImmune()
         {
-            if(SceneHelper.CurrentScene == "Level 8-4" && StatsManager.Instance.kills >= 7)
+            if (SceneHelper.CurrentScene == "Level 8-4" && StatsManager.Instance.kills >= 7)
             {
                 return true;
             }
@@ -437,24 +660,6 @@ namespace Polarite
                 {
                     CustomTogglePlayer(true);
                 }
-                if (cam != null && lowPass != null)
-                {
-                    if (!Application.isFocused)
-                    {
-                        cam.enabled = false;
-                        lowPass.cutoffFrequency = 500f;
-                        lowPass.enabled = true;
-                    }
-                    else
-                    {
-                        cam.enabled = true;
-                        lowPass.cutoffFrequency = 1000f;
-                        if (!MonoSingleton<UnderwaterController>.Instance.inWater)
-                        {
-                            lowPass.enabled = (!NetworkPlayer.selfIsGhost) ? false : true;
-                        }
-                    }
-                }
                 if (CyberSync.Active)
                 {
                     if (NetworkPlayer.selfIsGhost)
@@ -469,7 +674,6 @@ namespace Polarite
                         CameraController.Instance.enabled = true;
                     }
                 }
-                cameFromPacketRestart = false;
             }
             else
             {
@@ -487,97 +691,128 @@ namespace Polarite
             playerData.headPosition = CameraController.Instance.transform.position;
             playerData.velocity = NewMovement.Instance.targetVel;
         }
+        public void HandleSkin()
+        {
+            if (namePlate.value.Length > 5)
+            {
+                namePlate.value = namePlate.value.Substring(0, 5);
+            }
+            currentSkin = GetSkin(baseColor.value, lightColor.value, wingLightColor.value, metalColor.value, shinyness.value, namePlate.value, namePlateColor.value);
+            if (NetworkManager.InLobby)
+            {
+                Skin skin = currentSkin;
+                PacketWriter write = new PacketWriter();
+                write.WriteSkin(skin);
+                NetworkManager.Instance.BroadcastPacket(PacketType.Skin, write.GetBytes());
+                if (NetworkPlayer.LocalPlayer.testPlayer)
+                {
+                    NetworkPlayer.LocalPlayer.UpdateSkin(skin);
+                }
+                ArmCheck(SwapWeaponsPatch.AltWeapon(GunControl.Instance.currentWeapon));
+                AnimationCheck();
+            }
+        }
 
         public void Update()
         {
-            Inputs();
-            TryRunCalls();
-            if(NewMovement.Instance != null) HandleTargetData();
-
-            if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
+            try
             {
-                if(polrMM != null)
+                if(currentSkin.Base == Color.clear)
                 {
-                    currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
-                    if (polrMM.mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
+                    if (!hasHadRandomSkin.value)
                     {
-                        TogglePauseMenu(false);
+                        baseColor.value = Random.ColorHSV();
+                        lightColor.value = Random.ColorHSV();
+                        wingLightColor.value = Random.ColorHSV();
+                        metalColor.value = Random.ColorHSV();
+                        shinyness.value = Random.Range(0f, 1f);
+                        namePlate.value = $"V{Random.Range(1, 1000)}";
+                        namePlateColor.value = Random.ColorHSV();
+                        hasHadRandomSkin.value = true;
                     }
-                    if (!polrMM.mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
-                    {
-                        TogglePauseMenu(true);
-                    }
-                    if (!MonoSingleton<OptionsManager>.Instance.paused)
-                    {
-                        polrMM.mainPanel.SetActive(false);
-                    }
+                    HandleSkin();
+                    SkinSaver.CurrentSkin.name = currentSkin.Nameplate;
+                    SkinSaver.CurrentSkin.data = currentSkin;
+                }
+                Inputs();
+                TryRunCalls();
+                if (NewMovement.Instance != null) HandleTargetData();
+
+                if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
+                {
                     if (polrMM != null)
                     {
-                        string status = (NetworkManager.InLobby) ? "STATUS: <color=green>IN LOBBY" : "STATUS: <color=red>NOT IN LOBBY";
-                        polrMM.statusHost.text = status;
-                        polrMM.statusJoin.text = status;
-                        leaveButton.SetActive(NetworkManager.InLobby);
-                        playerListButton.SetActive(NetworkManager.InLobby);
-                        joinButton.GetComponent<Button>().interactable = !NetworkManager.InLobby;
-                        hostButton.GetComponent<Button>().interactable = !NetworkManager.InLobby;
+                        currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
+                        if (polrMM.mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
+                        {
+                            TogglePauseMenu(false);
+                        }
+                        if (!polrMM.mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
+                        {
+                            TogglePauseMenu(true);
+                        }
+                        if (!MonoSingleton<OptionsManager>.Instance.paused)
+                        {
+                            polrMM.mainPanel.SetActive(false);
+                        }
+                        if (polrMM != null)
+                        {
+                            string status = (NetworkManager.InLobby) ? "STATUS: <color=green>IN LOBBY" : "STATUS: <color=red>NOT IN LOBBY";
+                            polrMM.statusHost.text = status;
+                            polrMM.statusJoin.text = status;
+                            leaveButton.SetActive(NetworkManager.InLobby);
+                            playerListButton.SetActive(NetworkManager.InLobby);
+                            joinButton.GetComponent<Button>().interactable = !NetworkManager.InLobby;
+                            hostButton.GetComponent<Button>().interactable = !NetworkManager.InLobby;
 
-                        inviteButton.SetActive(NetworkManager.HostAndConnected);
-                        copyButton.SetActive(NetworkManager.HostAndConnected);
+                            inviteButton.SetActive(NetworkManager.HostAndConnected);
+                            copyButton.SetActive(NetworkManager.HostAndConnected);
+
+                            GameObject notif = polrMM.notifBox;
+                            if(notif != null)
+                            {
+                                if(!NetworkManager.InLobby || !debugMode)
+                                {
+                                    NetworkDebugRef.SetUIActive(false);
+                                }
+                                else
+                                {
+                                    NetworkDebugRef.SetUIActive(showNetDebug);
+                                    if (showNetDebug)
+                                    {
+                                        INetworkObject obj = NetworkDebugRef.GetNearestObject(MonoSingleton<CameraController>.Instance.transform.position);
+                                        NetworkDebugRef.Update(Net.List.netTimer, Net.List.Objects.Count, obj);
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                else if(currentUi != null)
-                {
-                    currentUi.SetActive(true);
-                    currentUi.transform.Find("PolariteMenu").TryGetComponent<PolariteMenuManager>(out var menu);
-                    if(menu != null)
+                    else if (currentUi != null)
                     {
-                        polrMM = menu;
+                        currentUi.SetActive(true);
+                        currentUi.transform.Find("PolariteMenu").TryGetComponent<PolariteMenuManager>(out var menu);
+                        if (menu != null)
+                        {
+                            polrMM = menu;
+                        }
                     }
                 }
-            }
-            if(currentUi != null && SceneHelper.CurrentScene == "Main Menu")
-            {
-                currentUi.SetActive(false);
-            }
-            InNet();
-        }
-        public void LateUpdate()
-        {
-            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap" || SceneHelper.CurrentScene == "Main Menu")
-            {
-                return;
-            }
-            cam = MonoSingleton<CameraController>.Instance.cam;
-            if(cam != null)
-            {
-                lowPass = cam.GetComponent<AudioLowPassFilter>();
-            }
-        }
-        // unused but me stupid and i like being stupid
-        public static void FlyToggle(bool val)
-        {
-            if (!CyberSync.Active)
-            {
-                return;
-            }
-            ICheat flyCheat = CheatsManager.Instance.idToCheat["ultrakill.flight"];
-            if (flyCheat != null)
-            {
-                if (val)
+                if (currentUi != null && SceneHelper.CurrentScene == "Main Menu")
                 {
-                    flyCheat.Enable(CheatsManager.Instance);
+                    currentUi.SetActive(false);
                 }
-                else
-                {
-                    flyCheat.Disable();
-                }
+                InNet();
+            }
+            catch
+            {
+                // this single update loop causes way too many errors
             }
         }
         public void TogglePauseMenu(bool value)
         {
-            foreach(Transform c in MonoSingleton<OptionsManager>.Instance.pauseMenu.transform)
+            foreach (Transform c in MonoSingleton<OptionsManager>.Instance.pauseMenu.transform)
             {
-                if(c.name != "Level Stats")
+                if (c.name != "Level Stats")
                 {
                     c.gameObject.SetActive(value);
                 }
@@ -586,15 +821,15 @@ namespace Polarite
         }
         public static void CustomTogglePlayer(bool val)
         {
-            if(ChatUI.isTyping)
+            if (ChatUI.isTyping)
             {
                 val = false;
             }
-            if(val == plrActive)
+            if (val == plrActive)
             {
                 return;
             }
-            if(!NetworkManager.InLobby)
+            if (!NetworkManager.InLobby)
             {
                 val = true;
             }
@@ -603,7 +838,7 @@ namespace Polarite
             GameStateManager.Instance.PlayerInputLocked = !val;
             CameraController.Instance.activated = val;
             GunControl.Instance.activated = val;
-            if(val)
+            if (val)
             {
                 FistControl.Instance.YesFist();
             }
@@ -623,214 +858,268 @@ namespace Polarite
         {
             GameObject uiObj = Instantiate(mainBundle.LoadAsset<GameObject>("PolariteCanvas"));
             GameObject notifUi = Instantiate(mainBundle.LoadAsset<GameObject>("NotifBoxCanvas"));
-            if(uiObj != null)
+            try
             {
-                DontDestroyOnLoad(uiObj);
-                currentUi = uiObj;
-
-                PolariteMenuManager pMM = currentUi.transform.Find("PolariteMenu").gameObject.AddComponent<PolariteMenuManager>();
-                if(pMM != null)
+                if (uiObj != null)
                 {
-                    pMM.uiOpen = pMM.transform.Find("Activate").GetComponent<Button>();
-                    pMM.uiOpen.onClick.AddListener(pMM.ToggleMainPanel);
+                    DontDestroyOnLoad(uiObj);
+                    currentUi = uiObj;
 
-                    Transform motd = pMM.transform.Find("Main").Find("MOTD");
 
-                    Image img = motd.Find("MOTDPfp").GetComponent<Image>();
-                    TextMeshProUGUI textName = motd.Find("MOTDUser").GetComponent<TextMeshProUGUI>();
-                    TextMeshProUGUI textMsg = motd.Find("MOTDText").GetComponent<TextMeshProUGUI>();
-
-                    Sprite unknown = mainBundle.LoadAsset<Sprite>("unknown");
-
-                    pMM.uiOpen.interactable = false;
-                    XServers.HasInternet((val) =>
+                    TextMeshProUGUI tag = currentUi.transform.Find("BuildTag").GetComponent<TextMeshProUGUI>();
+                    PolariteMenuManager pMM = currentUi.transform.Find("PolariteMenu").gameObject.AddComponent<PolariteMenuManager>();
+                    if (pMM != null)
                     {
-                        pMM.uiOpen.interactable = val;
-                        if(val)
+                        BuildTag bTag = JsonUtility.FromJson<BuildTag>(File.ReadAllText(Path.Combine(Directory.GetParent(Info.Location).FullName, "debug_info.json")));
+                        if (bTag.debug)
                         {
-                            img.sprite = unknown;
-                            textMsg.text = "???";
-                            textName.text = "(Loading MOTD...)";
-                            XServers.GetMOTD((pfp, user, msg) =>
-                            {
-                                img.sprite = pfp;
-                                Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
-                                Typewriter(msg, 0.001f, textMsg);
-                            }, (pfpF, userF, msgF) =>
-                            {
-                                img.sprite = pfpF;
-                                Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
-                                Typewriter(msgF, 0.001f, textMsg);
-                            });
+                            tag.text = $"BUILD_ID: {bTag.buildName}";
                         }
-                    });
+                        else
+                        {
+                            tag.gameObject.SetActive(false);
+                        }
+                        pMM.uiOpen = null;
+                        if (!IsFoolsDay())
+                        {
+                            pMM.uiOpen = pMM.transform.Find("Activate").GetComponent<Button>();
+                            pMM.transform.Find("ActivateApr").gameObject.SetActive(false);
+                        }
+                        else
+                        {
+                            pMM.uiOpen = pMM.transform.Find("ActivateApr").GetComponent<Button>();
+                            pMM.transform.Find("Activate").gameObject.SetActive(false);
+                        }
+                        pMM.uiOpen.onClick.AddListener(pMM.ToggleMainPanel);
 
-                    Transform host = pMM.transform.Find("Main").Find("Host");
-                    Transform join = pMM.transform.Find("Main").Find("Join");
-                    Transform publicLobbies = pMM.transform.Find("Main").Find("PublicLobbies");
-                    Transform playerList = pMM.transform.Find("Main").Find("PlayerList");
-                    Transform pirateGuide = pMM.transform.Find("Main").Find("PiratesGuide").Find("PiratesGuideBG");
-                    Transform blueScreen = pMM.transform.parent.Find("BackgroundStuff");
-                    TextMeshProUGUI ver = pMM.transform.Find("Main").Find("Ver").GetComponent<TextMeshProUGUI>();
+                        Transform motd = pMM.transform.Find("Main").Find("MOTD");
 
-                    pMM.maxP = host.Find("MaxPlayers").GetComponent<TMP_InputField>();
-                    pMM.lobbyName = host.Find("UsefulInputField").GetComponent<TMP_InputField>();
-                    pMM.lobbyType = host.Find("UsefulDropdown").GetComponent<TMP_Dropdown>();
-                    pMM.mainPanel = pMM.transform.Find("Main").gameObject;
-                    pMM.code = join.Find("UsefulInputField").GetComponent<TMP_InputField>();
-                    pMM.canCheat = host.Find("CanCheat").GetComponent<TMP_Dropdown>();
+                        Image img = motd.Find("MOTDPfp").GetComponent<Image>();
+                        TextMeshProUGUI textName = motd.Find("MOTDUser").GetComponent<TextMeshProUGUI>();
+                        TextMeshProUGUI textMsg = motd.Find("MOTDText").GetComponent<TextMeshProUGUI>();
 
-                    pMM.statusHost = host.Find("Status").GetComponent<TextMeshProUGUI>();
-                    pMM.statusJoin = join.Find("Status").GetComponent<TextMeshProUGUI>();
+                        Sprite unknown = mainBundle.LoadAsset<Sprite>("unknown");
 
-                    string serverStat = "";
-                    switch(NetworkManager.cMode.server_mode)
-                    {
-                        case "steam":
-                            serverStat = "<color=#66c0f4>Steam</color>";
-                            break;
-                        case "pirated":
-                            serverStat = "<color=#ff8522>Pirated</color>";
-                            break;
+                        pMM.uiOpen.interactable = false;
+                        XServers.HasInternet((val) =>
+                        {
+                            pMM.uiOpen.interactable = val;
+                            if (val)
+                            {
+                                img.sprite = unknown;
+                                textMsg.text = "???";
+                                textName.text = "(Loading MOTD...)";
+                                XServers.GetMOTD((pfp, user, msg) =>
+                                {
+                                    img.sprite = pfp;
+                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                    Typewriter(msg, 0.001f, textMsg);
+                                }, (pfpF, userF, msgF) =>
+                                {
+                                    img.sprite = pfpF;
+                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                    Typewriter(msgF, 0.001f, textMsg);
+                                });
+                            }
+                        });
+
+                        Transform host = pMM.transform.Find("Main").Find("Host");
+                        Transform join = pMM.transform.Find("Main").Find("Join");
+                        Transform publicLobbies = pMM.transform.Find("Main").Find("PublicLobbies");
+                        Transform playerList = pMM.transform.Find("Main").Find("PlayerList");
+                        Transform pirateGuide = pMM.transform.Find("Main").Find("PiratesGuide").Find("PiratesGuideBG");
+                        Transform blueScreen = pMM.transform.parent.Find("BackgroundStuff");
+                        TextMeshProUGUI ver = pMM.transform.Find("Main").Find("Ver").GetComponent<TextMeshProUGUI>();
+
+                        pMM.maxP = host.Find("MaxPlayers").GetComponent<TMP_InputField>();
+                        pMM.lobbyName = host.Find("UsefulInputField").GetComponent<TMP_InputField>();
+                        pMM.lobbyType = host.Find("UsefulDropdown").GetComponent<TMP_Dropdown>();
+                        pMM.mainPanel = pMM.transform.Find("Main").gameObject;
+                        pMM.code = join.Find("UsefulInputField").GetComponent<TMP_InputField>();
+                        pMM.canCheat = host.Find("CanCheat").GetComponent<TMP_Dropdown>();
+
+                        pMM.statusHost = host.Find("Status").GetComponent<TextMeshProUGUI>();
+                        pMM.statusJoin = join.Find("Status").GetComponent<TextMeshProUGUI>();
+
+                        string serverStat = "";
+                        switch (NetworkManager.cMode.server_mode)
+                        {
+                            case "steam":
+                                serverStat = "<color=#66c0f4>Steam</color>";
+                                break;
+                            case "pirated":
+                                serverStat = "<color=#ff8522>Pirated</color>";
+                                break;
+                        }
+                        pMM.transform.Find("Main").Find("ConnectedTo?").GetComponent<TextMeshProUGUI>().text = $"Currently connected to {serverStat} servers.";
+
+                        Button leave = pMM.transform.Find("Main").Find("Leave").GetComponent<Button>();
+                        Button invite = host.Find("UsefulButton (1)").GetComponent<Button>();
+                        Button create = host.Find("UsefulButton").GetComponent<Button>();
+                        Button joinL = join.Find("UsefulButton").GetComponent<Button>();
+                        Button copyCode = host.Find("CopyCode").GetComponent<Button>();
+                        Button onPublicClick = pMM.transform.Find("Main").Find("UsefulButton (3)").GetComponent<Button>();
+                        Button refresh = publicLobbies.Find("RefreshButton").GetComponent<Button>();
+                        Button pList = pMM.transform.Find("Main").Find("PlayerListButton").GetComponent<Button>();
+                        Button discord = pMM.transform.Find("Main").Find("JoinDiscord").GetComponent<Button>();
+                        Button gameFolder = pirateGuide.Find("UsefulButton").GetComponent<Button>();
+                        Button noRead = pirateGuide.Find("UsefulButton (2)").GetComponent<Button>();
+                        Button refreshMotd = motd.Find("MOTDRefresh").GetComponent<Button>();
+                        Button backTrack = pMM.transform.Find("Main").Find("BackTrackLikeItsBackOnTrack").GetComponent<Button>();
+
+                        gameFolder.onClick.AddListener(() => Application.OpenURL(Directory.GetParent("server_config.json").FullName));
+                        noRead.onClick.AddListener(() => Application.OpenURL("https://www.youtube.com/watch?v=LKeof3dleS0"));
+                        leave.onClick.AddListener(NetworkManager.Instance.LeaveLobby);
+                        invite.onClick.AddListener(NetworkManager.Instance.ShowInviteOverlay);
+                        create.onClick.AddListener(CreateLobby);
+                        joinL.onClick.AddListener(JoinLobby);
+                        copyCode.onClick.AddListener(() =>
+                        {
+                            GUIUtility.systemCopyBuffer = pMM.codeHost;
+                            NetworkManager.DisplaySystemChatMessage("Lobby code copied to clipboard");
+                        });
+                        discord.onClick.AddListener(() =>
+                        {
+                            // use the shortcut link incase we have another server nuking :(
+                            Application.OpenURL((!IsFoolsDay()) ? "https://polaritemod.com/discord" : "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+                        });
+                        onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
+                        refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
+                        pList.onClick.AddListener(PlayerList.UpdatePList);
+                        refreshMotd.onClick.AddListener(() =>
+                        {
+                            XServers.HasInternet((val) =>
+                            {
+                                if (val)
+                                {
+                                    img.sprite = unknown;
+                                    textMsg.text = "???";
+                                    textName.text = "(Refreshing MOTD...)";
+                                    XServers.GetMOTD((pfp, user, msg) =>
+                                    {
+                                        img.sprite = pfp;
+                                        Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                        Typewriter(msg, 0.001f, textMsg);
+                                    }, (pfpF, userF, msgF) =>
+                                    {
+                                        img.sprite = pfpF;
+                                        Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                        Typewriter(msgF, 0.001f, textMsg);
+                                    });
+                                }
+                            });
+                        });
+
+                        backTrack.onClick.AddListener(() =>
+                        {
+                            XServers.HasInternet((val) =>
+                            {
+                                if (val)
+                                {
+                                    img.sprite = unknown;
+                                    textMsg.text = "???";
+                                    textName.text = "(Loading MOTD...)";
+                                    XServers.GetMOTD((pfp, user, msg) =>
+                                    {
+                                        img.sprite = pfp;
+                                        Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                        Typewriter(msg, 0.001f, textMsg);
+                                    }, (pfpF, userF, msgF) =>
+                                    {
+                                        img.sprite = pfpF;
+                                        Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                        Typewriter(msgF, 0.001f, textMsg);
+                                    });
+                                }
+                            });
+                        });
+
+                        pMM.uiOpen.onClick.AddListener(() =>
+                        {
+                            XServers.HasInternet((val) =>
+                            {
+                                if (val)
+                                {
+                                    img.sprite = unknown;
+                                    textMsg.text = "???";
+                                    textName.text = "(Loading MOTD...)";
+                                    XServers.GetMOTD((pfp, user, msg) =>
+                                    {
+                                        img.sprite = pfp;
+                                        Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
+                                        Typewriter(msg, 0.001f, textMsg);
+                                    }, (pfpF, userF, msgF) =>
+                                    {
+                                        img.sprite = pfpF;
+                                        Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
+                                        Typewriter(msgF, 0.001f, textMsg);
+                                    });
+                                }
+                            });
+                        });
+
+                        PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
+                        PlayerList.ContentB = playerList.Find("List").Find("Content");
+
+                        Typewriter(Version, 0.025f, ver);
+                        ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
+
+
+                        leaveButton = leave.gameObject;
+                        joinButton = joinL.gameObject;
+                        hostButton = create.gameObject;
+                        copyButton = copyCode.gameObject;
+                        inviteButton = invite.gameObject;
+                        playerListButton = pList.gameObject;
+
+                        leave.gameObject.SetActive(false);
+                        invite.gameObject.SetActive(false);
+                        host.gameObject.SetActive(false);
+                        join.gameObject.SetActive(false);
+                        publicLobbies.gameObject.SetActive(false);
+                        copyCode.gameObject.SetActive(false);
+                        playerList.gameObject.SetActive(false);
+                        pList.gameObject.SetActive(false);
+                        backTrack.gameObject.SetActive(false);
+                        pirateGuide.parent.gameObject.SetActive(false);
+                        pMM.mainPanel.SetActive(false);
+
+                        pMM.lobbyName.text = $"{NetworkManager.GetNameOfId(NetworkManager.Id)}'s Lobby";
+                        pMM.notifBox = notifUi;
+                        DontDestroyOnLoad(notifUi);
+                        polrMM = pMM;
+                        message = notifUi.GetComponentInChildren<AudioSource>().clip;
+
+                        // network debug ui
+                        Transform debugUI = notifUi.transform.Find("NetworkDebug");
+                        if(debugUI != null)
+                        {
+                            Transform netTick = debugUI.Find("NetTick");
+                            Transform count = debugUI.Find("Count");
+                            Transform id = debugUI.Find("ID");
+                            NetworkDebugRef.mainObject = debugUI.gameObject;
+                            NetworkDebugRef.netObjUI = id.gameObject;
+                            NetworkDebugRef.netTick = netTick.GetComponentInChildren<TextMeshProUGUI>();
+                            NetworkDebugRef.count = count.GetComponentInChildren<TextMeshProUGUI>();
+
+                            NetworkDebugRef.simpleId = id.Find("simpleId").GetComponent<TextMeshProUGUI>();
+                            NetworkDebugRef.owner = id.Find("owner").GetComponent<TextMeshProUGUI>();
+                            NetworkDebugRef.index = id.Find("index").GetComponent<TextMeshProUGUI>();
+                            NetworkDebugRef.alive = id.Find("alive").GetComponent<TextMeshProUGUI>();
+                            NetworkDebugRef.syncTransform = id.Find("syncTransform").GetComponent<TextMeshProUGUI>();
+
+                            id.gameObject.SetActive(false);
+                            NetworkDebugRef.SetUIActive(false);
+                        }
                     }
-                    pMM.transform.Find("Main").Find("ConnectedTo?").GetComponent<TextMeshProUGUI>().text = $"Currently connected to {serverStat} servers.";
-
-                    Button leave = pMM.transform.Find("Main").Find("Leave").GetComponent<Button>();
-                    Button invite = host.Find("UsefulButton (1)").GetComponent<Button>();
-                    Button create = host.Find("UsefulButton").GetComponent<Button>();
-                    Button joinL = join.Find("UsefulButton").GetComponent<Button>();
-                    Button copyCode = host.Find("CopyCode").GetComponent<Button>();
-                    Button onPublicClick = pMM.transform.Find("Main").Find("UsefulButton (3)").GetComponent<Button>();
-                    Button refresh = publicLobbies.Find("RefreshButton").GetComponent<Button>();
-                    Button pList = pMM.transform.Find("Main").Find("PlayerListButton").GetComponent<Button>();
-                    Button discord = pMM.transform.Find("Main").Find("JoinDiscord").GetComponent<Button>();
-                    Button gameFolder = pirateGuide.Find("UsefulButton").GetComponent<Button>();
-                    Button noRead = pirateGuide.Find("UsefulButton (2)").GetComponent<Button>();
-                    Button refreshMotd = motd.Find("MOTDRefresh").GetComponent<Button>();
-                    Button backTrack = pMM.transform.Find("Main").Find("BackTrackLikeItsBackOnTrack").GetComponent<Button>();
-
-                    gameFolder.onClick.AddListener(() => Application.OpenURL(Directory.GetParent("server_config.json").FullName));
-                    noRead.onClick.AddListener(() => Application.OpenURL("https://www.youtube.com/watch?v=LKeof3dleS0"));
-                    leave.onClick.AddListener(NetworkManager.Instance.LeaveLobby);
-                    invite.onClick.AddListener(NetworkManager.Instance.ShowInviteOverlay);
-                    create.onClick.AddListener(CreateLobby);
-                    joinL.onClick.AddListener(JoinLobby);
-                    copyCode.onClick.AddListener(() =>
-                    {
-                        GUIUtility.systemCopyBuffer = pMM.codeHost;
-                        NetworkManager.DisplaySystemChatMessage("Lobby code copied to clipboard");
-                    });
-                    discord.onClick.AddListener(() =>
-                    {
-                        // new discord link :)
-                        Application.OpenURL("https://discord.gg/mNdbhdaHzH");
-                    });
-                    onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
-                    refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
-                    pList.onClick.AddListener(PlayerList.UpdatePList);
-                    refreshMotd.onClick.AddListener(() =>
-                    {
-                        XServers.HasInternet((val) =>
-                        {
-                            if (val)
-                            {
-                                img.sprite = unknown;
-                                textMsg.text = "???";
-                                textName.text = "(Refreshing MOTD...)";
-                                XServers.GetMOTD((pfp, user, msg) =>
-                                {
-                                    img.sprite = pfp;
-                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
-                                    Typewriter(msg, 0.001f, textMsg);
-                                }, (pfpF, userF, msgF) =>
-                                {
-                                    img.sprite = pfpF;
-                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
-                                    Typewriter(msgF, 0.001f, textMsg);
-                                });
-                            }
-                        });
-                    });
-
-                    backTrack.onClick.AddListener(() =>
-                    {
-                        XServers.HasInternet((val) =>
-                        {
-                            if (val)
-                            {
-                                img.sprite = unknown;
-                                textMsg.text = "???";
-                                textName.text = "(Loading MOTD...)";
-                                XServers.GetMOTD((pfp, user, msg) =>
-                                {
-                                    img.sprite = pfp;
-                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
-                                    Typewriter(msg, 0.001f, textMsg);
-                                }, (pfpF, userF, msgF) =>
-                                {
-                                    img.sprite = pfpF;
-                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
-                                    Typewriter(msgF, 0.001f, textMsg);
-                                });
-                            }
-                        });
-                    });
-
-                    pMM.uiOpen.onClick.AddListener(() =>
-                    {
-                        XServers.HasInternet((val) =>
-                        {
-                            if (val)
-                            {
-                                img.sprite = unknown;
-                                textMsg.text = "???";
-                                textName.text = "(Loading MOTD...)";
-                                XServers.GetMOTD((pfp, user, msg) =>
-                                {
-                                    img.sprite = pfp;
-                                    Typewriter($"(MOTD wrote by{user})", 0.01f, textName);
-                                    Typewriter(msg, 0.001f, textMsg);
-                                }, (pfpF, userF, msgF) =>
-                                {
-                                    img.sprite = pfpF;
-                                    Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
-                                    Typewriter(msgF, 0.001f, textMsg);
-                                });
-                            }
-                        });
-                    });
-
-                    PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
-                    PlayerList.ContentB = playerList.Find("List").Find("Content");
-
-                    Typewriter(Version, 0.025f, ver);
-                    ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
-                    
-
-                    leaveButton = leave.gameObject;
-                    joinButton = joinL.gameObject;
-                    hostButton = create.gameObject;
-                    copyButton = copyCode.gameObject;
-                    inviteButton = invite.gameObject;
-                    playerListButton = pList.gameObject;
-
-                    leave.gameObject.SetActive(false);
-                    invite.gameObject.SetActive(false);
-                    host.gameObject.SetActive(false);
-                    join.gameObject.SetActive(false);
-                    publicLobbies.gameObject.SetActive(false);
-                    copyCode.gameObject.SetActive(false);
-                    playerList.gameObject.SetActive(false);
-                    pList.gameObject.SetActive(false);
-                    backTrack.gameObject.SetActive(false);
-                    pirateGuide.parent.gameObject.SetActive(false);
-                    pMM.mainPanel.SetActive(false);
-
-                    pMM.lobbyName.text = $"{NetworkManager.GetNameOfId(NetworkManager.Id)}'s Lobby";
-                    pMM.notifBox = notifUi;
-                    DontDestroyOnLoad(notifUi);
-                    polrMM = pMM;
                 }
+            }
+            catch (System.Exception ex)
+            {
+                Logs.Error("Attempt at making UI failed. Reason: " + ex, this);
+                MonoSingleton<HudMessageReceiver>.Instance.SendHudMessage("It seems the mod assets are <b><i><color=red>OUT OF DATE!</b></i></color> Either you're trying to get an updated version of Polarite early, or it's something beyond my knowledge. Feel free to screenshot the console, the error will be there.");
+                Destroy(uiObj);
+                Destroy(notifUi);
             }
         }
         private async void CreateLobby()
@@ -838,13 +1127,13 @@ namespace Polarite
             PolariteMenuManager pMM = currentUi.GetComponentInChildren<PolariteMenuManager>();
             int max = int.Parse(pMM.maxP.text);
             string lobbyName = pMM.lobbyName.text;
-            if(string.IsNullOrEmpty(lobbyName))
+            if (string.IsNullOrEmpty(lobbyName))
             {
                 lobbyName = $"{NetworkManager.GetNameOfId(NetworkManager.Id)}'s Lobby";
             }
             LobbyType type;
             bool allowCheats = false;
-            switch(pMM.lobbyType.value)
+            switch (pMM.lobbyType.value)
             {
                 case 0:
                     type = LobbyType.Public;
@@ -859,7 +1148,7 @@ namespace Polarite
                     type = LobbyType.Public;
                     break;
             }
-            switch(pMM.canCheat.value)
+            switch (pMM.canCheat.value)
             {
                 case 0:
                     allowCheats = false;
@@ -868,7 +1157,7 @@ namespace Polarite
                     allowCheats = true;
                     break;
             }
-            if(max > 250)
+            if (max > 250)
             {
                 max = 250;
             }
@@ -911,7 +1200,7 @@ namespace Polarite
                 Transform obj = go.transform;
                 if (obj != null)
                 {
-                    if(v2Patch)
+                    if (v2Patch)
                     {
                         obj.GetComponent<Door>().Open(skull: true);
                         Destroy(obj.GetComponent<Door>());
@@ -1005,9 +1294,36 @@ namespace Polarite
                 {
                     tool = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<LineTargetTool>();
                 }
+                SkinPreview preview = MonoSingleton<CameraController>.Instance.gameObject.GetComponent<SkinPreview>();
+                if (MonoSingleton<CameraController>.Instance.GetComponent<SkinPreview>() == null)
+                {
+                    preview = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SkinPreview>();
+                }
             }
         }
-
+        public IEnumerator PsstCheck()
+        {
+            if(!openedPolariteMenu.value)
+            {
+                bool passedCheck1 = false;
+                XServers.VisualNotif("Psst... Open the pause menu...", true);
+                while (!OptionsManager.Instance.paused && !passedCheck1)
+                {
+                    yield return null;
+                }
+                ForceHideNotif();
+                yield return new WaitForSecondsRealtime(0.25f);
+                passedCheck1 = true;
+                XServers.VisualNotif("Click on the globe icon to access the Polarite Menu, where you can join/make lobbies.", true);
+            }
+        }
+        /// <summary>
+        /// for testing...
+        /// </summary>
+        public static void ResetOpenedGlobeStat()
+        {
+            openedPolariteMenu.value = false;
+        }
 
         private void OnSceneLoaded(Scene args1, LoadSceneMode args2)
         {
@@ -1018,20 +1334,23 @@ namespace Polarite
             InitComps();
             Instance.StopAllCoroutines();
             ignoreSpectate = false;
-            if(SpectatorCam.isSpectating)
+            if (SpectatorCam.isSpectating)
             {
                 SpectatorCam.isSpectating = false;
             }
-            if(SceneHelper.CurrentScene != "Main Menu" && currentUi == null)
+            if (SceneHelper.CurrentScene != "Main Menu" && currentUi == null)
             {
                 CreatePolariteUI();
             }
             SceneObjectCache.Initialize();
-            if(NetworkManager.HostAndConnected)
+            if (NetworkManager.HostAndConnected)
             {
                 NetworkManager.Instance.CurrentLobby.SetData("levelName", GetLevelName());
+                NetworkManager.Instance.CurrentLobby.SetData("cyberHe", "");
+                NetworkManager.Instance.CurrentLobby.SetData("cyberPr", "");
+                NetworkManager.Instance.CurrentLobby.SetData("cyberWave", "");
             }
-            if(HasDiscord)
+            if (HasDiscord)
             {
                 if (NetworkManager.HasRichPresence)
                 {
@@ -1049,13 +1368,13 @@ namespace Polarite
                 }
             }
             NetworkPlayer.ToggleColsForAll(false);
-            Instance.StartCoroutine(RestartCols());
+            Instance.StartCoroutine(DelayPsstCheck());
             NetworkManager.WasUsed = NetworkManager.InLobby;
-            if(NetworkManager.InLobby)
+            if (NetworkManager.InLobby)
             {
                 NetworkPlayer.ToggleEidForAll(true);
                 CleanLevel();
-                foreach(var p in NetworkManager.players.Values)
+                foreach (var p in NetworkManager.players.Values)
                 {
                     p.ToggleRig(true);
                     p.isGhost = false;
@@ -1065,21 +1384,28 @@ namespace Polarite
             NetworkPlayer.selfIsGhost = false;
             NetworkEnemy.Flush();
             immuneToDeath = false;
-            if(SceneHelper.CurrentScene == "Level 0-4" && StockMapInfo.Instance != null && NetworkManager.InLobby)
+            if (SceneHelper.CurrentScene == "Level 0-4" && StockMapInfo.Instance != null && NetworkManager.InLobby)
             {
                 StockMapInfo.Instance.levelName = $"A {NetworkManager.Instance.CurrentLobby.MemberCount}-MACHINE ARMY";
             }
             Instance.StartCoroutine(UnpauseNet());
-            if(NetworkManager.InLobby)
+            if (NetworkManager.InLobby)
             {
                 CustomTogglePlayer(true);
             }
             AttemptToAddListener();
-            if(polrMM != null)
+            if (polrMM != null)
             {
-                Transform box = polrMM.notifBox.transform.Find("Box");
-                Instance.StartCoroutine(MoveY(box.GetComponent<RectTransform>(), 1400f));
+                ForceHideNotif();
             }
+            canBecomeGhost = true;
+            SkinManagerV2.Clear();
+        }
+        public void ForceHideNotif()
+        {
+            Transform box = polrMM.notifBox.transform.Find("Box");
+            MoveY(box.GetComponent<RectTransform>(), 1400f);
+            XServers.canShowNotif = true;
         }
         public static string GetLevelName()
         {
@@ -1099,23 +1425,23 @@ namespace Polarite
             }
             return levelName;
         }
-        public static void SpawnSound(AudioClip clip, float pitch, Transform parent, float volume)
+        public static void SpawnSound(AudioClip clip, float pitch, Transform parent, float volume, Vector3 overridePos = default)
         {
-            AudioSource audioSource = new GameObject("Noise").AddComponent<AudioSource>();
+            AudioSource audioSource = new GameObject(clip.name).AddComponent<AudioSource>();
             audioSource.clip = clip;
             audioSource.pitch = pitch;
             audioSource.volume = volume;
             audioSource.spatialBlend = 1f;
-            audioSource.maxDistance = 250f;
+            audioSource.maxDistance = 30f;
             audioSource.minDistance = 100f;
             audioSource.gameObject.AddComponent<RemoveOnTime>().time = clip.length;
-            audioSource.transform.SetParent(parent, false);
-            audioSource.transform.position = parent.position;
+            audioSource.transform.SetParent(parent, (overridePos == default) ? false : true);
+            audioSource.transform.position = (overridePos == default) ? parent.position : overridePos;
             audioSource.Play();
         }
         public static void SpectatePlayers(bool loadAll)
         {
-            if(ignoreSpectate)
+            if (ignoreSpectate)
             {
                 return;
             }
@@ -1134,9 +1460,9 @@ namespace Polarite
             {
                 cam = MonoSingleton<CameraController>.Instance.gameObject.AddComponent<SpectatorCam>();
             }
-            foreach(var p in NetworkManager.players)
+            foreach (var p in NetworkManager.players)
             {
-                if(p.Value != NetworkPlayer.LocalPlayer)
+                if (p.Value != NetworkPlayer.LocalPlayer)
                 {
                     playerTransforms.Add(p.Value.transform);
                 }
@@ -1144,7 +1470,7 @@ namespace Polarite
             cam.GetComponent<CameraController>().enabled = false;
             MonoSingleton<NewMovement>.Instance.DeactivatePlayer();
             cam.StartSpectating(playerTransforms);
-            if(loadAll)
+            if (loadAll)
             {
                 foreach (var door in FindObjectsOfType<Door>())
                 {
@@ -1166,23 +1492,27 @@ namespace Polarite
 
         public static void Ghost(bool val)
         {
-            if(NetworkPlayer.selfIsGhost == val)
+            if (NetworkPlayer.selfIsGhost == val)
             {
-                if(val)
+                if (val)
                 {
                     DeadPatch.Respawn(new Vector3(0f, 80f, 62.5f), CameraController.Instance.transform.rotation);
                 }
                 return;
             }
-            if(val)
+            if (val)
             {
-                // thank jaket that they have a respawn position i'll be taking that
                 DeadPatch.Respawn(new Vector3(0f, 80f, 62.5f), CameraController.Instance.transform.rotation);
                 ChatUI.Instance.ForceOff();
                 SpawnSound(mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), CameraController.Instance.transform, 1f);
-                if (ChatUI.Instance != null)
+                if (CyberSync.Active)
                 {
-                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>You're now a ghost. Wait for the next wave to respawn! Currently, {CyberSync.PlayersAlive() - 1} remain.</color>", false, $"<color=#91FFFF>You're now a ghost. Wait for the next wave to respawn! Currently, {CyberSync.PlayersAlive()} remain.</color>", tts: false);
+                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>You're now a ghost. Wait for the next wave to respawn! Currently, {NetworkPlayer.PlayersAlive() - 1} remain.</color>", false, $"<color=#91FFFF>You're now a ghost. Wait for the next wave to respawn! Currently, {NetworkPlayer.PlayersAlive()} remain.</color>", tts: false);
+                    ChatUI.Instance.ShowUIForBit(5f);
+                }
+                else
+                {
+                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>You're now a ghost.</color>", false, $"<color=#91FFFF>You're now a ghost.</color>", tts: false);
                     ChatUI.Instance.ShowUIForBit(5f);
                 }
                 NetworkPlayer.selfIsGhost = true;
@@ -1190,6 +1520,7 @@ namespace Polarite
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.BecameGhost, w.GetBytes());
                 CameraController.Instance.cameraShaking = 0;
+                DoubleCheckForSoftlock();
             }
             else
             {
@@ -1204,7 +1535,7 @@ namespace Polarite
         {
             XServers.HasInternet((wedo) =>
             {
-                if(wedo)
+                if (wedo)
                 {
                     GlobalNotificationListener listener = gameObject.GetComponent<GlobalNotificationListener>();
                     if (listener == null)
@@ -1216,14 +1547,18 @@ namespace Polarite
         }
         public static void GameOver()
         {
+            canBecomeGhost = false;
             Ghost(false);
-            NewMovement.Instance.hp = 0;
-            NewMovement.Instance.GetHurt(9999, false);
+            ForceKillSelf();
         }
-        public static IEnumerator RestartCols()
+        public static IEnumerator DelayPsstCheck()
         {
-            yield return new WaitForSeconds(4f);
-            NetworkPlayer.ToggleColsForAll(true);
+            if(SceneHelper.CurrentScene == "Main Menu")
+            {
+                yield break;
+            }
+            yield return new WaitForSecondsRealtime(2.5f);
+            Instance.StartCoroutine(Instance.PsstCheck());
         }
         public static IEnumerator UnpauseNet()
         {
@@ -1231,14 +1566,15 @@ namespace Polarite
             Net.Unpause();
             NetworkManager.Instance.SceneLoad();
         }
-        public IEnumerator GooglePing(string ip, System.Action<bool> onComplete)
+        public IEnumerator GooglePing(System.Action<bool> onComplete)
         {
-            Ping ping = new Ping(ip);
+            Logs.Info("Checking for internet connectivity...", this);
+            Ping ping = new Ping("8.8.8.8");
             while (!ping.isDone)
             {
                 yield return null;
             }
-            if(ping.time > 0 && ping.time < 8000)
+            if (ping.time > 0 && ping.time < 8000)
             {
                 onComplete?.Invoke(true);
                 XServers.internet = true;
@@ -1248,6 +1584,7 @@ namespace Polarite
             XServers.internet = false;
             ping.DestroyPing();
             onComplete?.Invoke(false);
+            Logs.Warn("No internet connectivity detected.", this);
         }
         // code by Xulfur, thank you :)
         public IEnumerator MOTDGet(System.Action<Sprite, string, string> onComplete, System.Action<Sprite, string, string> onFail)
@@ -1256,19 +1593,19 @@ namespace Polarite
             Texture2D texture = new Texture2D(2, 2);
             string username = "username";
             string message = "MOTD";
-            using (UnityWebRequest www = UnityWebRequest.Get("https://polarite.xulfur.me/motd/motd.txt"))
+            using (UnityWebRequest www = UnityWebRequest.Get("https://polaritemod.com/motd/motd.txt"))
             {
                 yield return www.SendWebRequest();
 
                 if (www.result != UnityWebRequest.Result.Success)
                 {
-                    LogDebug(www.error + " " + www.downloadHandler.text);
+                    Logs.Error(www.error + " " + www.downloadHandler.text, this);
                     onFail?.Invoke(mainBundle.LoadAsset<Sprite>("unknown"), "???", $"Failed to retrieve MOTD. ({www.error})");
                     yield break;
                 }
                 else
                 {
-                    LogDebug("Server replied with: " + www.downloadHandler.text + " Proceeding to extract user PFP.");
+                    Logs.Info("[MOTD] Server replied with: " + www.downloadHandler.text + " Proceeding to extract user PFP.", name: "X-Point");
                     string regex = @"pfp:.[^ ]+";
                     RegexOptions options = RegexOptions.Multiline;
                     string output = string.Empty;
@@ -1284,13 +1621,13 @@ namespace Polarite
                         yield return img.SendWebRequest();
                         if (img.result != UnityWebRequest.Result.Success)
                         {
-                            LogDebug(img.error + " " + img.downloadHandler.text);
+                            Logs.Info(img.error + " " + img.downloadHandler.text, name: "X-Point");
                             onFail?.Invoke(mainBundle.LoadAsset<Sprite>("unknown"), "???", $"Failed to retrieve MOTD. ({img.error})");
                             yield break;
                         }
                         else
                         {
-                            LogDebug("Server replied with bytes: " + img.downloadHandler.data);
+                            Logs.Info("[MOTD] PFP server replied with bytes: " + img.downloadHandler.data, name: "X-Point");
                             //reconstruct image
                             Texture2D tex = new Texture2D(2, 2);
                             rawbytes = img.downloadHandler.data;
@@ -1332,11 +1669,11 @@ namespace Polarite
                 yield return img.SendWebRequest();
                 if (img.result != UnityWebRequest.Result.Success)
                 {
-                    LogDebug(img.error + " " + img.downloadHandler.text);
+                    Logs.Error(img.error + " " + img.downloadHandler.text, name: "X-Point");
                 }
                 else
                 {
-                    LogDebug("Server replied with bytes: " + img.downloadHandler.data);
+                    Logs.Info("[PFP] Server replied with bytes: " + img.downloadHandler.data, name: "X-Point");
                     //reconstruct image
                     Texture2D tex = new Texture2D(2, 2);
                     rawbytes = img.downloadHandler.data;
@@ -1358,7 +1695,7 @@ namespace Polarite
         public static IEnumerator TypeEffect(string str, float typeRate, TextMeshProUGUI text)
         {
             string current = "";
-            foreach(char c in str)
+            foreach (char c in str)
             {
                 current += c;
                 text.text = current;
@@ -1368,7 +1705,7 @@ namespace Polarite
         }
         public static void Typewriter(string str, float typeRate, TextMeshProUGUI text)
         {
-            if(!typewriters.Contains(new Typewriter(str, typeRate, text)))
+            if (!typewriters.Contains(new Typewriter(str, typeRate, text)))
             {
                 typewriters.Add(new Typewriter(str, typeRate, text));
                 Instance.StartCoroutine(TypeEffect(str, typeRate, text));
@@ -1379,20 +1716,21 @@ namespace Polarite
             }
         }
 
-        public void ShowNotif(GlobalNotification notif)
+        public void ShowNotif(GlobalNotification notif, bool showForever = false)
         {
             XServers.canShowNotif = false;
-            Instance.StartCoroutine(ShowGlobal(notif));
+            Instance.StartCoroutine(ShowGlobal(notif, showForever));
         }
 
-        public IEnumerator ShowGlobal(GlobalNotification notif)
+        public IEnumerator ShowGlobal(GlobalNotification notif, bool showForever = false)
         {
             if (polrMM == null)
             {
                 yield break;
             }
+            Logs.Info($"Showing global notification with message: {notif.message}, user: {notif.user}, and type: {notif.type}.", name: "GlobalNotificationListener");
             GameObject boxCanvas = polrMM.notifBox;
-            if(boxCanvas != null)
+            if (boxCanvas != null)
             {
                 Transform box = boxCanvas.transform.Find("Box");
                 Transform boxD = boxCanvas.transform.Find("BoxDown");
@@ -1401,7 +1739,15 @@ namespace Polarite
                 TextMeshProUGUI type = box.Find("Type").GetComponent<TextMeshProUGUI>();
                 Image pfp = box.Find("PFP").GetComponent<Image>();
 
-                XServers.ExtractPFP(notif.pfp, pfp);
+                if(notif.pfp == "polaricon")
+                {
+                    Texture2D tex = mainBundle.LoadAsset<Texture2D>("icon");
+                    pfp.sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+                }
+                else
+                {
+                    XServers.ExtractPFP(notif.pfp, pfp);
+                }
                 Typewriter(notif.user, 0.1f, user);
                 Typewriter(notif.message, 0.1f, msg);
                 Typewriter(notif.type, 0.25f, type);
@@ -1415,23 +1761,61 @@ namespace Polarite
                 float y2 = canvas.rect.height * 1.25f;
                 if (rect != null)
                 {
-                    yield return Instance.StartCoroutine(MoveY(rect, y1));
-                    yield return new WaitForSecondsRealtime(7f);
-                    yield return Instance.StartCoroutine(MoveY(rect, y2));
-                    XServers.canShowNotif = true;
+                    MoveY(rect, y1);
+                    if(!showForever)
+                    {
+                        yield return new WaitForSecondsRealtime(7f);
+                        MoveY(rect, y2);
+                        XServers.canShowNotif = true;
+                    }
                     yield break;
                 }
             }
         }
-        public IEnumerator MoveY(RectTransform rect, float y)
+        public static void MoveY(RectTransform rect, float y)
         {
-            while(Mathf.Abs(rect.position.y - y) > 0.1f)
+            if(currentMoveY != null)
+            {
+                Instance.StopCoroutine(currentMoveY);
+            }
+            currentMoveY = Instance.StartCoroutine(Instance.MoveYCoro(rect, y));
+        }
+        public IEnumerator MoveYCoro(RectTransform rect, float y)
+        {
+            while (Mathf.Abs(rect.position.y - y) > 0.1f)
             {
                 float newY = Mathf.Lerp(rect.position.y, y, Time.unscaledDeltaTime * 5f);
                 rect.position = new Vector3(rect.position.x, newY, 0);
                 yield return null;
             }
             rect.position = new Vector3(rect.position.x, y, 0);
+        }
+
+        public bool IsFoolsDay()
+        {
+            return System.DateTime.Now.Month == 4 && System.DateTime.Now.Day == 1;
+        }
+
+        public static void DoubleCheckForSoftlock()
+        {
+            if(NetworkManager.Instance.CurrentLobby.MemberCount < 2 && !NetworkPlayer.selfIsGhost)
+            {
+                // player is alone and fine
+                return;
+            }
+            int alive;
+            if (NetworkPlayer.selfIsGhost)
+            {
+                alive = NetworkPlayer.PlayersAlive() - 1;
+            }
+            else
+            {
+                alive = NetworkPlayer.PlayersAlive();
+            }
+            if (alive < 1)
+            {
+                GameOver();
+            }
         }
     }
 }

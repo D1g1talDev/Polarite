@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using Polarite.Multiplayer;
+using Polarite.Networking.Skins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,6 +97,42 @@ namespace Polarite.Patches
             if(NetworkPlayer.selfIsGhost)
             {
                 __instance.stillHolding = false;
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.Start))]
+        [HarmonyPostfix]
+        static void UpdateRig(NewMovement __instance)
+        {
+            if(NetworkManager.InLobby)
+            {
+                PlayerAnimations rig = __instance.gc.GetComponentInChildren<PlayerAnimations>();
+                if (rig != null)
+                {
+                    SkinnedMeshRenderer r = rig.transform.Find("v1_mdl").GetComponent<SkinnedMeshRenderer>();
+                    for (int i = 0; i < r.materials.Length; i++)
+                    {
+                        if (i == 0)
+                        {
+                            SkinManagerV2.CustomColor(r, ItePlugin.currentSkin.Base, ItePlugin.currentSkin.Light, ItePlugin.currentSkin.Metal, ItePlugin.currentSkin.Shinyness, MaskConsts.V1_BASE_MASK, "Base" + NetworkManager.Id, i);
+                        }
+                        else
+                        {
+                            // turn the emissive flag off
+                            r.materials[i].DisableKeyword("EMISSIVE");
+                            SkinManagerV2.CustomColor(r, ItePlugin.currentSkin.Base, ItePlugin.currentSkin.WingLight, ItePlugin.currentSkin.Metal, ItePlugin.currentSkin.Shinyness, MaskConsts.V1_WING_MASK, "Wing" + NetworkManager.Id, i);
+                        }
+                    }
+                }
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.Parry))]
+        [HarmonyPostfix]
+        static void ParryPostfix()
+        {
+            if (NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                NetworkManager.Instance.BroadcastPacket(PacketType.PunchParry, w.GetBytes());
             }
         }
     }

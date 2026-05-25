@@ -19,11 +19,22 @@ namespace Polarite.Patches
         {
             if(NetworkManager.InLobby)
             {
+                ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(GunControl.Instance.currentWeapon));
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Punch, w.GetBytes());
                 if(NetworkPlayer.LocalPlayer.testPlayer)
                 {
                     NetworkPlayer.LocalPlayer.PunchAnim();
+                }
+                if(__instance.type == FistType.Standard)
+                {
+                    PacketWriter w1 = new PacketWriter();
+                    NetworkManager.Instance.BroadcastPacket(PacketType.PunchNormal, w1.GetBytes());
+                }
+                else
+                {
+                    PacketWriter w2 = new PacketWriter();
+                    NetworkManager.Instance.BroadcastPacket(PacketType.PunchHeavy, w2.GetBytes());
                 }
             }
         }
@@ -33,6 +44,7 @@ namespace Polarite.Patches
         {
             if (NetworkManager.InLobby)
             {
+                ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(GunControl.Instance.currentWeapon));
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Coin, w.GetBytes());
                 if (NetworkPlayer.LocalPlayer.testPlayer)
@@ -63,6 +75,7 @@ namespace Polarite.Patches
         {
             if (NetworkManager.InLobby && MonoSingleton<InputManager>.Instance.InputSource.Hook.WasPerformedThisFrame && ___cooldown <= 0f)
             {
+                ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(GunControl.Instance.currentWeapon));
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Whip, w.GetBytes());
                 if (NetworkPlayer.LocalPlayer.testPlayer)

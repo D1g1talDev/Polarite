@@ -26,10 +26,6 @@ namespace Polarite.Patches
                 Net.Pause();
                 NetworkManager.SceneLoading = true;
             }
-            if(NetworkManager.InLobby && sceneName == "Endless")
-            {
-                NetworkManager.DisplayWarningChatMessage("CYBERGRIND SYNC IS NOW IN TESTING!!!!");
-            }
             if(sceneName == "Main Menu" && NetworkManager.InLobby)
             {
                 NetworkManager.Instance.LeaveLobby();
@@ -53,8 +49,7 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Level, w.GetBytes());
                 NetworkManager.Instance.CurrentLobby.SetData("level", sceneName);
                 NetworkManager.Instance.CurrentLobby.SetData("difficulty", PrefsManager.Instance.GetInt("difficulty").ToString());
-                NetworkManager.Instance.CurrentLobby.SetData("forceS", "0");
-                SceneHelper.SetLoadingSubtext("<color=#91FFFF>/// VIA POLARITE ///");
+                SceneHelper.SetLoadingSubtext("<color=#91FFFF>+++ VIA POLARITE ---");
                 return true;
             }
             if(NetworkManager.ClientAndConnected && sceneName != "Main Menu" && SceneHelper.CurrentScene != "Main Menu" && NetworkManager.players.Count > 1 && !ItePlugin.ignoreSpectate)
@@ -66,18 +61,28 @@ namespace Polarite.Patches
             }
             return true;
         }
-        [HarmonyPatch(nameof(SceneHelper.RestartScene))]
-        [HarmonyPrefix]
-        static bool Prefix()
+        [HarmonyPatch(nameof(SceneHelper.RestartSceneAsync))]
+        [HarmonyPostfix]
+        static void Postfix()
         {
-            if(NetworkManager.HostAndConnected)
+            // also run the restart level prefix
+            RestartLevelPatch.Prefix();
+        }
+    }
+    [HarmonyPatch(typeof(OptionsManager))]
+    public class RestartLevelPatch
+    {
+        [HarmonyPatch(nameof(OptionsManager.RestartMission))]
+        [HarmonyPrefix]
+        public static bool Prefix()
+        {
+            if (NetworkManager.HostAndConnected)
             {
-                NetworkManager.Instance.CurrentLobby.SetData("forceS", "0");
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Restart, w.GetBytes());
                 return true;
             }
-            if(NetworkManager.ClientAndConnected && !ItePlugin.cameFromPacketRestart && CyberSync.Active)
+            if (NetworkManager.ClientAndConnected && !ItePlugin.cameFromPacketRestart)
             {
                 return false;
             }

@@ -1,9 +1,4 @@
-﻿// can't wait to rip and tear this code apart because of fraudulent fraud :)
-// TODO: commence mass surgery
-// ^^ nevermind it works perfectly fine
-// ^^^ no it doesn't you buffoon
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,14 +21,9 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Spawn(EnemyIdentifier __instance)
         {
-            if (__instance.GetComponent<NetworkEnemy>() == null && __instance.gameObject.scene.name != null && NetworkManager.InLobby && __instance.GetComponent<NetworkPlayer>() == null)
+            if (__instance.GetComponent<INetworkObject>() == null && NetworkManager.InLobby)
             {
-                string newPath = SceneObjectCache.GetOrCreatePath(__instance.gameObject);
-                if (!SceneObjectCache.Contains(__instance.gameObject))
-                {
-                    SceneObjectCache.Add(newPath, __instance.gameObject);
-                }
-                NetworkEnemy.Create(newPath, __instance, NetworkManager.Id);
+                NetworkEnemy.Create(__instance, NetworkManager.Id);
             }
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]

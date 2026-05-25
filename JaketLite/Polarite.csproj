@@ -113,6 +113,18 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="pcon.core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\pcon.core.dll</HintPath>
+    </Reference>
+    <Reference Include="plog, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\plog.dll</HintPath>
+    </Reference>
+    <Reference Include="plog.unity, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ULTRAKILL\ULTRAKILL_Data\Managed\plog.unity.dll</HintPath>
+    </Reference>
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
     </Reference>
@@ -478,26 +490,39 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Debugging\LineTargetTool.cs" />
-    <Compile Include="GunSync.cs" />
+    <Compile Include="Debugging\Logs.cs" />
+    <Compile Include="Debugging\ShaderPropGrabber.cs" />
+    <Compile Include="Networking\Skins\SkinManagerV2.cs" />
+    <Compile Include="Patches\GunSync.cs" />
+    <Compile Include="MasterShaderizer.cs" />
+    <Compile Include="NetworkDebugRef.cs" />
     <Compile Include="Networking\BinaryPacketReader.cs" />
     <Compile Include="ChatUI.cs" />
     <Compile Include="CommandManager.cs" />
-    <Compile Include="CustomP2Event.cs" />
-    <Compile Include="EntityStorage.cs" />
-    <Compile Include="ForceOff.cs" />
+    <Compile Include="GameEvents\CustomP2Event.cs" />
+    <Compile Include="Networking\EntityStorage.cs" />
     <Compile Include="HeadRotate.cs" />
+    <Compile Include="Networking\Extensions\GameObjectExtensions.cs" />
     <Compile Include="Networking\INetworkObject.cs" />
     <Compile Include="ItePlugin.cs" />
     <Compile Include="NameTag.cs" />
-    <Compile Include="NetworkEnemy.cs" />
-    <Compile Include="Networking\NetworkIDManager.cs" />
+    <Compile Include="Networking\Skins\SkinPreview.cs" />
+    <Compile Include="Networking\Skins\SkinSaver.cs" />
+    <Compile Include="Networking\Skins\SkinScreenshotter.cs" />
+    <Compile Include="Networking\Types\NetworkEnemy.cs" />
+    <Compile Include="Networking\SceneObjectCache.cs" />
     <Compile Include="Networking\Net.cs" />
     <Compile Include="Networking\NetworkList.cs" />
     <Compile Include="Networking\NetworkManager.cs" />
     <Compile Include="Networking\NetworkObject.cs" />
-    <Compile Include="NetworkPlayer.cs" />
-    <Compile Include="NetworkSkull.cs" />
-    <Compile Include="NetworkTram.cs" />
+    <Compile Include="Networking\Sockets\Client.cs" />
+    <Compile Include="Networking\Sockets\Server.cs" />
+    <Compile Include="Networking\Types\NetworkPlayer.cs" />
+    <Compile Include="Networking\Types\NetworkSkull.cs" />
+    <Compile Include="Patches\DualWieldSandboxBan.cs" />
+    <Compile Include="Patches\FistPatch.cs" />
+    <Compile Include="Patches\SaveFilePatches.cs" />
+    <Compile Include="Ragdoll.cs" />
     <Compile Include="Networking\PacketReader.cs" />
     <Compile Include="Networking\PacketWriter.cs" />
     <Compile Include="Patches\VisionPatch.cs" />
@@ -519,7 +544,6 @@
     <Compile Include="Patches\PrisonFixes.cs" />
     <Compile Include="Patches\RandomPatch.cs" />
     <Compile Include="Patches\SkipPatch.cs" />
-    <Compile Include="Patches\SkullSyncPatches.cs" />
     <Compile Include="Patches\StopEnemyOutlineError.cs" />
     <Compile Include="Patches\DashPatch.cs" />
     <Compile Include="Patches\DeadPatch.cs" />
@@ -547,11 +571,11 @@
     <Compile Include="Patches\TriggerSync.cs" />
     <Compile Include="Patches\VirtuePatch.cs" />
     <Compile Include="PlayerList.cs" />
-    <Compile Include="PlayerRocket.cs" />
-    <Compile Include="PlayerRocketManager.cs" />
+    <Compile Include="Networking\PlayerRocket.cs" />
+    <Compile Include="Networking\PlayerRocketManager.cs" />
     <Compile Include="PolariteMenuManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PublicLobbyManager.cs" />
+    <Compile Include="Networking\PublicLobbyManager.cs" />
     <Compile Include="SamTTS\Buffer.cs" />
     <Compile Include="SamTTS\Modernity.cs" />
     <Compile Include="SamTTS\ReciterTabs_h.cs" />

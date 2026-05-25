@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Polarite.Networking.Skins;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -61,6 +62,32 @@ namespace Polarite.Multiplayer
             WriteFloat(q.z);
             WriteFloat(q.w);
         }
+        public void WriteColor(Color c)
+        {
+            WriteFloat(c.r);
+            WriteFloat(c.g);
+            WriteFloat(c.b);
+            WriteFloat(c.a);
+        }
+        public void WriteTexture2D(Texture2D tex)
+        {
+            byte[] data = tex.EncodeToPNG();
+            WriteInt(tex.width);
+            WriteInt(tex.height);
+            WriteBytes(data);
+        }
+
+        public void WriteSkin(Skin skin)
+        {
+            WriteColor(skin.Base);
+            WriteColor(skin.Light);
+            WriteColor(skin.WingLight);
+            WriteColor(skin.Metal);
+            WriteFloat(skin.Shinyness);
+            WriteULong(skin.ID);
+            WriteString(skin.Nameplate);
+            WriteColor(skin.NameplateColor);
+        }
 
         public void WriteIntArray(int[] values)
         {
@@ -92,6 +119,10 @@ namespace Polarite.Multiplayer
         public void WriteEnum<T>(T value) where T : Enum
         {
             WriteString(Enum.GetName(typeof(T), value));
+        }
+        public void WriteUShort(ushort value)
+        {
+            buffer.AddRange(BitConverter.GetBytes(value));
         }
 
         public void WriteBytes(byte[] data)

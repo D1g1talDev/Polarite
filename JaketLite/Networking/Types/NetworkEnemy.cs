@@ -15,6 +15,8 @@ using ULTRAKILL.Enemy;
 using static ULTRAKILL.Enemy.VisionQuery;
 using ULTRAKILL.Portal;
 using System.Threading;
+using Polarite.Debugging;
+using UnityEngine.AI;
 
 namespace Polarite.Multiplayer
 {
@@ -27,7 +29,7 @@ namespace Polarite.Multiplayer
         public bool HelpedWithKill;
         public List<ulong> Helpers = new List<ulong>();
 
-        private static readonly Dictionary<string, NetworkEnemy> allEnemies = new Dictionary<string, NetworkEnemy>();
+        public static readonly Dictionary<string, NetworkEnemy> allEnemies = new Dictionary<string, NetworkEnemy>();
         private static Coroutine globalTargetUpdater;
 
         private Vector3 lastPos;
@@ -38,23 +40,19 @@ namespace Polarite.Multiplayer
 
         private static readonly WaitForSeconds targetUpdateDelay = new WaitForSeconds(Random.Range(1f, 3f));
 
-        public static NetworkEnemy Create(string id, EnemyIdentifier eid, ulong owner)
+        public static NetworkEnemy Create(EnemyIdentifier eid, ulong owner, string id = "")
         {
             if (eid.GetComponent<NetworkPlayer>() != null)
                 return null;
 
-            if (eid.TryGetComponent<NetworkEnemy>(out var net))
-            {
-                net.ID = id;
-                return net;
-            }
-
-            var netE = eid.gameObject.AddComponent<NetworkEnemy>();
-            netE.ID = id;
+            var netE = eid.gameObject.GetOrAddComponent<NetworkEnemy>();
             netE.Enemy = eid;
             netE.IsAlive = true;
             netE.Owner = owner;
-            allEnemies[id] = netE;
+            if(!string.IsNullOrEmpty(id))
+            {
+                netE.ID = id;
+            }
             SceneObjectCache.CoroutineRunner.ForceInvokeFrame();
 
             if (globalTargetUpdater == null && NetworkManager.Instance != null)
@@ -76,11 +74,7 @@ namespace Polarite.Multiplayer
             targetPos = Enemy.transform.position;
             targetRot = Enemy.transform.rotation;
 
-            string path = SceneObjectCache.GetScenePath(gameObject);
-            if (!SceneObjectCache.Contains(path))
-            {
-                SceneObjectCache.Add(path, gameObject);
-            }
+            base.Start();
 
             if (Enemy.isBoss && NetworkManager.InLobby && NetworkManager.Instance.CurrentLobby.MemberCount > 1 && NetworkManager.Instance.CurrentLobby.GetData("bh") == "1")
             {
@@ -96,28 +90,42 @@ namespace Polarite.Multiplayer
                     {
                         layer.health *= finalMult;
                     }
-                    bHB.enabled = false;
-                    bHB.enabled = true;
+                    BossBarManager.Instance.UpdateBossBar(bHB);
                 }
             }
-            if (Net.IsOwner(this))
+            if (Owns)
             {
                 SyncSpawn();
             }
             UpdateTarget();
-            base.Start();
         }
 
         public override void OnDestroy()
         {
             allEnemies.Remove(ID);
             SceneObjectCache.Remove(gameObject);
-            base.OnDestroy();
+            // small check to prevent softlocks
+            if(Enemy.puppet)
+            {
+                base.OnDestroy();
+                return;
+            }
+            if(Enemy.health > 0)
+            {
+                base.OnDestroy();
+                return;
+            }
         }
 
         public override void Update()
         {
-            if(!IsAlive && !Enemy.dead)
+            alive = IsAlive;
+            if (Enemy.health <= 0 && IsAlive)
+            {
+                BroadcastDeath();
+                IsAlive = false;
+            }
+            if (!IsAlive && Enemy.health > 0)
             {
                 HandleDeath();
                 return;
@@ -125,7 +133,7 @@ namespace Polarite.Multiplayer
 
             if (Enemy == null || !IsAlive) return;
 
-            if (!allEnemies.ContainsKey(ID)) allEnemies.Add(ID, this);
+            if (!allEnemies.ContainsKey(ID) && !Enemy.dead) allEnemies.Add(ID, this);
             if (SceneHelper.CurrentScene == "Level 0-2" && Enemy.enemyType == EnemyType.Swordsmachine)
             {
                 return;
@@ -136,13 +144,70 @@ namespace Polarite.Multiplayer
                 return;
             }
             Enemy.ignorePlayer = true;
+            HandlePositions();
+        }
+        public void HandlePositions()
+        {
+            if (owner == 0)
+                return;
+            if (!alive)
+                return;
 
-            if (Enemy.dead && IsAlive)
+            if (syncTransform && !Net.IsOwner(this))
             {
-                BroadcastDeath();
-                IsAlive = false;
+                Transform head = (TryGetComponent<MaliciousFace>(out var malFace)) ? malFace.headModel : null;
+                interpTimer += Time.deltaTime;
+                float t = interpTimer / interpolationTime;
+                NavMeshAgent nma = EE.nma;
+
+                if (t >= 1f)
+                {
+                    SetPosAndRot(nma, transform, TargetPosition, TargetRotation);
+                    if (head != null)
+                    {
+                        head.transform.position = TargetPosition;
+                    }
+                    return;
+                }
+
+                if (Vector3.Distance(transform.position, TargetPosition) >= 10f)
+                {
+                    SetPosAndRot(nma, transform, TargetPosition, TargetRotation);
+                    if (head != null)
+                    {
+                        head.transform.position = TargetPosition;
+                    }
+                    return;
+                }
+
+                Vector3 pos = Vector3.Lerp(LastPosition, TargetPosition, t);
+                Quaternion rot = Quaternion.Slerp(LastRotation, TargetRotation, t);
+
+                if ((transform.position - pos).sqrMagnitude > 0.0001f)
+                {
+                    if (head != null)
+                    {
+                        head.transform.position = pos;
+                        SetPosAndRot(nma, transform, pos, rot);
+                    }
+                    else
+                    {
+                        transform.SetPositionAndRotation(pos, rot);
+                    }
+                }
             }
-            base.Update();
+        }
+        public void SetPosAndRot(NavMeshAgent agent, Transform transform, Vector3 pos, Quaternion rot)
+        {
+            if(agent != null)
+            {
+                agent.Warp(pos);
+            }
+            else
+            {
+                transform.position = pos;
+            }
+            transform.rotation = rot;
         }
 
         public void SyncSpawn()
@@ -150,7 +215,7 @@ namespace Polarite.Multiplayer
             PacketWriter w = new PacketWriter();
             w.WriteULong(owner);
             w.WriteString(name);
-            w.WriteString(ID);
+            w.WriteString(id);
             w.WriteString(simpleId);
             w.WriteVector3(Enemy.transform.position);
             w.WriteQuaternion(Enemy.transform.rotation);
@@ -175,6 +240,10 @@ namespace Polarite.Multiplayer
                     if (enemy != null && enemy.IsAlive)
                         enemy.UpdateTarget();
                 }
+                if(allEnemies.Count >= 1)
+                {
+                    Logs.Debug($"Global target updater ticked with {allEnemies.Count} enemies.", name: "NetworkEnemy");
+                }
                 yield return targetUpdateDelay;
             }
         }
@@ -187,6 +256,7 @@ namespace Polarite.Multiplayer
             EnemyTarget tar = GetClosestTarget();
             Enemy.target = tar;
             TargetTrackerStuff();
+            Logs.Info($"Updated target for {Enemy.enemyType} to {(tar.targetTransform != null ? tar.targetTransform.name : "null")}", this);
         }
 
         private void TargetTrackerStuff()
@@ -226,10 +296,9 @@ namespace Polarite.Multiplayer
             Transform closest = null;
             float closestDist = float.MaxValue;
 
-            Vector3 pos = Enemy.transform.position;
             foreach (var player in players)
             {
-                float dist = (pos - player.position).sqrMagnitude;
+                float dist = Vector3.Distance(player.transform.position, Enemy.transform.position);
                 if (dist < closestDist)
                 {
                     closestDist = dist;
@@ -265,10 +334,9 @@ namespace Polarite.Multiplayer
             Transform closest = null;
             float closestDist = float.MaxValue;
 
-            Vector3 pos = from;
             foreach (var player in players)
             {
-                float dist = (pos - player.position).sqrMagnitude;
+                float dist = Vector3.Distance(player.transform.position, from);
                 if (dist < closestDist)
                 {
                     closestDist = dist;
@@ -333,11 +401,12 @@ namespace Polarite.Multiplayer
                     StyleHUD.Instance.AddPoints(Helpers.Count, $"<color=#FF3030>TEAMKILL</color> x{Helpers.Count}");
                 }
             }
+            StartCoroutine(CleanupEnemy());
         }
 
         public void ApplyDamage(float damage, string hitter, bool weakpoint, Vector3 point, ulong sender)
         {
-            if (Enemy == null || Enemy.dead) return;
+            if (Enemy == null) return;
 
             Enemy.hitter = hitter;
             Enemy.DeliverDamage((weakpoint) ? Enemy.weakPoint : Enemy.gameObject, Vector3.zero, point, damage, false, sourceWeapon: NetworkPlayer.Find(sender).gameObject);
@@ -349,7 +418,7 @@ namespace Polarite.Multiplayer
 
         public void HandleDeath()
         {
-            if (Enemy == null || Enemy.dead) return;
+            if (Enemy == null) return;
 
             IsAlive = false;
             if(!Enemy.dead)
@@ -374,6 +443,41 @@ namespace Polarite.Multiplayer
                     StyleHUD.Instance.AddPoints(Helpers.Count, $"<color=#FF3030>TEAMKILL</color> x{Helpers.Count}");
                 }
             }
+            StartCoroutine(CleanupEnemy());
+        }
+        public IEnumerator CleanupEnemy()
+        {
+            isCleaningUp = true;
+            // small delay to hopefully ignore recovery
+            yield return new WaitForSecondsRealtime(0.5f);
+            allEnemies.Remove(ID);
+            if(Net.List.Contains(this))
+            {
+                Net.List.Remove(this, false);
+            }
+            SceneObjectCache.Remove(gameObject);
+            isCleaningUp = false;
+        }
+        public override void SendState(PacketWriter writer, PacketType type)
+        {
+            if(IsAlive)
+            {
+                // write extra enemy states
+                writer.WriteBool(Enemy.healthBuff);
+                writer.WriteBool(Enemy.speedBuff);
+                writer.WriteBool(Enemy.damageBuff);
+                // write modifiers for... reasons
+                writer.WriteFloat(Enemy.healthBuffModifier);
+                writer.WriteFloat(Enemy.speedBuffModifier);
+                writer.WriteFloat(Enemy.damageBuffModifier);
+                // write sanded and puppet state
+                writer.WriteBool(Enemy.sandified);
+                writer.WriteBool(Enemy.puppet);
+                // write idoled and attack enemies state
+                writer.WriteBool(Enemy.blessed);
+                writer.WriteBool(Enemy.attackEnemies);
+                base.SendState(writer, PacketType.EnemyState);
+            }
         }
         // handle the responses
         public override void Respond(BinaryPacketReader reader, PacketType packet, ulong sender)
@@ -396,9 +500,10 @@ namespace Polarite.Multiplayer
         {
             foreach(var e in allEnemies.Values)
             {
-                e.HandleDeath();
+                Destroy(e.gameObject);
             }
             allEnemies.Clear();
+            Logs.Info("Flushed all enemies (down the toilet?)", name: "NetworkEnemy");
         }
     }
 }

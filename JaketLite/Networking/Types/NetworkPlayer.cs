@@ -1,13 +1,12 @@
-﻿using System;
+﻿using Polarite.Debugging;
+using Polarite.Networking.Skins;
+using Polarite.Patches;
+using Steamworks;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-
-using Polarite.Patches;
-
-using Steamworks;
-
 using TMPro;
 using ULTRAKILL.Enemy;
 using UnityEngine;
@@ -18,7 +17,6 @@ using UnityEngine.Assertions.Must;
 using UnityEngine.Localization.Pseudo;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
-
 using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
@@ -28,7 +26,6 @@ namespace Polarite.Multiplayer
         public ulong SteamId { get; private set; }
         public string PlayerName { get; private set; }
 
-        // ITarget implementation
         public int Id => GetInstanceID();
 
         public TargetType Type => TargetType.PLAYER;
@@ -47,8 +44,6 @@ namespace Polarite.Multiplayer
 
         public Vector3 HeadPosition => head.head.position;
 
-
-
         public NameTag NameTag;
 
         public bool testPlayer;
@@ -57,7 +52,7 @@ namespace Polarite.Multiplayer
 
         public Animator animator;
 
-        public Animator armAnimator;
+        public Animator armAnimator, weaponAnimator;
 
         public GameObject[] weapons;
 
@@ -70,7 +65,7 @@ namespace Polarite.Multiplayer
 
         private Vector3 previousPosition;
 
-        private float lerpSpeed = 15f;
+        private readonly float lerpSpeed = 20f;
 
         public static NetworkPlayer LocalPlayer;
 
@@ -84,7 +79,11 @@ namespace Polarite.Multiplayer
 
         public Transform holderObject;
 
-        public int currentSkin = 0;
+        public Skin currentSkin = new Skin();
+
+        public TextMeshProUGUI namePlate;
+
+        public bool typing;
 
         // for targetting purposes
 
@@ -92,31 +91,27 @@ namespace Polarite.Multiplayer
 
         public void SpawnNoise()
         {
-            spawnNoise.Play();
+            SpawnSound(spawnNoise.clip);
             ToggleRig(true);
         }
         public void DeathNoise()
         {
-            deathNoise.Play();
+            SpawnSound(deathNoise.clip);
             GameObject blood = Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), transform.position, Quaternion.identity);
             GameObject ragdoll = Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), transform.position, transform.rotation);
             blood.SetActive(true);
-            SetSkinOfRagdoll(ragdoll.GetComponentInChildren<SkinnedMeshRenderer>(), currentSkin);
+            ragdoll.AddComponent<Ragdoll>().SetValues(currentSkin, SteamId);
             ToggleRig(false);
             ragdoll.GetComponentInChildren<Rigidbody>().AddForce((previousPosition - targetPosition), ForceMode.VelocityChange);
         }
         public void HurtNoise()
         {
-            hurtNoise.Play();
+            SpawnSound(hurtNoise.clip);
         }
         public void JumpNoise()
         {
-            jumpNoise.Play();
+            SpawnSound(jumpNoise.clip);
             JumpAnim();
-        }
-        public void DashNoise()
-        {
-            dashNoise.Play();
         }
 
         public void SetGhost(bool val)
@@ -127,12 +122,20 @@ namespace Polarite.Multiplayer
                 ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), MonoSingleton<CameraController>.Instance.transform, 1f);
             }
         }
+        public void SpawnSound(AudioClip clip)
+        {
+            if(isGhost)
+            {
+                return;
+            }
+            ItePlugin.SpawnSound(clip, 1f, head.transform, 1f);
+        }
 
         public void Init(ulong steamId, string playerName)
         {
             SteamId = steamId;
             PlayerName = playerName;
-            name = (steamId != NetworkManager.Id) ? $"NetworkPlayer_{playerName}_{Random.Range(0, 100000)}" : "LocalPlayer";
+            name = (steamId != NetworkManager.Id) ? $"NetworkPlayer_{playerName}_{steamId}" : "LocalPlayer";
             if (SteamId == NetworkManager.Id)
             {
                 updatePos = StartCoroutine(UpdatePos());
@@ -174,8 +177,9 @@ namespace Polarite.Multiplayer
                 writer.WriteBool(walking);
 
                 writer.WriteInt(MonoSingleton<NewMovement>.Instance.hp);
+                writer.WriteBool(ChatUI.isActuallyTyping);
 
-                NetworkManager.Instance.BroadcastPacket(PacketType.Transform, writer.GetBytes());
+                NetworkManager.Instance.BroadcastPacket(PacketType.Transform, writer.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
             }
         }
 
@@ -274,15 +278,8 @@ namespace Polarite.Multiplayer
             }
             GameObject parent = weapons[(alt) ? 1 : 0];
             parent.transform.GetChild(type).gameObject.SetActive(true);
-            Material[] mats = parent.transform.GetChild(type).GetComponentInChildren<SkinnedMeshRenderer>().materials;
-            foreach (var m in mats)
-            {
-                Shader shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                if (m.shader != shader)
-                {
-                    m.shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                }
-            }
+            MasterShaderizer.MasterShaderize(parent.transform.GetChild(type).GetComponentInChildren<SkinnedMeshRenderer>());
+            SelectAnim();
         }
         public void CoinAnim()
         {
@@ -302,49 +299,18 @@ namespace Polarite.Multiplayer
             armAnimator.SetTrigger("Whiplash");
             Invoke(nameof(GoBackToIdle), 1);
         }
+        public void ShootAnim()
+        {
+            weaponAnimator.SetTrigger("WeaponShoot");
+        }
+        public void SelectAnim()
+        {
+            weaponAnimator.SetTrigger("WeaponSelect");
+        }
         public void GoBackToIdle()
         {
             armAnimator.Play("idle");
         }
-        /*
-        public void Pickup(ItemType type)
-        {
-            Skull[] skulls = armAnimator.transform.GetComponentsInChildren<Skull>();
-            GameObject red = skulls[0].gameObject;
-            GameObject blue = skulls[1].gameObject;
-            GameObject torch = skulls[2].gameObject;
-            GameObject soap = skulls[3].gameObject;
-
-            red.SetActive(false);
-            blue.SetActive(false);
-            torch.SetActive(false);
-            soap.SetActive(false);
-
-            switch(type)
-            {
-                case ItemType.SkullRed:
-                    red.SetActive(true); 
-                    break;
-                case ItemType.SkullBlue:
-                    blue.SetActive(true);
-                    break;
-                case ItemType.Torch:
-                    torch.SetActive(true);
-                    break;
-                case ItemType.Soap:
-                    soap.SetActive(true); 
-                    break;
-            }
-        }
-        public void Drop()
-        {
-            Skull[] skulls = armAnimator.transform.GetComponentsInChildren<Skull>();
-            foreach(var skull in skulls)
-            {
-                skull.gameObject.SetActive(false);
-            }
-        }
-        */
 
         private void Update()
         {
@@ -364,7 +330,6 @@ namespace Polarite.Multiplayer
                 ToggleRig(false);
             }
             NameTag.dummy = this == LocalPlayer;
-            // if the position we're going to is more than 10 units away from us, snap to it instead of lerping
             if (Vector3.Distance(transform.position, targetPosition) > 10f)
             {
                 transform.position = targetPosition;
@@ -373,7 +338,6 @@ namespace Polarite.Multiplayer
             {
                 transform.position = Vector3.Lerp(transform.position, targetPosition, Time.unscaledDeltaTime * lerpSpeed);
             }
-
             Vector3 currentEuler = transform.rotation.eulerAngles;
 
             Vector3 targetEuler = targetRotation.eulerAngles;
@@ -395,40 +359,32 @@ namespace Polarite.Multiplayer
         {
             NameTag.SetHP(hp);
         }
-        public void UpdateSkin(int id)
+        public void UpdateSkin(Skin skin)
         {
-            currentSkin = id;
-            Material[] mats = mainRenderer.materials;
-            switch (id)
-            {
-                case 0:
-                    mats[0] = ItePlugin.mainBundle.LoadAsset<Material>("V1Glow");
-                    mats[1] = ItePlugin.mainBundle.LoadAsset<Material>("V1WingGlow");
-                    mats[0].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    mats[1].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    mats[2].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    break;
+            currentSkin = skin;
+            SkinManagerV2.CustomColor(mainRenderer, skin.Base, skin.Light, skin.Metal, skin.Shinyness, MaskConsts.V1_BASE_MASK, "Base" + SteamId, 0);
+            SkinManagerV2.CustomColor(mainRenderer, skin.Base, skin.WingLight, skin.Metal, skin.Shinyness, MaskConsts.V1_WING_MASK, "Wing" + SteamId, 1);
+            SkinManagerV2.CustomColor(mainRenderer, skin.Base, skin.Light, skin.Metal, skin.Shinyness, MaskConsts.KNUCKLEBLASTER_MASK, "KB" + SteamId, 2);
 
-                case 1:
-                    mats[0] = ItePlugin.mainBundle.LoadAsset<Material>("V2Glow");
-                    mats[1] = ItePlugin.mainBundle.LoadAsset<Material>("V2WingGlow");
-                    mats[0].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    mats[1].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    mats[2].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    break;
+            if (namePlate != null)
+            {
+                namePlate.text = skin.Nameplate;
+                namePlate.color = skin.NameplateColor;
             }
-            mainRenderer.materials = mats;
+
+            ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("SkinChange"), 1f, MonoSingleton<CameraController>.Instance.transform, 1f);
             SkinnedMeshRenderer[] allMats = head.gameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             foreach (var a in allMats)
             {
-                Material[] mats1 = a.materials;
-                foreach (var m in mats1)
+                if (a.name == "Feedbacker")
                 {
-                    m.shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
+                    SkinManagerV2.CustomColor(a, skin.Base, skin.Light, skin.Metal, skin.Shinyness, MaskConsts.FEEDBACKER_MASK, "Feedbacker" + NetworkManager.Id, 0);
                 }
-                a.materials = mats1;
+                if (a.name == "Arm" || a.name == "Hook")
+                {
+                    SkinManagerV2.CustomColor(a, skin.Base, skin.Light, skin.Metal, skin.Shinyness, MaskConsts.WHIPLASH_MASK, "Whip" + NetworkManager.Id, 0);
+                }
             }
-            /* going to try without it now as it will add to everything now
             // Additionally apply shader to all renderers under the specified path
             try
             {
@@ -442,44 +398,23 @@ namespace Polarite.Multiplayer
             {
                 Debug.LogWarning("Failed applying shader to rig path: " + e);
             }
-            */
         }
 
-        public static void SetSkinOfRagdoll(SkinnedMeshRenderer rend, int id)
+        public static void SetSkinOfRagdoll(SkinnedMeshRenderer rend, Skin skin, ulong target)
         {
             Material[] mats = rend.materials;
-            switch (id)
+            for (int i = 0; i < mats.Length; i++)
             {
-                case 0:
-                    for (int i = 0; i < mats.Length; i++)
-                    {
-                        if (i == 0)
-                        {
-                            mats[i] = ItePlugin.mainBundle.LoadAsset<Material>("V1Glow");
-                        }
-                        else
-                        {
-                            mats[i] = ItePlugin.mainBundle.LoadAsset<Material>("V1WingGlow");
-                        }
-                        mats[i].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    }
-                    break;
-
-                case 1:
-                    for (int j = 0; j < mats.Length; j++)
-                    {
-                        if (j == 0)
-                        {
-                            mats[j] = ItePlugin.mainBundle.LoadAsset<Material>("V2Glow");
-                        }
-                        else
-                        {
-                            mats[j] = ItePlugin.mainBundle.LoadAsset<Material>("V2WingGlow");
-                        }
-                        mats[j].shader = MonoSingleton<DefaultReferenceManager>.Instance.masterShader;
-                    }
-                    break;
+                if (i == 0)
+                {
+                    SkinManagerV2.CustomColor(rend, skin.Base, Color.black, skin.Metal, skin.Shinyness, MaskConsts.V1_BASE_MASK, "BaseDead" + target, i);
+                }
+                else
+                {
+                    SkinManagerV2.CustomColor(rend, skin.Base, Color.black, skin.Metal, skin.Shinyness, MaskConsts.V1_WING_MASK, "WingDead" + target, i);
+                }
             }
+            rend.materials = mats;
         }
 
         private void ApplyShaderRecursively(Transform node, Shader shader)
@@ -489,25 +424,15 @@ namespace Polarite.Multiplayer
             var renderer = node.GetComponent<Renderer>();
             if (renderer != null && renderer.materials != null)
             {
-                var mats = renderer.materials;
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    if (mats[i] != null)
-                        mats[i].shader = shader;
-                }
-                renderer.materials = mats;
+                // use new master shaderizer
+                MasterShaderizer.MasterShaderize(renderer);
             }
             // apply to SkinnedMeshRenderer
             var sk = node.GetComponent<SkinnedMeshRenderer>();
             if (sk != null && sk.materials != null)
             {
-                var sm = sk.materials;
-                for (int i = 0; i < sm.Length; i++)
-                {
-                    if (sm[i] != null)
-                        sm[i].shader = shader;
-                }
-                sk.materials = sm;
+                // use new master shaderizer
+                MasterShaderizer.MasterShaderize(sk);
             }
 
             for (int i = 0; i < node.childCount; i++)
@@ -539,6 +464,10 @@ namespace Polarite.Multiplayer
 
         public static NetworkPlayer Find(ulong id)
         {
+            if(id == NetworkManager.Id)
+            {
+                return LocalPlayer;
+            }
             foreach (var p in NetworkManager.players)
             {
                 if (p.Value.SteamId == id)
@@ -597,6 +526,17 @@ namespace Polarite.Multiplayer
             headR.arm = armT;
 
             Transform holder = v2Rig.transform.Find("v2_combined/metarig/spine/spine.001/spine.002/spine.003/Arms/Feedbacker/Armature/UpperArm/Forearm/Hand/HoldPos");
+            Transform nameplate = v2Rig.transform.Find("v2_combined/metarig/spine/spine.001/spine.002/spine.003/NameplateCanvas/Nameplate");
+
+            TextMeshProUGUI tmp = null;
+            if (nameplate != null)
+            {
+                tmp = nameplate.GetComponent<TextMeshProUGUI>();
+                if(tmp != null)
+                {
+                    tmp.text = ItePlugin.namePlate.value;
+                }
+            }
 
             EnsureAllObjectsAreCleaned(v2Rig.transform, id == NetworkManager.Id);
 
@@ -617,7 +557,8 @@ namespace Polarite.Multiplayer
             NameTag.Init(id, name, v2Rig.transform);
 
             Animator animator = v2Rig.GetComponentInChildren<Animator>();
-            Animator armAnim = v2Rig.transform.Find("v2_combined").GetComponentsInChildren<Animator>()[1];
+            Animator wepAnim = v2Rig.transform.Find("v2_combined").GetComponentsInChildren<Animator>()[1];
+            Animator armAnim = v2Rig.transform.Find("v2_combined").GetComponentsInChildren<Animator>()[2];
             if (id == NetworkManager.Id)
             {
                 v2Rig.transform.Find("v2_combined").gameObject.SetActive(false);
@@ -634,11 +575,15 @@ namespace Polarite.Multiplayer
             plr.dashNoise = dashS;
             plr.animator = animator;
             plr.armAnimator = armAnim;
+            plr.weaponAnimator = wepAnim;
             plr.weapons = weapons;
             plr.head = headR;
             plr.mainRenderer = smr;
             plr.holderObject = holder;
+            plr.namePlate = tmp;
             plr.Init(id, name);
+
+            Logs.Info($"Created player {name} with ID {id}", name: "NetworkPlayer");
             return plr;
         }
         public void ToggleRig(bool value)
@@ -735,6 +680,33 @@ namespace Polarite.Multiplayer
         public static bool IsPlayer(GameObject obj)
         {
             return obj.GetComponent<NetworkPlayer>() != null || obj.GetComponent<NewMovement>() != null;
+        }
+
+
+        // move these here
+        public static bool LastPlayerAlive()
+        {
+            int alive = 0;
+            foreach (NetworkPlayer p in NetworkManager.players.Values)
+            {
+                if (!p.isGhost)
+                {
+                    alive++;
+                }
+            }
+            return alive <= 1;
+        }
+        public static int PlayersAlive()
+        {
+            int alive = 0;
+            foreach (NetworkPlayer p in NetworkManager.players.Values)
+            {
+                if (!p.isGhost)
+                {
+                    alive++;
+                }
+            }
+            return alive;
         }
     }
 }

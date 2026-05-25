@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using Polarite.Multiplayer;
+using Polarite.Networking.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool UpdatePrefix(Deathcatcher __instance)
         {
-            if(NetworkManager.InLobby && NetworkManager.ClientAndConnected)
+            if(NetworkManager.InLobby && !__instance.gameObject.Owner())
             {
                 return false;
             }
@@ -25,7 +26,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void SyncEffect(Deathcatcher __instance)
         {
-            if (NetworkManager.InLobby && !NetworkManager.ClientAndConnected)
+            if (NetworkManager.InLobby && __instance.gameObject.Owner())
             {
                 PacketWriter w = new PacketWriter();
                 w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));

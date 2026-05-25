@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Polarite.Debugging;
+using Polarite.Multiplayer;
+using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using UnityEngine;
 
 namespace Polarite
@@ -8,64 +10,121 @@ namespace Polarite
     public class NetworkList
     {
         const float NetTick = 0.1f;
-        private float timer;
+        const float BlacklistTick = 0.3f;
+        public float netTimer { get; private set; }
+        public float blackTimer { get; private set; }
 
-        private readonly Dictionary<string, INetworkObject> byId = new Dictionary<string, INetworkObject>();
+        private readonly List<INetworkObject> netList = new List<INetworkObject>();
+        private readonly List<string> blacklist = new List<string>();
 
-        public IReadOnlyCollection<INetworkObject> Objects => byId.Values;
+        public IReadOnlyCollection<INetworkObject> Objects => netList.AsReadOnly();
+        public IReadOnlyCollection<string> Blacklist => blacklist.AsReadOnly();
 
-        public INetworkObject this[string id] => id != null && byId.TryGetValue(id, out var obj) ? obj : null;
-
+        public INetworkObject this[string id] => id != null ? netList.Find(obj => obj.ID == id) : null;
         public INetworkObject Add(INetworkObject obj)
         {
-            if (obj == null || string.IsNullOrEmpty(obj.ID))
+            if (obj == null)
                 return null;
 
-            if (byId.ContainsKey(obj.ID))
+            if (netList.Contains(obj))
             {
-                ItePlugin.LogDebug($"[NET LIST] Dupe ID detected: {obj.ID}");
-                return byId[obj.ID];
+                Logs.Debug($"Dupe ID detected: {obj.ID}", this);
+                return netList.Find(o => o.ID == obj.ID);
             }
 
-            byId[obj.ID] = obj;
+            netList.Add(obj);
             return obj;
         }
 
         public void Tick()
         {
-            timer += Time.deltaTime;
-            if (timer < NetTick) return;
-            timer = 0f;
+            BlackListTick();
+            netTimer += Time.deltaTime;
+            if (netTimer < NetTick) return;
+            netTimer = 0f;
+            List<INetworkObject> trash = new List<INetworkObject>();
 
             foreach (var obj in Objects)
-                obj.SendState(new Multiplayer.PacketWriter());
+            {
+                if(ValidObjectCheck(obj))
+                {
+                    obj.SendState(new PacketWriter(), PacketType.ObjectState);
+                }
+                else
+                {
+                    trash.Add(obj);
+                }
+            }
+            Dump(trash);
+        }
+        public void BlackListTick()
+        {
+            blackTimer += Time.deltaTime;
+            if (blackTimer < BlacklistTick) return;
+            blackTimer = 0f;
+            blacklist.Clear();
+        }
+        public void AddBlacklist(string id)
+        {
+            if (blacklist.Contains(id)) return;
+            blackTimer = 0f;
+            blacklist.Add(id);
+        }
+        public static bool ValidObjectCheck(INetworkObject obj)
+        {
+            if (obj.Base == null) return false;
+            if (!obj.Base.Alive) return false;
+            return true;
+        }
+        public void Dump(List<INetworkObject> objs)
+        {
+            foreach(var obj in objs)
+            {
+                if(obj.Cleanup && obj.Base != null)
+                {
+                    continue;
+                }
+                Remove(obj, true);
+            }
         }
 
 
-        public bool Remove(string id)
+        public bool Remove(INetworkObject obj, bool includePath)
         {
-            if (id == null)
-                return false;
-
-            return byId.Remove(id);
-        }
-
-        public bool Contains(string id)
-        {
-            return id != null && byId.ContainsKey(id);
+            try
+            {
+                if (includePath && SceneObjectCache.ContainsIndex(obj.Index))
+                {
+                    SceneObjectCache.Remove(obj.Base.gameObject);
+                }
+                return netList.Remove(obj);
+            }
+            catch
+            {
+                return netList.Remove(obj);
+            }
         }
 
         public bool Contains(INetworkObject obj)
         {
-            return obj != null && !string.IsNullOrEmpty(obj.ID) && byId.TryGetValue(obj.ID, out var existing) && ReferenceEquals(existing, obj);
+            return obj != null && netList.Contains(obj);
+        }
+
+        public int IndexOf(INetworkObject obj)
+        {
+            if(!netList.Contains(obj))
+            {
+                return -1;
+            }
+            return netList.IndexOf(obj);
         }
 
 
         public void Clear()
         {
-            List<INetworkObject> snapshot = new List<INetworkObject>(byId.Values);
+            List<INetworkObject> snapshot = new List<INetworkObject>(netList);
 
-            byId.Clear();
+            netList.Clear();
 
             foreach (var obj in snapshot)
             {

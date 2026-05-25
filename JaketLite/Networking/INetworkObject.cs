@@ -14,9 +14,12 @@ namespace Polarite
     {
         string ID { get; set; }
         string SimpleID { get; }
-
+        int Index { get; }
         ulong Owner { get; set; }
-
+        bool Alive { get; }
+        bool Cleanup { get; }
+        bool TransformSynced { get; }
+        bool Owns { get; }
         Vector3 TargetPosition { get; set; }
         Quaternion TargetRotation { get; set; }
         Vector3 LastPosition { get; set; }
@@ -24,11 +27,11 @@ namespace Polarite
         NetworkObject Base { get; }
         void Transfer(ulong newOwner);
         void HandDestroy();
-        void SendState(PacketWriter writer);
+        void SendState(PacketWriter writer, PacketType type);
         void TransferOwnerP2P(ulong newOwner);
         void Send(PacketWriter writer, PacketType packet, bool showDebug = true);
         void Respond(BinaryPacketReader reader, PacketType packet, ulong sender);
-        void State(Vector3 pos, BinaryPacketReader reader);
-        
+        void State(Vector3 pos, Quaternion rot, BinaryPacketReader reader);
+        void PrepDestroy();
     }
 }

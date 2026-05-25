@@ -22,29 +22,14 @@ namespace Polarite
 
         public GameObject notifBox;
 
-        public void CallHost()
-        {
-            host.Invoke();
-            Debug.Log("Called host");
-        }
-        public void CallLeave()
-        {
-            leave.Invoke();
-            Debug.Log("Called leave");
-        }
-        public void CallInvite()
-        {
-            invite.Invoke();
-            Debug.Log("Called invite");
-        }
-        public void CallJoin()
-        {
-            join.Invoke();
-            Debug.Log("Called join");
-        }
         public void ToggleMainPanel()
         {
             mainPanel.SetActive(!mainPanel.activeSelf);
+            if(!ItePlugin.openedPolariteMenu.value)
+            {
+                ItePlugin.openedPolariteMenu.value = true;
+                ItePlugin.Instance.ForceHideNotif();
+            }
         }
     }
 }

@@ -20,7 +20,7 @@ namespace Polarite.Patches
         static void Postfix(Revolver __instance, ref int shotType)
         {
             BulletType type = (__instance.altVersion) ? (shotType == 1) ? BulletType.Slab : (__instance.gunVariation == 2) ? BulletType.SlabSharp : BulletType.SlabSuper : (shotType == 1) ? BulletType.Revolver : (__instance.gunVariation == 2) ? BulletType.RevolverSharp : BulletType.RevolverSuper;
-            GunSync.Sync(type, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero);
+            GunSync.Sync(type, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero);
         }
         [HarmonyPatch(nameof(Revolver.ThrowCoin))]
         [HarmonyPrefix]
@@ -36,7 +36,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void Postfix(Shotgun __instance)
         {
-            GunSync.Sync(BulletType.ShotgunMain, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero, __instance.primaryCharge, 0, __instance.variation);
+            GunSync.Sync(BulletType.ShotgunMain, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, __instance.primaryCharge, 0, __instance.variation);
         }
         [HarmonyPatch(nameof(Shotgun.ShootSinks))]
         [HarmonyPrefix]
@@ -52,13 +52,13 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void Postfix(ShotgunHammer __instance)
         {
-            GunSync.Sync(BulletType.JackCore, MonoSingleton<CameraController>.Instance.GetDefaultPos() + GunSync.Dir * 2f - MonoSingleton<CameraController>.Instance.transform.up * 0.5f, GunSync.Rot, GunSync.Dir, (MonoSingleton<NewMovement>.Instance.ridingRocket ? MonoSingleton<NewMovement>.Instance.ridingRocket.rb.velocity : MonoSingleton<NewMovement>.Instance.rb.velocity));
+            GunSync.Sync(BulletType.JackCore, MonoSingleton<CameraController>.Instance.GetDefaultPos() + GunSync.DirWAutoAim * 2f - MonoSingleton<CameraController>.Instance.transform.up * 0.5f, GunSync.Rot, GunSync.DirWAutoAim, (MonoSingleton<NewMovement>.Instance.ridingRocket ? MonoSingleton<NewMovement>.Instance.ridingRocket.rb.velocity : MonoSingleton<NewMovement>.Instance.rb.velocity));
         }
         [HarmonyPatch(nameof(ShotgunHammer.HitNade))]
         [HarmonyPrefix]
         static void HitPostfix(ShotgunHammer __instance)
         {
-            GunSync.Sync(BulletType.GrenadeBeam, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero);
+            GunSync.Sync(BulletType.GrenadeBeam, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero);
         }
         [HarmonyPatch(nameof(ShotgunHammer.ImpactEffects))]
         [HarmonyPrefix]
@@ -91,7 +91,7 @@ namespace Polarite.Patches
             {
                 type = BulletType.JackhammerLight;
             }
-            GunSync.Sync(type, MonoSingleton<CameraController>.Instance.GetDefaultPos() + GunSync.Dir * 2.5f, GunSync.Rot, GunSync.Dir, Vector3.zero, __instance.primaryCharge);
+            GunSync.Sync(type, MonoSingleton<CameraController>.Instance.GetDefaultPos() + GunSync.DirWAutoAim * 2.5f, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, __instance.primaryCharge);
         }
     }
     [HarmonyPatch(typeof(Nailgun))]
@@ -102,25 +102,25 @@ namespace Polarite.Patches
         static void Postfix(Nailgun __instance)
         {
             BulletType type = (__instance.altVersion) ? (__instance.variation == 1) ? BulletType.Saw : BulletType.SawSad : (__instance.variation == 1) ? BulletType.Nail : BulletType.NailSad;
-            GunSync.Sync(type, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero, 0, __instance.currentSpread);
+            GunSync.Sync(type, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, 0, __instance.currentSpread);
         }
         [HarmonyPatch(nameof(Nailgun.BurstFire))]
         [HarmonyPrefix]
         static void BurstPostfix(Nailgun __instance)
         {
-            GunSync.Sync(BulletType.NailHeated, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero, 0, __instance.currentSpread);
+            GunSync.Sync(BulletType.NailHeated, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, 0, __instance.currentSpread);
         }
         [HarmonyPatch(nameof(Nailgun.SuperSaw))]
         [HarmonyPrefix]
         static void SuperPostfix(Nailgun __instance)
         {
-            GunSync.Sync(BulletType.SawHeated, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero, 0, __instance.heatUp);
+            GunSync.Sync(BulletType.SawHeated, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, 0, __instance.heatUp);
         }
         [HarmonyPatch(nameof(Nailgun.ShootMagnet))]
         [HarmonyPrefix]
         static void MagnetPostfix(Nailgun __instance)
         {
-            GunSync.Sync(BulletType.Magnet, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero);
+            GunSync.Sync(BulletType.Magnet, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero);
         }
     }
     [HarmonyPatch(typeof(Railcannon))]
@@ -131,7 +131,7 @@ namespace Polarite.Patches
         static void Postfix(Railcannon __instance)
         {
             BulletType type = (__instance.variation == 0) ? BulletType.RailBlue : (__instance.variation == 1) ? BulletType.RailGreen : BulletType.RailRed;
-            GunSync.Sync(type, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero, 0);
+            GunSync.Sync(type, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, 0);
         }
     }
     [HarmonyPatch(typeof(Grenade))]
@@ -170,7 +170,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void Postfix(RocketLauncher __instance)
         {
-            GunSync.Sync(BulletType.Rocket, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero);
+            GunSync.Sync(BulletType.Rocket, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero);
         }
         [HarmonyPatch(nameof(RocketLauncher.FreezeRockets))]
         [HarmonyPostfix]
@@ -183,7 +183,6 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.RocketFreeze, w.GetBytes());
             }
         }
-
         [HarmonyPatch(nameof(RocketLauncher.UnfreezeRockets))]
         [HarmonyPostfix]
         static void UnfreezePostfix(RocketLauncher __instance)
@@ -200,13 +199,13 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void CannonballPostfix(RocketLauncher __instance)
         {
-            GunSync.Sync(BulletType.Cannonball, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero, 0, __instance.cbCharge);
+            GunSync.Sync(BulletType.Cannonball, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero, 0, __instance.cbCharge);
         }
         [HarmonyPatch(nameof(RocketLauncher.ShootNapalm))]
         [HarmonyPrefix]
         static void NapalmPostfix(RocketLauncher __instance)
         {
-            GunSync.Sync(BulletType.Oil, GunSync.Pos, GunSync.Rot, GunSync.Dir, Vector3.zero);
+            GunSync.Sync(BulletType.Oil, GunSync.Pos, GunSync.Rot, GunSync.DirWAutoAim, Vector3.zero);
         }
     }
     [HarmonyPatch(typeof(Punch))]
@@ -221,22 +220,6 @@ namespace Polarite.Patches
                 PacketWriter w = new PacketWriter();
                 w.WriteVector3(__instance.transform.position);
                 NetworkManager.Instance.BroadcastPacket(PacketType.Blast, w.GetBytes());
-            }
-        }
-        [HarmonyPatch(nameof(Punch.ActiveFrame))]
-        [HarmonyPrefix]
-        static void ActivePrefix(Punch __instance, ref bool firstFrame)
-        {
-            if(NetworkManager.InLobby)
-            {
-                PacketWriter w = new PacketWriter();
-                w.WriteVector3(__instance.cc.GetDefaultPos());
-                w.WriteVector3(__instance.cc.GetDefaultPos() + __instance.cc.transform.forward);
-                w.WriteBool(__instance.parriedSomething);
-                w.WriteBool(__instance.hitSomething);
-                w.WriteInt((int)__instance.type);
-                w.WriteBool(firstFrame);
-                NetworkManager.Instance.BroadcastPacket(PacketType.Feedback, w.GetBytes());
             }
         }
     }

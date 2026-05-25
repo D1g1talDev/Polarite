@@ -12,8 +12,9 @@ using System.Threading.Tasks;
 using Discord;
 
 using Mono.Cecil.Cil;
-
+using Polarite.Debugging;
 using Polarite.Networking;
+using Polarite.Networking.Sockets;
 using Polarite.Patches;
 
 using Steamworks;
@@ -34,6 +35,13 @@ namespace Polarite.Multiplayer
     public class CrackedMode
     {
         public string server_mode;
+    }
+    public static class SendTypeConsts
+    {
+        public const ushort ST_DEFAULT = 0;
+        public const ushort ST_PLRSTATE = 1;
+        public const ushort ST_OBJSTATE = 2;
+        public const ushort ST_VOICE = 3;
     }
 
     public enum LobbyType
@@ -101,7 +109,23 @@ namespace Polarite.Multiplayer
 
         public static CrackedMode cMode;
 
-        static Dictionary<ulong, string> nameCache = new Dictionary<ulong, string>();
+        public static ConnectionManager ClientToHost;
+        public static SocketManager ServerInstance;
+
+        public Server Server = new Server();
+        public Client Client = new Client();
+
+        public static Dictionary<ulong, Connection> connections = new Dictionary<ulong, Connection>();
+
+        // we should handle a packet only if we're connected to the socket
+        public static bool IsConnectedSocket
+        {
+            get
+            {
+                return (HostAndConnected && ServerInstance != null) ||
+                       (ClientAndConnected && ClientToHost != null && ClientToHost.Connected);
+            }
+        }
 
         void CrackCheck()
         {
@@ -181,13 +205,13 @@ namespace Polarite.Multiplayer
             }
             catch (Exception e)
             {
-                Debug.LogError("[Net] Failed to init SteamClient: " + e);
+                Logs.Error("[Net] Failed to init SteamClient: " + e, this);
                 return;
             }
 
             if (!SteamClient.IsValid)
             {
-                Debug.LogError("[Net] SteamClient is not initialized.");
+                Logs.Error("[Net] SteamClient is not initialized.", this);
                 return;
             }
 
@@ -196,14 +220,6 @@ namespace Polarite.Multiplayer
             SteamFriends.OnGameLobbyJoinRequested += HandleLobbyInvite;
             SteamFriends.OnGameRichPresenceJoinRequested += HandleLobbyRPJ;
 
-            SteamNetworking.OnP2PSessionRequest += (SteamId id) =>
-            {
-                SteamNetworking.AcceptP2PSessionWithUser(id);
-            };
-            SteamNetworking.OnP2PConnectionFailed += (SteamId id, P2PSessionError error) =>
-            {
-                SteamNetworking.AcceptP2PSessionWithUser(id);
-            };
             if (VoiceChatManager.Instance == null)
             {
                 GameObject vc = new GameObject("VoiceChatManager");
@@ -215,19 +231,22 @@ namespace Polarite.Multiplayer
 
         void OnApplicationQuit()
         {
-            SetRichPresenceForLobby(default);
+            if(ServerInstance != null)
+            {
+                StopHostServer();
+            }
+            if(ClientToHost != null)
+            {
+                DisconnectFromHostServer();
+            }
+            SetRichPresenceForLobby(null);
             LeaveLobby();
             SteamClient.Shutdown();
         }
 
         public static string GetNameOfId(ulong id)
         {
-            if (!nameCache.TryGetValue(id, out var name))
-            {
-                name = TMPUtils.StripTMP(new Friend(id).Name);
-                nameCache[id] = name;
-            }
-            return name;
+            return TMPUtils.StripTMP(new Friend(id).Name);
         }
         public async Task CreateLobby(int maxPlayers = 4, LobbyType lobbyType = LobbyType.Public, string lobbyName = "My Lobby", Action<string> onJoin = null, bool canCheat = false)
         {
@@ -268,7 +287,6 @@ namespace Polarite.Multiplayer
                 CurrentLobby.SetData("cheat", (canCheat) ? "1" : "0");
                 CurrentLobby.SetData("bh", (ItePlugin.bossHpIncrease.value) ? "1" : "0");
                 CurrentLobby.SetData("bhm", ItePlugin.bossHpMult.value.ToString());
-                CurrentLobby.SetData("pvp", (ItePlugin.pvpOn.value) ? "1" : "0");
                 CurrentLobby.SetData("priv", lobbyType == LobbyType.Private ? "1" : "0");
                 CurrentLobby.SetData("ver", ItePlugin.Version);
                 PrivateLobby = lobbyType == LobbyType.Private;
@@ -283,8 +301,16 @@ namespace Polarite.Multiplayer
                 PlayerList.UpdatePList();
                 ItePlugin.Instance.CleanLevel();
                 DisplayVoiceTip();
+                DisplaySkinTip();
                 PauseMenuPatch.DisablePauseEffects();
                 Net.Setup();
+                ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+                ItePlugin.AnimationCheck();
+
+                // start host server
+                ServerInstance = SteamNetworkingSockets.CreateRelaySocket<SocketManager>(4544);
+                ServerInstance.Interface = Server;
+                Logs.Info("Started host socket", this);
             }
         }
 
@@ -315,6 +341,12 @@ namespace Polarite.Multiplayer
                     lobby.Value.Leave();
                     return;
                 }
+                if (string.IsNullOrEmpty(lobby.Value.GetData("LobbyName")))
+                {
+                    DisplayError("This lobby is invalid and it seems the original host disconnected from it.");
+                    lobby.Value.Leave();
+                    return;
+                }
                 CurrentLobby = lobby.Value;
                 ClientAndConnected = true;
                 InLobby = true;
@@ -322,7 +354,6 @@ namespace Polarite.Multiplayer
                 SetRichPresenceForLobby(lobby.Value);
                 CreateLocalPlayer();
                 DisplaySystemChatMessage("Successfully joined lobby '" + CurrentLobby.GetData("LobbyName") + "'");
-                EnsureP2PSessionWithAll();
                 foreach (var member in lobby.Value.Members)
                 {
                     if (!players.ContainsKey(member.Id.Value))
@@ -332,14 +363,26 @@ namespace Polarite.Multiplayer
                     }
                 }
                 LoadLevelAndDifficulty(lobby);
-                PacketWriter write = new PacketWriter();
-                write.WriteEnum(ItePlugin.skin.value);
-                BroadcastPacket(PacketType.Skin, write.GetBytes());
                 PlayerList.UpdatePList();
                 DisplayVoiceTip();
+                DisplaySkinTip();
                 PauseMenuPatch.DisablePauseEffects();
                 Net.Setup();
                 PrivateLobby = lobby.Value.GetData("priv") == "1";
+                ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+
+                // small delay
+                await Task.Delay(1000);
+
+                ClientToHost = SteamNetworkingSockets.ConnectRelay<ConnectionManager>(lobby.Value.Owner.Id, 4544);
+                ClientToHost.Interface = Client;
+                Logs.Info("Connecting to host socket... Id: " + lobby.Value.Owner.Id, this);
+
+                while(!ClientToHost.Connected)
+                {
+                    Logs.Debug("Client state: " + ClientToHost.Connection.DetailedStatus(), this);
+                    await Task.Delay(100);
+                }
             }
             else
             {
@@ -387,6 +430,11 @@ namespace Polarite.Multiplayer
             {
                 PacketWriter w = new PacketWriter();
                 BroadcastPacket(PacketType.HostLeave, w.GetBytes());
+                StopHostServer();
+            }
+            else
+            {
+                DisconnectFromHostServer();
             }
             string lobbyName = CurrentLobby.GetData("LobbyName");
             HostAndConnected = false;
@@ -409,6 +457,8 @@ namespace Polarite.Multiplayer
             Net.End();
             ItePlugin.CustomTogglePlayer(true);
             PrivateLobby = false;
+            ItePlugin.ReverseArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+            ItePlugin.ReverseAnimationCheck();
         }
 
         public string GetLobbyCode()
@@ -427,8 +477,7 @@ namespace Polarite.Multiplayer
         {
             if (CurrentLobby.Id == 0) return;
 
-            // devs can just bypass this :troll:
-            if (!AmIHost() && !Net.Dev(Id))
+            if (!AmIHost())
             {
                 DisplayError((!ban) ? "Only the host can kick!" : "Only the host can ban!");
                 return;
@@ -501,6 +550,36 @@ namespace Polarite.Multiplayer
                 }
             }
         }
+
+        // disconnecting
+        public void DisconnectFromHostServer()
+        {
+            if(ClientToHost != null)
+            {
+                ClientToHost.Interface = null;
+                ClientToHost.Close();
+                ClientToHost = null;
+                Logs.Info("Disconnected from host socket", this);
+            }
+        }
+        public void StopHostServer()
+        {
+            if(!HostAndConnected)
+            {
+                return;
+            }
+            foreach (var client in ServerInstance.Connected)
+            {
+                client.Close();
+            }
+            if (ServerInstance != null)
+            {
+                ServerInstance.Interface = null;
+                ServerInstance.Close();
+                ServerInstance = null;
+            }
+        }
+
         private void HandleMemberJoined(Lobby lobby, Friend member)
         {
             if (!HostAndConnected)
@@ -523,10 +602,6 @@ namespace Polarite.Multiplayer
                     if (member1.Id != NetworkManager.Id && member1.Id != member.Id)
                         SendPacket(PacketType.Join, w.GetBytes(), member1.Id);
                 }
-                EnsureP2PSessionWithAll();
-                PacketWriter write = new PacketWriter();
-                write.WriteEnum(ItePlugin.skin.value);
-                BroadcastPacket(PacketType.Skin, write.GetBytes());
                 // from raw id to Net.Dev
                 if (Net.Dev(member.Id))
                 {
@@ -536,7 +611,7 @@ namespace Polarite.Multiplayer
             }
         }
 
-        public void HandleMemberJoinedP2P(Friend member)
+        public void HandleMemberJoinedNet(Friend member)
         {
             OnPlayerJoined?.Invoke(member, member.Id);
             if (!players.ContainsKey(member.Id.Value))
@@ -545,10 +620,6 @@ namespace Polarite.Multiplayer
                 players.Add(member.Id.Value, newPlr);
             }
             DisplaySystemChatMessage(GetNameOfId(member.Id) + " has joined this lobby");
-            EnsureP2PSessionWithAll();
-            PacketWriter write = new PacketWriter();
-            write.WriteEnum(ItePlugin.skin.value);
-            BroadcastPacket(PacketType.Skin, write.GetBytes());
             HostAndConnected = AmIHost();
             ClientAndConnected = !AmIHost();
             InLobby = CurrentLobby.Id != 0;
@@ -558,17 +629,25 @@ namespace Polarite.Multiplayer
             }
             PlayerList.UpdatePList();
         }
-
-        public void EnsureP2PSessionWithAll()
+        public void ConnectionNet(ulong id)
         {
-            if (CurrentLobby.Id == 0) return;
-            foreach (var member in CurrentLobby.Members)
+            if(Id == id)
             {
-                if (member.Id != NetworkManager.Id)
-                {
-                    SteamNetworking.AcceptP2PSessionWithUser(member.Id);
-                }
+                return;
             }
+            DisplayJoin("green", $"{GetNameOfId(id)} has connected this server");
+            // share skin aswell
+            PacketWriter write = new PacketWriter();
+            write.WriteSkin(ItePlugin.currentSkin);
+            SendPacket(PacketType.Skin, write.GetBytes(), id);
+        }
+        public void DisconnectionNet(ulong id)
+        {
+            if(Id == id)
+            {
+                return;
+            }
+            DisplayJoin("red", $"{GetNameOfId(id)} has disconnected from this server");
         }
 
         private void HandleMemberLeft(Lobby lobby, Friend member)
@@ -594,10 +673,7 @@ namespace Polarite.Multiplayer
                         SendPacket(PacketType.Left, write.GetBytes(), member1.Id);
                 }
                 PlayerList.UpdatePList();
-                if(CyberSync.Active)
-                {
-                    CyberSync.DoubleCheckForSoftlock();
-                }
+                ItePlugin.DoubleCheckForSoftlock();
                 if (Voice.idToSource.ContainsKey(member.Id))
                 {
                     Voice.Remove(member.Id);
@@ -605,7 +681,7 @@ namespace Polarite.Multiplayer
             }
         }
 
-        public void HandleMemberLeftP2P(Friend member)
+        public void HandleMemberLeftNet(Friend member)
         {
             OnPlayerLeft?.Invoke(member, member.Id);
             if (players.ContainsKey(member.Id.Value))
@@ -618,10 +694,7 @@ namespace Polarite.Multiplayer
             ClientAndConnected = !AmIHost();
             InLobby = CurrentLobby.Id != 0;
             PlayerList.UpdatePList();
-            if (CyberSync.Active)
-            {
-                CyberSync.DoubleCheckForSoftlock();
-            }
+            ItePlugin.DoubleCheckForSoftlock();
             if (Voice.idToSource.ContainsKey(member.Id))
             {
                 Voice.Remove(member.Id);
@@ -643,18 +716,14 @@ namespace Polarite.Multiplayer
                 JoinLobby(lobbyId).Forget();
             }
         }
-        /// <summary>
-        /// Don't set the owner value to anything to make packet funnel to host
-        /// </summary>
-        public void BroadcastPacket(PacketType type, byte[] data, ulong owner = 0)
+        public void BroadcastPacket(PacketType type, byte[] data, ulong owner = 0, ushort sendtype = 0)
         {
-            // fix infinite loop using the fact owner starts off at 0
             if (CurrentLobby.Id == 0 || !SteamClient.IsValid) return;
 
-            if(ClientAndConnected && owner == 0)
+            if(ClientAndConnected)
             {
                 // funnel to host
-                SendToHost(type, data);
+                SendToHost(type, data, true, sendtype);
                 return;
             }
 
@@ -662,36 +731,64 @@ namespace Polarite.Multiplayer
             {
                 if (member.Id != Id && member.Id != owner)
                 {
-                    SendPacket(type, data, member.Id.Value, owner);
+                    SendPacket(type, data, member.Id.Value, owner, sendtype, true);
                 }
             }
         }
 
-        public void SendPacket(PacketType type, byte[] data, ulong targetId, ulong owner = 0)
+        public void SendPacket(PacketType type, byte[] data, ulong targetId, ulong owner = 0, ushort sendtype = SendTypeConsts.ST_DEFAULT, bool broadcasting = false)
         {
+            if(!IsConnectedSocket)
+            {
+                return;
+            }
             if(owner == 0)
             {
                 owner = Id;
             }
 
             PacketWriter w = new PacketWriter();
-
             w.WriteByte((byte)type);
             w.WriteULong(owner);
             w.WriteInt(data.Length);
+            w.WriteUShort(sendtype);
+            w.WriteBool(broadcasting);
+            w.WriteULong(targetId);
             w.WriteBytes(data);
 
             byte[] bytes = w.GetBytes();
-
-            SteamNetworking.SendP2PPacket(targetId, bytes);
+            if (ClientAndConnected)
+            {
+                ClientToHost.Connection.SendMessage(bytes, GetSendType(sendtype));
+            }
+            if(HostAndConnected)
+            {
+                if (connections.TryGetValue(targetId, out var con))
+                {
+                    con.SendMessage(bytes, GetSendType(sendtype));
+                }
+            }
         }
 
+        public SendType GetSendType(ushort sendtype)
+        {
+            switch(sendtype)
+            {
+                case 0:
+                    return SendType.Reliable;
+                case 1:
+                case 2:
+                case 3:
+                    return SendType.Unreliable;
+            }
+            return SendType.Reliable;
+        }
 
         // send to host only
-        public void SendToHost(PacketType type, byte[] payload)
+        public void SendToHost(PacketType type, byte[] payload, bool broadcasting, ushort sendtype = SendTypeConsts.ST_DEFAULT)
         {
             if (CurrentLobby.Owner.Id == NetworkManager.Id) return;
-            SendPacket(type, payload, CurrentLobby.Owner.Id);
+            SendPacket(type, payload, CurrentLobby.Owner.Id, sendtype: sendtype, broadcasting: broadcasting);
         }
 
         public void LoadLevelAndDifficulty(Lobby? lobby)
@@ -710,10 +807,9 @@ namespace Polarite.Multiplayer
         }
         private IEnumerator OnSceneLoad()
         {
-            yield return null;
-            yield return null;
-
+            yield return new WaitForSeconds(0.25f);
             SceneLoading = false;
+            ItePlugin.cameFromPacketRestart = false;
             SceneObjectCache.Rebuild();
         }
 
@@ -732,68 +828,106 @@ namespace Polarite.Multiplayer
                 HostAndConnected = false;
                 ClientAndConnected = false;
             }
-            if (SceneLoading)
+            SteamClient.RunCallbacks();
+            if (ServerInstance != null)
             {
-                while (SteamNetworking.IsP2PPacketAvailable(out uint size))
-                {
-                    byte[] buff = new byte[size];
+                ServerInstance.Receive();
+            }
+            if(ClientToHost != null)
+            {
+                ClientToHost.Receive();
+            }
+        }
+        public bool IsBanned(NetIdentity id)
+        {
+            if (id.SteamId == 0) return false;
+            if (CurrentLobby.Id == 0) return false;
 
-                    SteamId id = default;
-                    SteamNetworking.ReadP2PPacket(buff, ref size, ref id);
-                }
+            return CurrentLobby.GetData("banned_" + id.SteamId) == "1";
+        }
+        public void HandlePack(byte[] buff, SteamId id)
+        {
+            int length = buff.Length;
+            // voice packets
+            if (length > 0 && buff[0] == 0x56)
+            {
+                VoiceChatManager.Instance?.OnP2PDataReceived(buff, length, id);
                 return;
             }
-
-            while (SteamNetworking.IsP2PPacketAvailable(out uint packetSize))
+            try
             {
-                byte[] buff = new byte[packetSize];
-
-                SteamId id = default;
-
-                if (!SteamNetworking.ReadP2PPacket(buff, ref packetSize, ref id))
-                    continue;
-
-                // voice packets
-                if (packetSize > 0 && buff[0] == 0x56)
+                if (IsBanned(id) && connections.TryGetValue(id, out var con))
                 {
-                    VoiceChatManager.Instance?.OnP2PDataReceived(buff, (int)packetSize, id);
-                    continue;
+                    con.Close();
+                    return;
+                }
+                BinaryPacketReader reader = new BinaryPacketReader(buff, length);
+
+                PacketType type = (PacketType)reader.ReadByte();
+                ulong sender = reader.ReadULong();
+                int len = reader.ReadInt();
+                ushort sendtype = reader.ReadUShort();
+                bool broadcasting = reader.ReadBool();
+                ulong target = reader.ReadULong();
+                byte[] data = reader.ReadBytes();
+
+                if (sender == Id)
+                    return;
+                if (sender != id)
+                    return;
+
+                // Logs.Debug($"Parsed packet from {GetNameOfId(id)} ({id.Value}), type: {type}, length: {len}, st: {sendtype}", name: "Server");
+                if (HostAndConnected)
+                {
+                    // send it to everyone or send it to the target the client wanted to send it to
+                    if (broadcasting)
+                        BroadcastPacket(type, data, sender, sendtype);
+                    else
+                        SendPacket(type, data, target, sender, sendtype);
                 }
 
-                try
-                {
-                    if (CurrentLobby.GetData("banned_" + id.Value) == "1")
-                    {
-                        LeaveLobby();
-                        continue;
-                    }
-
-                    BinaryPacketReader reader = new BinaryPacketReader(buff, (int)packetSize);
-
-                    PacketType type = (PacketType)reader.ReadByte();
-                    ulong sender = reader.ReadULong();
-                    int len = reader.ReadInt();
-                    byte[] data = reader.ReadBytes();
-
-                    if (sender == Id)
-                        continue;
-                    if (sender != id)
-                        continue;
-
-                    if(HostAndConnected)
-                    {
-                        // send it to everyone else
-                        BroadcastPacket(type, data, sender);
-                    }
-
-                    Handle(type, data, (int)packetSize, sender);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning("[Net] Failed to parse binary packet: " + ex);
-                }
+                Handle(type, data, length, sender);
             }
+            catch (Exception ex)
+            {
+                Logs.Error("[NET] Failed to parse packet on host: " + ex, this);
+            }
+        }
+        public void HandlePackClient(byte[] buff)
+        {
+            int length = buff.Length;
+            BinaryPacketReader reader = new BinaryPacketReader(buff, length);
+            PacketType type = (PacketType)reader.ReadByte();
+            ulong sender = reader.ReadULong();
+            int len = reader.ReadInt();
+            ushort sendtype = reader.ReadUShort();
+            bool broadcasting = reader.ReadBool();
+            ulong target = reader.ReadULong();
+            byte[] data = reader.ReadBytes();
 
+            // voice packets
+            if (length > 0 && buff[0] == 0x56)
+            {
+                VoiceChatManager.Instance?.OnP2PDataReceived(buff, length, sender);
+                return;
+            }
+            try
+            {
+                if (CurrentLobby.GetData("banned_" + Id) == "1")
+                {
+                    LeaveLobby();
+                    return;
+                }
+                if (sender == Id)
+                    return;
+
+                // Logs.Debug($"Parsed packet from {GetNameOfId(id)} ({id.Value}), type: {type}, length: {len}, st: {sendtype}", name: "Client");
+                Handle(type, data, length, sender);
+            }
+            catch (Exception ex)
+            {
+                Logs.Error("[NET] Failed to parse packet on client: " + ex, this);
+            }
         }
         public void CreateTestPlayer()
         {
@@ -873,12 +1007,43 @@ namespace Polarite.Multiplayer
         {
             if(ChatUI.Instance != null && !ItePlugin.disableVoiceChatTip.value)
             {
-                ChatUI.Instance.OnSubmitMessage("<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (you can also disable this tip in the plugin configurator)</color>", false, "<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (you can also disable this tip in the plugin configurator)</color>", tts: false);
+                ChatUI.Instance.OnSubmitMessage("<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (Config > Voice Config) (you can also disable this tip in the plugin configurator)</color>", false, "<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (you can also disable this tip in the plugin configurator)</color>", tts: false);
                 ChatUI.Instance.ShowUIForBit(7f);
             }
         }
-    }
+        public static void DisplaySkinTip()
+        {
+            if (ChatUI.Instance != null && !ItePlugin.disableSkinTip.value)
+            {
+                ChatUI.Instance.OnSubmitMessage("<color=#5EF527>[TIP]: You can change your skin in the plugin configurator! (Config > Cosmetic Config > Skins Config) (you can also disable this tip in the plugin configurator)</color>", false, "<color=#5EF527>[TIP]: You can change your skin in the plugin configurator! (Config > Cosmetic Config > Skins Config) (you can also disable this tip in the plugin configurator)</color>", tts: false);
+                ChatUI.Instance.OnSubmitMessage($"<color=#27E7F5>[TIP]: You can see what you look like for other people by holding down {ChatUI.GetKeyName(ItePlugin.previewSkin.value)}</color>", false, $"<color=#27E7F5>[TIP]: You can see what you look like for other people by holding down {ChatUI.GetKeyName(ItePlugin.previewSkin.value)}</color>", tts: false);
+                ChatUI.Instance.ShowUIForBit(7f);
+            }
+        }
 
+        public static void DisplayJoin(string color, string msg)
+        {
+            if (ChatUI.Instance != null && !ItePlugin.disableVoiceChatTip.value)
+            {
+                ChatUI.Instance.OnSubmitMessage($"<color={color}>[SERVER]: {msg}</color>", false, $"<color={color}>[LOBBY]: {msg}</color>", tts: false);
+                ChatUI.Instance.ShowUIForBit(5f);
+            }
+        }
+
+
+        // mapping helpers
+        public static bool Contains(ulong id) => connections.ContainsKey(id);
+        public static void AddMapping(Connection connection, ulong id)
+        {
+            Logs.Debug("Adding mapping for user: " + id, typeof(NetworkManager));
+            if (!Contains(id)) connections.Add(id, connection);
+        }
+        public static void RemoveMapping(Connection connection, ulong id)
+        {
+            Logs.Debug("Removing mapping for user: " + typeof(NetworkManager));
+            if (Contains(id)) connections.Remove(id);
+        }
+    }
     public static class TaskExtensions
     {
         public static void Forget(this Task task) { }

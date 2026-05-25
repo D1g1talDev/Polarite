@@ -24,20 +24,11 @@ namespace Polarite
         public IEnumerator WaitToTrigger()
         {
             yield return new WaitForSeconds(30f);
-            HudMessageReceiver hud = HudMessageReceiver.Instance;
-            hud.aud.pitch = 0.5f;
-            hud.clickAud.pitch = 0.1f;
             pri.aud.Play();
             pri.enabled = false;
             yield return new WaitForSeconds(2f);
-            MonoSingleton<CameraController>.Instance.CameraShake(10f);
             pri.TryGetComponent<Statue>(out var stat);
             stat.DeathEnd();
-            Explosion exp = Instantiate(MonoSingleton<DefaultReferenceManager>.Instance.superExplosion, new Vector3(pri.transform.position.x, pri.transform.position.y + 5f, pri.transform.position.z), Quaternion.identity).GetComponentInChildren<Explosion>();
-            exp.maxSize = 25f;
-            exp.speed = 10f;
-            hud.aud.pitch = 1f;
-            hud.clickAud.pitch = 1f;
         }
     }
 }

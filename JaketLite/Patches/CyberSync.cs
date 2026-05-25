@@ -9,89 +9,112 @@ using HarmonyLib;
 using Polarite.Multiplayer;
 
 using UnityEngine;
+using UnityEngine.Localization.SmartFormat.Utilities;
 
 namespace Polarite.Patches
 {
-    // jackets
-
     [HarmonyPatch(typeof(EndlessGrid))]
-    internal class CyberSync
+    public class CyberSync
     {
         public static int wave;
 
         public static ArenaPattern current;
 
+        public static List<Deathcatcher> catchers = new List<Deathcatcher>();
+        public static List<EndlessEvent> events = new List<EndlessEvent>();
+        public static List<NetworkEnemy> enemies = new List<NetworkEnemy>();
         public static bool Active => SceneHelper.CurrentScene == "Endless";
+        public static bool LobbyHasPattern
+        {
+            get
+            {
+                return !string.IsNullOrEmpty(NetworkManager.Instance.CurrentLobby.GetData("cyberHe")) && !string.IsNullOrEmpty(NetworkManager.Instance.CurrentLobby.GetData("cyberPr"));
+            }
+        }
+        public static ArenaPattern LobbyPattern
+        {
+            get
+            {
+                return new ArenaPattern
+                {
+                    heights = NetworkManager.Instance.CurrentLobby.GetData("cyberHe"),
+                    prefabs = NetworkManager.Instance.CurrentLobby.GetData("cyberPr")
+                };
+            }
+        }
 
-        public static void Sync(ArenaPattern pat)
+        public static void SyncPattern(ArenaPattern pat)
         {
             PacketWriter w = new PacketWriter();
-            w.WriteInt(EndlessGrid.instance.currentWave);
+            w.WriteInt(EndlessGrid.Instance.currentWave);
             w.WriteString(pat.heights);
             w.WriteString(pat.prefabs);
-            current = pat;
-            wave = EndlessGrid.instance.currentWave;
-            NetworkManager.Instance.BroadcastPacket(PacketType.CyberPattern, w.GetBytes());
 
+            NetworkManager.Instance.CurrentLobby.SetData("cyberHe", pat.heights);
+            NetworkManager.Instance.CurrentLobby.SetData("cyberPr", pat.prefabs);
+            NetworkManager.Instance.CurrentLobby.SetData("cyberWave", EndlessGrid.Instance.currentWave.ToString());
+
+            current = pat;
+            wave = EndlessGrid.Instance.currentWave;
+            NetworkManager.Instance.BroadcastPacket(PacketType.CyberPattern, w.GetBytes());
             // respawn host aswell
             ItePlugin.Ghost(false);
             NetworkEnemy.Flush();
         }
-        public static void Load(ArenaPattern pat, int w)
+        public static void LoadPattern(ArenaPattern pat, int wav)
         {
             NetworkEnemy.Flush();
+            catchers.Clear();
+            events.Clear();
             current = pat;
-            wave = w;
-            EndlessGrid.instance.NextWave();
-            EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);
-            Collider col = EndlessGrid.instance.GetComponent<Collider>();
-            if (col.enabled)
+            wave = wav;
+            Collider trigger = EndlessGrid.Instance.GetComponent<Collider>();
+            if (trigger.enabled)
             {
-                col.enabled = false;
                 GameObject.Find("Everything").transform.Find("Timer").gameObject.SetActive(true);
+                trigger.enabled = false;
                 return;
             }
-            CrowdReactions.instance.React(CrowdReactions.instance.cheerLong);
-            NewMovement i = MonoSingleton<NewMovement>.instance;
-            WeaponCharges.instance.MaxCharges();
-            i.ResetHardDamage();
+            EndlessGrid.Instance.NextWave();
+            EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);
+            CrowdReactions.Instance.React(CrowdReactions.Instance.cheerLong);
+            NewMovement i = MonoSingleton<NewMovement>.Instance;
+            WeaponCharges.Instance.MaxCharges();
             i.exploded = false;
-            i.GetHealth(9999, true);
+            i.ResetHardDamage();
             i.FullStamina();
+            i.GetHealth(454545, true);
             if (NetworkPlayer.selfIsGhost)
             {
                 ItePlugin.Ghost(false);
             }
         }
-        public static bool LastPlayerAlive()
+        public static void BasicLoad(ArenaPattern pat, int wav)
         {
-            int alive = 0;
-            foreach (NetworkPlayer p in NetworkManager.players.Values)
+            current = pat;
+            wave = wav;
+            Collider trigger = EndlessGrid.Instance.GetComponent<Collider>();
+            if (trigger.enabled)
             {
-                if (!p.isGhost)
-                {
-                    alive++;
-                }
+                GameObject.Find("Everything").transform.Find("Timer").gameObject.SetActive(true);
+                trigger.enabled = false;
+                return;
             }
-            return alive <= 1;
+            EndlessGrid.Instance.NextWave();
+            EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);
         }
-        public static int PlayersAlive()
-        {
-            int alive = 0;
-            foreach (NetworkPlayer p in NetworkManager.players.Values)
-            {
-                if (!p.isGhost)
-                {
-                    alive++;
-                }
-            }
-            return alive;
-        }
-
 
         // patch stuff
-
-        [HarmonyPatch("OnTriggerEnter")]
+        [HarmonyPatch(nameof(EndlessGrid.Start))]
+        [HarmonyPostfix]
+        static void LoadPatternOnStart()
+        {
+            if(NetworkManager.ClientAndConnected && Active && LobbyHasPattern && int.TryParse(NetworkManager.Instance.CurrentLobby.GetData("cyberWave"), out int wave))
+            {
+                BasicLoad(LobbyPattern, wave);
+            }
+        }
+        [HarmonyPatch(nameof(EndlessGrid.OnTriggerEnter))]
         [HarmonyPrefix]
         static bool OnlyHost()
         {
@@ -101,11 +124,11 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool LoadPatternPrefix(EndlessGrid __instance, ref ArenaPattern pattern)
         {
-            if (NetworkManager.InLobby && NetworkManager.HostAndConnected)
+            if (NetworkManager.HostAndConnected)
             {
-                Sync(pattern);
+                SyncPattern(pattern);
             }
-            else if (NetworkManager.InLobby)
+            else if (NetworkManager.ClientAndConnected)
             {
                 pattern = current;
                 __instance.currentWave = wave;
@@ -122,34 +145,31 @@ namespace Polarite.Patches
             }
             return true;
         }
-        [HarmonyPatch("Update")]
+        [HarmonyPatch(nameof(EndlessGrid.Update))]
         [HarmonyPrefix]
-        static void UpdateLeft(EndlessGrid __instance, ref ActivateNextWave ___anw)
+        static void UpdateLeft(EndlessGrid __instance)
         {
             if (NetworkManager.ClientAndConnected)
             {
+                if(current == null && __instance.gameObject.activeSelf && Active && LobbyHasPattern && int.TryParse(NetworkManager.Instance.CurrentLobby.GetData("cyberWave"), out int wav))
+                {
+                    BasicLoad(LobbyPattern, wav);
+                }
+                __instance.anw.deadEnemies = 0;
                 __instance.currentWave = wave;
-                ___anw.deadEnemies = -5;
+                __instance.enemiesLeftText.text = enemies.Count.ToString() ?? "";
             }
         }
-        public static void DoubleCheckForSoftlock()
+        [HarmonyPatch(nameof(EndlessGrid.WaveProgressCheck))]
+        [HarmonyPostfix]
+        static void WaveCheck(EndlessGrid __instance)
         {
-            if(!NetworkManager.HostAndConnected)
+            if(NetworkManager.HostAndConnected)
             {
-                return;
-            }
-            int alive;
-            if(NetworkPlayer.selfIsGhost)
-            {
-                alive = PlayersAlive() - 1;
-            }
-            else
-            {
-                alive = PlayersAlive();
-            }
-            if (alive < 1)
-            {
-                ItePlugin.GameOver();
+                float prog = (float)__instance.anw.deadEnemies / (float)(__instance.enemyAmount - __instance.totalDeathcatchers);
+                PacketWriter w = new PacketWriter();
+                w.WriteFloat(prog);
+                NetworkManager.Instance.BroadcastPacket(PacketType.CyberProgress, w.GetBytes());
             }
         }
     }
@@ -164,17 +184,12 @@ namespace Polarite.Patches
             {
                 return true;
             }
-            if (CyberSync.LastPlayerAlive() && NetworkManager.InLobby)
+            if(!ItePlugin.canBecomeGhost)
             {
-                PacketWriter w = new PacketWriter();
-                NetworkManager.Instance.BroadcastPacket(PacketType.CyberGameOver, w.GetBytes());
                 return true;
             }
-            else
-            {
-                ItePlugin.Ghost(true);
-                return !NetworkManager.InLobby;
-            }
+            ItePlugin.Ghost(true);
+            return !NetworkManager.InLobby;
         }
     }
 }

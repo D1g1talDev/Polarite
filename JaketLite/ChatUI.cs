@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 
 using Steamworks;
+using System.Text;
 
 using TMPro;
 
@@ -8,6 +9,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Polarite.Networking;
+using System.Collections.Generic;
+using Polarite.Debugging;
 
 namespace Polarite.Multiplayer
 {
@@ -15,18 +18,24 @@ namespace Polarite.Multiplayer
     {
         public GameObject chatPanel;
         public TMP_InputField inputField;
-        public TextMeshProUGUI chatLog, placeholder;
+        public TextMeshProUGUI chatLog, placeholder, typeIndi;
+        public Image typingIndiBG;
         public ScrollRect scrollRect;
 
         public KeyCode toggleKey = KeyCode.T;
         public int maxMessages = 15;
 
+        private List<ulong> peopleTyping = new List<ulong>();
+        private string overrideTypeIndicatorText = string.Empty;
+
         // unlimited history storage
-        private System.Collections.Generic.List<string> chatMessages = new System.Collections.Generic.List<string>();
-        private System.Text.StringBuilder chatBuilder = new System.Text.StringBuilder();
+        private List<string> chatMessages = new List<string>();
+        private StringBuilder chatBuilder = new StringBuilder();
         private int hardCapMessages = 100000; // very high cap to avoid unbounded memory in pathological cases
 
         public static bool isTyping = false;
+        public static bool isActuallyTyping = false;
+        public static float typeTimer = 0f;
         private Coroutine onlyShowForBit;
 
         public static ChatUI Instance;
@@ -51,137 +60,23 @@ namespace Polarite.Multiplayer
             {
                 ForceOff();
             }
-            GameObject canvasGO = new GameObject("ChatCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            canvasGO.layer = LayerMask.NameToLayer("UI");
 
-            Canvas canvas = canvasGO.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            CanvasScaler scaler = canvasGO.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
-
-            chatPanel = new GameObject("ChatPanel", typeof(RectTransform), typeof(Image));
-            chatPanel.transform.SetParent(canvasGO.transform, false);
-
-            Image panelImage = chatPanel.GetComponent<Image>();
-            panelImage.color = new Color(0f, 0f, 0f, 0.6f);
-
-            RectTransform panelRect = chatPanel.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.05f, 0.05f);
-            panelRect.anchorMax = new Vector2(0.45f, 0.35f);
-            panelRect.offsetMin = Vector2.zero;
-            panelRect.offsetMax = Vector2.zero;
-
-            GameObject scrollGO = new GameObject("ScrollView", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
-            scrollGO.transform.SetParent(chatPanel.transform, false);
-            scrollGO.GetComponent<Image>().color = new Color(0, 0, 0, 0.25f);
-
-            scrollRect = scrollGO.GetComponent<ScrollRect>();
-            scrollRect.horizontal = false;
-            scrollRect.vertical = true;
-            // slightly faster scrolling
-            scrollRect.scrollSensitivity = 30f;
-            RectTransform scrollRectTransform = scrollGO.GetComponent<RectTransform>();
-            scrollRectTransform.anchorMin = new Vector2(0f, 0.2f);
-            scrollRectTransform.anchorMax = new Vector2(1f, 1f);
-            scrollRectTransform.offsetMin = Vector2.zero;
-            scrollRectTransform.offsetMax = Vector2.zero;
-
-            GameObject viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Mask), typeof(Image));
-            viewport.transform.SetParent(scrollGO.transform, false);
-
-            RectTransform viewportRect = viewport.GetComponent<RectTransform>();
-            viewportRect.anchorMin = Vector2.zero;
-            viewportRect.anchorMax = Vector2.one;
-            viewportRect.offsetMin = Vector2.zero;
-            viewportRect.offsetMax = Vector2.zero;
-
-            Mask mask = viewport.GetComponent<Mask>();
-            mask.showMaskGraphic = false;
-
-            viewport.GetComponent<Image>().color = new Color(1, 1, 1, 0.01f);
-
-            scrollRect.viewport = viewportRect;
-
-            GameObject textGO = new GameObject("ChatLog", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(ContentSizeFitter));
-            textGO.transform.SetParent(viewport.transform, false);
-
-            chatLog = textGO.GetComponent<TextMeshProUGUI>();
-            chatLog.fontSize = 24;
-            chatLog.enableWordWrapping = true;
-            chatLog.alignment = TextAlignmentOptions.TopLeft;
-            chatLog.text = "";
-            chatLog.font = OptionsManager.Instance.optionsMenu.transform.GetComponentInChildren<TextMeshProUGUI>().font;
-
-            RectTransform textRect = textGO.GetComponent<RectTransform>();
-            textRect.anchorMin = new Vector2(0f, 1f);
-            textRect.anchorMax = new Vector2(1f, 1f);
-            textRect.pivot = new Vector2(0f, 1f);
-            textRect.anchoredPosition = Vector2.zero;
-            textRect.sizeDelta = new Vector2(0, 0);
-
-            ContentSizeFitter fitter = textGO.GetComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-
-            scrollRect.content = textRect;
-
-            GameObject inputGO = new GameObject("InputField", typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
-            inputGO.transform.SetParent(chatPanel.transform, false);
-
-            RectTransform inputRect = inputGO.GetComponent<RectTransform>();
-            inputRect.anchorMin = new Vector2(0f, 0f);
-            inputRect.anchorMax = new Vector2(1f, 0.2f);
-            inputRect.offsetMin = new Vector2(5f, 5f);
-            inputRect.offsetMax = new Vector2(-5f, -5f);
-
-            Image inputBG = inputGO.GetComponent<Image>();
-            inputBG.color = new Color(0.2f, 0.2f, 0.2f, 0.9f);
-
-            inputField = inputGO.GetComponent<TMP_InputField>();
-            inputField.targetGraphic = inputBG;
-
-            GameObject inputTextGO = new GameObject("InputText", typeof(RectTransform), typeof(TextMeshProUGUI));
-            inputTextGO.transform.SetParent(inputGO.transform, false);
-
-            TextMeshProUGUI inputText = inputTextGO.GetComponent<TextMeshProUGUI>();
-            inputText.fontSize = 24;
-            inputText.alignment = TextAlignmentOptions.Left;
-            inputText.text = "";
-            inputText.font = OptionsManager.Instance.optionsMenu.transform.GetComponentInChildren<TextMeshProUGUI>().font;
-
-            RectTransform inputTextRect = inputTextGO.GetComponent<RectTransform>();
-            inputTextRect.anchorMin = Vector2.zero;
-            inputTextRect.anchorMax = Vector2.one;
-            inputTextRect.offsetMin = new Vector2(10f, 0f);
-            inputTextRect.offsetMax = new Vector2(-10f, 0f);
-
-            GameObject placeholderGO = new GameObject("Placeholder", typeof(RectTransform), typeof(TextMeshProUGUI));
-            placeholderGO.transform.SetParent(inputGO.transform, false);
-
-            TextMeshProUGUI placeholderText = placeholderGO.GetComponent<TextMeshProUGUI>();
-            placeholderText.fontSize = 24;
-            placeholderText.alignment = TextAlignmentOptions.Left;
-            placeholderText.text = "(LMB) or (ESC) to close";
-            placeholderText.color = Color.gray;
-            placeholderText.fontStyle = FontStyles.Italic;
-            placeholderText.font = OptionsManager.Instance.optionsMenu.transform.GetComponentInChildren<TextMeshProUGUI>().font;
-            placeholder = placeholderText;
-
-            RectTransform placeholderRect = placeholderGO.GetComponent<RectTransform>();
-            placeholderRect.anchorMin = Vector2.zero;
-            placeholderRect.anchorMax = Vector2.one;
-            placeholderRect.offsetMin = new Vector2(10f, 0f);
-            placeholderRect.offsetMax = new Vector2(-10f, 0f);
-
-            inputField.textComponent = inputText;
-            inputField.placeholder = placeholderText;
-
-
-            chatPanel.SetActive(false);
+            GameObject canvas = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("ChatCanvas"));
+            try
+            {
+                chatPanel = canvas.transform.Find("ChatPanel").gameObject;
+                inputField = chatPanel.GetComponentInChildren<TMP_InputField>();
+                scrollRect = chatPanel.GetComponentInChildren<ScrollRect>();
+                placeholder = inputField.placeholder.GetComponent<TextMeshProUGUI>();
+                typingIndiBG = chatPanel.transform.Find("TypingIndiBG").GetComponent<Image>();
+                typeIndi = typingIndiBG.GetComponentInChildren<TextMeshProUGUI>();
+                chatLog = scrollRect.transform.Find("Viewport").GetComponentInChildren<TextMeshProUGUI>();
+            }
+            catch (System.Exception ex)
+            {
+                Logs.Error("Failed to create chat canvas! " + ex.Message);
+            }
+            Toggle(false);
 
             if (inputField != null)
             {
@@ -192,37 +87,55 @@ namespace Polarite.Multiplayer
                     if (Net.Dev(NetworkManager.Id))
                         author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
                     else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
-                        author = $"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+                        author = $"<color=#00F2FF>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
                     else
                         author = $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
 
                     OnSubmitMessage(author, true, TMPUtils.StripTMP(s));
+                    StopTyping();
                 });
-                inputField.onDeselect.AddListener((string s) => ToggleChat());
                 inputField.onValueChanged.AddListener((string s) =>
                 {
                     bool[] value = new bool[2]
                     {
-            true,
-            false
+                        true,
+                        false
                     };
                     CheatsController.Instance.PlayToggleSound(value[Random.Range(0, value.Length)]);
+                    FlagIsTyping();
                 });
-                DontDestroyOnLoad(canvasGO);
+                DontDestroyOnLoad(canvas);
             }
+        }
+        public void Toggle(bool value)
+        {
+            scrollRect.gameObject.SetActive(value);
+            inputField.gameObject.SetActive(value);
+            chatPanel.GetComponent<Image>().enabled = value;
+        }
+        public void FlagIsTyping()
+        {
+            typeTimer = 5f;
+            isActuallyTyping = true;
+        }
+        public void StopTyping()
+        {
+            typeTimer = 0f;
+            isActuallyTyping = false;
         }
 
         void Update()
         {
             toggleKey = ItePlugin.buttonToChat.value;
-            placeholder.text = (!isTyping) ? "Press " + ItePlugin.buttonToChat.value.ToString() + " to chat" : "(LMB) or (ESC) to close";
+            placeholder.text = (!isTyping) ? "Press " + GetKeyName(toggleKey) + " to chat" : $"Pause to exit chat";
             if (Input.GetKeyDown(toggleKey) && !isTyping)
             {
                 ToggleChat();
             }
-            if(Input.GetKeyDown(KeyCode.Escape) && isTyping)
+            if(MonoSingleton<OptionsManager>.Instance.paused && isTyping)
             {
-                ForceOff();
+                ToggleChat();
+                OptionsManager.Instance.UnPause();
             }
             if(isTyping && !inputField.isFocused)
             {
@@ -235,6 +148,65 @@ namespace Polarite.Multiplayer
                     StopCoroutine(onlyShowForBit);
                 }
             }
+
+            if(typeIndi != null)
+            {
+                HandleTypeIndicator();
+            }
+        }
+        public List<ulong> GetTypingPlayers()
+        {
+            List<ulong> result = new List<ulong>();
+            foreach(var plr in NetworkManager.players.Values)
+            {
+                if(plr.typing)
+                {
+                    result.Add(plr.SteamId);
+                }
+            }
+            return result;
+        }
+        public void HandleTypeIndicator()
+        {
+            typeTimer -= Time.deltaTime;
+            if(typeTimer > 0f)
+            {
+                isActuallyTyping = true;
+            }
+            else
+            {
+                isActuallyTyping = false;
+                typeTimer = 0f;
+            }
+            peopleTyping = GetTypingPlayers();
+            if(overrideTypeIndicatorText != string.Empty)
+            {
+                typeIndi.text = overrideTypeIndicatorText;
+                typingIndiBG.enabled = true;
+                return;
+            }
+            if(peopleTyping.Count < 1)
+            {
+                typeIndi.text = string.Empty;
+                typingIndiBG.enabled = false;
+                return;
+            }
+            typingIndiBG.enabled = true;
+            switch(peopleTyping.Count)
+            {
+                case 1:
+                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0])} is typing...";
+                    break;
+                case 2:
+                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0])} and {NetworkManager.GetNameOfId(peopleTyping[1])} are typing...";
+                    break;
+                case 3:
+                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0])}, {NetworkManager.GetNameOfId(peopleTyping[1])}, {NetworkManager.GetNameOfId(peopleTyping[2])} are typing...";
+                    break;
+                default:
+                    typeIndi.text = $"{peopleTyping.Count} players are typing...";
+                    break; 
+            }
         }
         public void ForceOff()
         {
@@ -242,11 +214,13 @@ namespace Polarite.Multiplayer
             {
                 return;
             }
-            chatPanel.SetActive(false);
+            Toggle(false);
             ItePlugin.CustomTogglePlayer(true);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             isTyping = false;
+            StopTyping();
+            inputField.DeactivateInputField();
         }
 
         void ToggleChat()
@@ -268,13 +242,16 @@ namespace Polarite.Multiplayer
                 ItePlugin.CustomTogglePlayer(false);
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-                chatPanel.SetActive(true);
+                Toggle(true);
             }
             else
             {
+                inputField.DeactivateInputField();
+                StopTyping();
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
                 ItePlugin.CustomTogglePlayer(true);
+                ShowUIForBit(5f);
             }
         }
 
@@ -304,19 +281,21 @@ namespace Polarite.Multiplayer
             }
 
             // message is + user
-            if (string.IsNullOrWhiteSpace(realMsg) || !System.Text.RegularExpressions.Regex.IsMatch(realMsg, "[A-Za-z]"))
+            if (string.IsNullOrWhiteSpace(realMsg))
             {
                 return;
             }
-
             if (network)
             {
                 PacketWriter w = new PacketWriter();
                 w.WriteString(realMsg);
                 w.WriteBool(tts);
                 NetworkManager.Instance.BroadcastPacket(PacketType.ChatMsg, w.GetBytes());
+                if(ItePlugin.chatNoise.value)
+                {
+                    ItePlugin.SpawnSound(ItePlugin.message, 1f, CameraController.Instance.transform, 1f);
+                }
             }
-
             if (onlyShowForBit != null)
             {
                 StopCoroutine(onlyShowForBit);
@@ -353,14 +332,12 @@ namespace Polarite.Multiplayer
 
             if (scrollRect != null)
             {
-                StartCoroutine(ScrollToBottomNextFrame());
+                StartCoroutine(ScrollAfterFrame());
             }
         }
-
-        IEnumerator ScrollToBottomNextFrame()
+        public IEnumerator ScrollAfterFrame()
         {
             yield return null;
-            Canvas.ForceUpdateCanvases();
             scrollRect.verticalNormalizedPosition = 0f;
         }
         public void ShowUIForBit(float time = 10f)
@@ -373,9 +350,23 @@ namespace Polarite.Multiplayer
         }
         public IEnumerator OnlyShowUIForSecond(float time = 10f)
         {
-            chatPanel.SetActive(true);
+            Toggle(true);
             yield return new WaitForSecondsRealtime(time);
-            chatPanel.SetActive(false);
+            Toggle(false);
+        }
+
+        /// <summary>
+        /// A way easier way to send a message only the player sees to the chat
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="displayTime">The time it takes for the UI to hide itself after this message</param>
+        public static void Message(string msg, float displayTime)
+        {
+            if (Instance != null)
+            {
+                Instance.OnSubmitMessage(msg, false, msg, tts: false);
+                Instance.ShowUIForBit(displayTime);
+            }
         }
     }
 }

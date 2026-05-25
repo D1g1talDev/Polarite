@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using Polarite.Multiplayer;
 using UnityEngine.UI;
+using Polarite.Networking;
 
 namespace Polarite
 {
@@ -12,7 +13,7 @@ namespace Polarite
         public TextMeshProUGUI hpText;
         public Transform background;
         public Transform mainLookAt;
-        public Transform hostIcon;
+        public Transform hostIcon, devIcon;
         public Transform player;
 
         public string playerName;
@@ -52,6 +53,7 @@ namespace Polarite
             mainLookAt = transform.Find("Canvas/LookAt");
             background = mainLookAt.Find("Image");
             hostIcon = mainLookAt.Find("IsHostBG");
+            devIcon = mainLookAt.Find("IsDevBG");
             nameText = mainLookAt.Find("Text (TMP)").GetComponent<TextMeshProUGUI>();
             hpText = mainLookAt.Find("Text (TMP) (1)").GetComponent<TextMeshProUGUI>();
             playerName = name;
@@ -112,16 +114,17 @@ namespace Polarite
             Transform cam = Camera.current.transform;
             Vector3 dir = (mainLookAt.transform.position - cam.position).normalized;
             mainLookAt.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-            // imagine being called a dummy :steammocking:
             nameText.text = (!dummy) ? playerName : "Dummy";
 
             bool isHost = false;
+            bool isDev = Net.Dev(id);
             if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0)
             {
                 try { isHost = NetworkManager.Instance.CurrentLobby.Owner.Id == id; } catch { isHost = false; }
             }
             hostIcon.gameObject.SetActive(isHost);
-            nameText.color = isHost ? Color.cyan : Color.white;
+            devIcon.gameObject.SetActive(isDev);
+            nameText.color = isDev ? Color.green : isHost ? Color.cyan : Color.white;
 
             if (hpText != null)
             {

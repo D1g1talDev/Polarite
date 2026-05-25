@@ -1,4 +1,5 @@
-﻿using Polarite.Multiplayer;
+﻿using Polarite.Debugging;
+using Polarite.Multiplayer;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -15,13 +16,15 @@ using UnityEngine.UI;
 
 namespace Polarite.Web
 {
+    // polarite website by Xulfur
+
     public static class XServers
     {
         public static bool internet;
         public static bool canShowNotif = true;
         public static void HasInternet(Action<bool> onComplete)
         {
-            ItePlugin.Instance.StartCoroutine(ItePlugin.Instance.GooglePing("8.8.8.8", onComplete));
+            ItePlugin.Instance.StartCoroutine(ItePlugin.Instance.GooglePing(onComplete));
         }
         /// <summary>
         /// order in action: pfp, name, message
@@ -39,10 +42,24 @@ namespace Polarite.Web
                 img.sprite = spr;
             }, url));
         }
+        public static void VisualNotif(string msg, bool showForever)
+        {
+            if (!canShowNotif)
+            {
+                return;
+            }
+            GlobalNotification notif = new GlobalNotification();
+            notif.pfp = "polaricon";
+            notif.type = "visual";
+            notif.message = msg;
+            notif.userreference = "0";
+            notif.user = "Polarite";
+            ItePlugin.Instance.ShowNotif(notif, showForever);
+        }
     }
     public class GlobalNotificationListener : MonoBehaviour
     {
-        public string link = "https://polarite.xulfur.me/global";
+        public string link = "https://polaritemod.com/global";
         public HttpClient client = new HttpClient();
         public bool listening = false;
         public ConcurrentQueue<GlobalNotification> notifications = new ConcurrentQueue<GlobalNotification>();
@@ -54,6 +71,7 @@ namespace Polarite.Web
         }
         public async Task Listen()
         {
+            Logs.Info("Started listening for global notifications", this);
             HttpClient client = new HttpClient();
             while (listening)
             {
@@ -79,10 +97,10 @@ namespace Polarite.Web
                 }
                 catch (Exception ex)
                 {
-                    ItePlugin.LogDebug($"Error while listening for global notifications: {ex.Message}");
+                    Logs.Error($"Error while listening for global notifications: {ex.Message}", this);
                 }
                 response?.Dispose();
-                await Task.Delay(2000);
+                await Task.Delay(5000);
             }
         }
         public void Update()

@@ -58,6 +58,8 @@ namespace Polarite
             {
                 NextPlayer();
             }
+            // prevent a weird visual bug where the weapon appears in the spectator cam
+            GunControl.Instance.NoWeapon();
         }
 
 

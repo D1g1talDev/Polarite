@@ -8,6 +8,7 @@ using Polarite.Multiplayer;
 
 using HarmonyLib;
 using UnityEngine;
+using Polarite.Networking.Skins;
 
 namespace Polarite.Patches
 {
@@ -34,6 +35,16 @@ namespace Polarite.Patches
                 {
                     NetworkPlayer.LocalPlayer.SetWeapon(alt, index);
                 }
+
+                if(index == 0)
+                {
+                    Transform arm = __instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
+                    if (arm != null)
+                    {
+                        SkinnedMeshRenderer r = arm.GetComponent<SkinnedMeshRenderer>();
+                        SkinManagerV2.CustomColor(r, ItePlugin.currentSkin.Base, ItePlugin.currentSkin.Light, ItePlugin.currentSkin.Metal, ItePlugin.currentSkin.Shinyness, MaskConsts.RIGHT_ARM_MASK, "RArm" + NetworkManager.Id, 0, true);
+                    }
+                }
             }
         }
         [HarmonyPatch(nameof(GunControl.ForceWeapon))]
@@ -56,10 +67,29 @@ namespace Polarite.Patches
                 {
                     NetworkPlayer.LocalPlayer.SetWeapon(alt, index);
                 }
+
+                if (index == 0)
+                {
+                    Transform arm = __instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
+                    if (arm != null)
+                    {
+                        SkinnedMeshRenderer r = arm.GetComponent<SkinnedMeshRenderer>();
+                        SkinManagerV2.CustomColor(r, ItePlugin.currentSkin.Base, ItePlugin.currentSkin.Light, ItePlugin.currentSkin.Metal, ItePlugin.currentSkin.Shinyness, MaskConsts.RIGHT_ARM_MASK, "RArm" + NetworkManager.Id, 0, true);
+                    }
+                }
             }
         }
-        static bool AltWeapon(GameObject obj)
+        public static bool AltWeapon(GameObject obj)
         {
+            if(GunControl.Instance == null)
+            {
+                return false;
+            }
+            if(GunControl.Instance.currentWeapon == null)
+            {
+                return false;
+            }
+
             if(obj.TryGetComponent<Revolver>(out var rev))
             {
                 return rev.altVersion;

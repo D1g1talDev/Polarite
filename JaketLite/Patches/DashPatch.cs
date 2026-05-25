@@ -13,20 +13,17 @@ namespace Polarite.Patches
     [HarmonyPatch(typeof(NewMovement))]
     internal class DashPatch
     {
-        [HarmonyPatch("Dodge")]
+        [HarmonyPatch("TryDash")]
         [HarmonyPostfix]
-        public static void Postfix()
+        public static void Postfix(NewMovement __instance)
         {
-            /*
-            if(NetworkManager.InLobby && !MonoSingleton<InputManager>.Instance.InputSource.Dodge.WasPerformedThisFrame)
+            if(__instance.boostCharge > 100f)
             {
-                NetworkManager.Instance.BroadcastPacket(new NetPacket
-                {
-                    type = "dash",
-                    name = "d"
-                });
+                PacketWriter w = new PacketWriter();
+                w.WriteVector3(__instance.inputDir);
+                w.WriteVector3(__instance.transform.position);
+                NetworkManager.Instance.BroadcastPacket(PacketType.Dash, w.GetBytes());
             }
-            */
         }
     }
 }

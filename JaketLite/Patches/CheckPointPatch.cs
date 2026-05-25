@@ -45,18 +45,59 @@ namespace Polarite.Patches
             {
                 __instance.onRestart.Invoke();
                 __instance.toActivate.SetActive(true);
-                NewMovement m = MonoSingleton<NewMovement>.Instance;
+                NewMovement nm = __instance.nm;
+                GameObject player = __instance.player;
                 PlatformerMovement p = MonoSingleton<PlatformerMovement>.Instance;
                 if (MonoSingleton<PlayerTracker>.Instance.playerType == PlayerType.FPS)
                 {
-                    m.transform.position = __instance.transform.position + Vector3.up * 1.25f;
-                    float num = __instance.transform.rotation.eulerAngles.y + 0.01f + __instance.additionalSpawnRotation;
-                    if (m != null && m.transform.parent && m.transform.parent.gameObject.CompareTag("Moving"))
+                    player.transform.position = __instance.transform.position + __instance.transform.up * 1.25f;
+                    Rigidbody component = player.GetComponent<Rigidbody>();
+                    component.velocity = Vector3.zero;
+                    if (nm == null)
                     {
-                        num -= m.transform.parent.rotation.eulerAngles.y;
+                        nm = MonoSingleton<NewMovement>.Instance;
                     }
-                    m.cc.ResetCamera(num);
-                    m.Respawn();
+
+                    CameraController cc = nm.cc;
+                    nm.rb.SetCustomGravityMode(useCustomGravity: false);
+                    cc.gravityRotation = Quaternion.identity;
+                    cc.gravityVec = Physics.gravity.normalized;
+                    cc.rotationOffset = Quaternion.identity;
+                    cc.transitionRotationZ = 0f;
+                    cc.transitionRotationZSmooth = 0f;
+                    cc.tiltRotationZ = 0f;
+                    cc.tiltRotationZSmooth = 0f;
+                    float num = __instance.transform.rotation.eulerAngles.y + 0.01f + __instance.additionalSpawnRotation;
+                    if ((bool)player && (bool)player.transform.parent && player.transform.parent.gameObject.CompareTag("Moving"))
+                    {
+                        num -= player.transform.parent.rotation.eulerAngles.y;
+                    }
+
+                    if (MonoSingleton<PlayerTracker>.Instance.playerType == PlayerType.FPS)
+                    {
+                        cc.ResetCamera(num);
+                    }
+                    else
+                    {
+                        MonoSingleton<PlatformerMovement>.Instance.ResetCamera(num);
+                    }
+
+                    cc.ApplyRotations();
+                    nm.rb.SetCustomGravity(__instance.gravity);
+                    nm.rb.SetCustomGravityMode(useCustomGravity: true);
+                    nm.gc.heavyFall = false;
+                    cc.Transform(Matrix4x4.identity, __instance.gravity);
+                    MonoSingleton<CameraController>.Instance.activated = true;
+                    component.position = __instance.transform.position + __instance.transform.up * 1.25f;
+                    if (!nm.enabled)
+                    {
+                        nm.enabled = true;
+                    }
+
+                    nm.Respawn();
+                    nm.GetHealth(0, silent: true);
+                    nm.cc.StopShake();
+                    nm.ActivatePlayer();
                 }
                 else
                 {

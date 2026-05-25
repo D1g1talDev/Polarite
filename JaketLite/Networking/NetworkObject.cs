@@ -3,6 +3,8 @@
 using UnityEngine;
 using Polarite.Networking;
 using UnityEngine.ProBuilder.MeshOperations;
+using Polarite.Debugging;
+using System.Collections;
 
 namespace Polarite
 {
@@ -10,8 +12,13 @@ namespace Polarite
     {
         public string id;
         public string simpleId;
+        public int index;
         public ulong owner = 0;
-        public bool syncTransform = true;
+
+        protected bool syncTransform = true;
+        protected bool isCleaningUp = false;
+        protected bool alive = true;
+
         public string ID
         {
             get => id;
@@ -30,51 +37,72 @@ namespace Polarite
                 if (string.IsNullOrEmpty(id))
                     return string.Empty;
 
-                int index = id.IndexOf(':');
-                return index == -1 ? id : id.Substring(0, index);
+                return Net.GetSimpleId(id);
             }
         }
-
+        public int Index
+        {
+            get => index;
+        }
         public ulong Owner
         {
             get => owner;
             set => owner = value;
         }
-
+        public bool Alive
+        {
+            get => alive;
+        }
+        public bool Cleanup
+        {
+            get => isCleaningUp;
+        }
+        public bool TransformSynced
+        {
+            get => syncTransform;
+        }
+        public bool Owns
+        {
+            get => Net.IsOwner(this);
+        }
         public Vector3 TargetPosition { get; set; }
         public Quaternion TargetRotation { get; set; }
         public Vector3 LastPosition { get; set; }
         public Quaternion LastRotation { get; set; }
 
         protected float interpolationTime = 0.1f;
-
-        private float interpTimer = 0f;
+        protected float interpTimer = 0f;
 
         public virtual void Start()
         {
-            /*
             if(!Net.List.Contains(this))
             {
                 Net.List.Add(this);
+                index = Net.List.IndexOf(this);
             }
             LastPosition = transform.position;
             LastRotation = transform.rotation;
             TargetPosition = transform.position;
             TargetRotation = transform.rotation;
 
+            if(string.IsNullOrEmpty(ID))
+            {
+                ID = SceneObjectCache.GetScenePath(gameObject);
+            }
+
             Transfer(owner);
-            */
         }
         public virtual void OnDestroy()
         {
+            alive = false;
+            Net.List.AddBlacklist(id);
             HandDestroy();
         }
         public virtual void HandDestroy()
         {
-            /*
             if (Net.List.Contains(this))
             {
-                Net.List.Remove(id);
+                Net.List.Remove(this, true);
             }
             if (Net.IsOwner(this))
             {
@@ -83,7 +111,6 @@ namespace Polarite
                 w.WriteString(id);
                 Send(w, PacketType.ObjectRemoved);
             }
-            */
         }
 
         public virtual void Transfer(ulong newOwner)
@@ -99,17 +126,15 @@ namespace Polarite
         {
             owner = newOwner;
         }
-        public virtual void SendState(PacketWriter writer)
+        public virtual void SendState(PacketWriter writer, PacketType type)
         {
             if (!Net.IsOwner(this))
+                return;
+            if (!alive)
                 return;
 
             Vector3 pos = transform.position;
             Quaternion rot = transform.rotation;
-
-            if (Vector3.SqrMagnitude(pos - LastPosition) < 0.0025f &&
-                Quaternion.Angle(rot, LastRotation) < 2f)
-                return;
 
             LastPosition = pos;
             LastRotation = rot;
@@ -118,7 +143,7 @@ namespace Polarite
             writer.WriteVector3(pos);
             writer.WriteQuaternion(rot);
 
-            NetworkManager.Instance.BroadcastPacket(PacketType.ObjectState, writer.GetBytes());
+            NetworkManager.Instance.BroadcastPacket(type, writer.GetBytes(), sendtype: SendTypeConsts.ST_OBJSTATE);
         }
 
 
@@ -139,10 +164,11 @@ namespace Polarite
             }
         }
 
-        public virtual void State(Vector3 pos, BinaryPacketReader reader)
+        public virtual void State(Vector3 pos, Quaternion rot, BinaryPacketReader reader)
         {
-            Quaternion rot = reader.ReadQuaternion();
-            if(syncTransform)
+            if (!alive) return;
+
+            if (syncTransform)
             {
                 LastPosition = TargetPosition;
                 LastRotation = TargetRotation;
@@ -151,9 +177,23 @@ namespace Polarite
                 interpTimer = 0f;
             }
         }
+        public void PrepDestroy()
+        {
+            Logs.Info($"Preparing to destroy: {simpleId}", name: "NetworkObject");
+            StartCoroutine(DestroyCoro());
+        }
+        private IEnumerator DestroyCoro()
+        {
+            isCleaningUp = true;
+            yield return new WaitForSeconds(0.5f);
+            isCleaningUp = false;
+            Destroy(gameObject);
+        }
         public virtual void Update()
         {
             if (owner == 0)
+                return;
+            if (!alive)
                 return;
 
             if (syncTransform && !Net.IsOwner(this))
@@ -162,6 +202,12 @@ namespace Polarite
                 float t = interpTimer / interpolationTime;
 
                 if (t >= 1f)
+                {
+                    transform.SetPositionAndRotation(TargetPosition, TargetRotation);
+                    return;
+                }
+
+                if(Vector3.Distance(transform.position, TargetPosition) >= 10f)
                 {
                     transform.SetPositionAndRotation(TargetPosition, TargetRotation);
                     return;

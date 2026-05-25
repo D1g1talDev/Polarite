@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Polarite.Networking.Skins;
+using System;
 using System.Text;
 
 using UnityEngine;
@@ -33,6 +34,13 @@ public class BinaryPacketReader
         if (index + 4 > buffer.Length) throw new IndexOutOfRangeException("Attempted to read past end of buffer");
         int value = BitConverter.ToInt32(buffer, index);
         index += 4;
+        return value;
+    }
+    public ushort ReadUShort()
+    {
+        if (index + 2 > buffer.Length) throw new IndexOutOfRangeException("Attempted to read past end of buffer");
+        ushort value = BitConverter.ToUInt16(buffer, index);
+        index += 2;
         return value;
     }
 
@@ -76,6 +84,46 @@ public class BinaryPacketReader
         float z = ReadFloat();
         float w = ReadFloat();
         return new Quaternion(x, y, z, w);
+    }
+
+    public Color ReadColor()
+    {
+        float r = ReadFloat();
+        float g = ReadFloat();
+        float b = ReadFloat();
+        float a = ReadFloat();
+        return new Color(r, g, b, a);
+    }
+    public Texture2D ReadTexture2D()
+    {
+        int width = ReadInt();
+        int height = ReadInt();
+        byte[] data = ReadBytes();
+        Texture2D tex = new Texture2D(width, height);
+        tex.LoadImage(data);
+        return tex;
+    }
+    public Skin ReadSkin()
+    {
+        Color baseColor = ReadColor();
+        Color lightColor = ReadColor();
+        Color wingLightColor = ReadColor();
+        Color metal = ReadColor();
+        float shiny = ReadFloat();
+        ulong id = ReadULong();
+        string namePlate = ReadString();
+        Color namePlateColor = ReadColor();
+        return new Skin()
+        {
+            Base = baseColor,
+            Light = lightColor,
+            WingLight = wingLightColor,
+            Metal = metal,
+            Shinyness = shiny,
+            ID = id,
+            Nameplate = namePlate,
+            NameplateColor = namePlateColor
+        };
     }
 
     public int[] ReadIntArray()
