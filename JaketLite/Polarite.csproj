@@ -521,6 +521,8 @@
     <Compile Include="Networking\Types\NetworkSkull.cs" />
     <Compile Include="Patches\DualWieldSandboxBan.cs" />
     <Compile Include="Patches\FistPatch.cs" />
+    <Compile Include="Patches\ItemPatch.cs" />
+    <Compile Include="Patches\LevelStartPatch.cs" />
     <Compile Include="Patches\SaveFilePatches.cs" />
     <Compile Include="Ragdoll.cs" />
     <Compile Include="Networking\PacketReader.cs" />

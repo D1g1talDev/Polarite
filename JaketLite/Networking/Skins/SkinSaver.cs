@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System.IO;
 using Polarite.Debugging;
+using System.Net.Http.Headers;
 
 namespace Polarite.Networking.Skins
 {
@@ -26,11 +27,11 @@ namespace Polarite.Networking.Skins
         public ButtonField deleteButton;
         public SaveableSkin save;
 
-        public SkinPanel(SaveableSkin save)
+        public SkinPanel(SaveableSkin save, string folder, ConfigPanel dir)
         {
             save.name = SkinSaver.MakeValidFileName(save.name);
             int randomSuffix = UnityEngine.Random.Range(0, int.MaxValue);
-            panel = new ConfigPanel(ItePlugin.savePanel, save.name, $"skin.{save.name}.{randomSuffix}");
+            panel = new ConfigPanel(dir, save.name, $"skin.{save.name}.{randomSuffix}");
             loadHeader = new ConfigHeader(panel, "<color=red>This will <b>overwrite</b> your <b>custom skin configuration!</b></color>");
             loadButton = new ButtonField(panel, "Load", panel.guid + ".load." + randomSuffix);
             deleteButton = new ButtonField(panel, "Delete", panel.guid + ".del." + randomSuffix);
@@ -39,7 +40,7 @@ namespace Polarite.Networking.Skins
             deleteButton.onClick += () =>
             {
                 panel.hidden = true;
-                SkinSaver.DeleteSkin(save.name);
+                SkinSaver.DeleteSkin(save.name, folder);
             };
             this.save = save;
         }
@@ -47,8 +48,11 @@ namespace Polarite.Networking.Skins
     public static class SkinSaver
     {
         public static string Path = Application.persistentDataPath + "/Skins/";
+        public static string SkinSavePath = Application.persistentDataPath + "/Skins/Saved/";
+        public static string SkinPresetPath = Application.persistentDataPath + "/Skins/Presets/";
         public static Dictionary<string, SaveableSkin> Skins = new Dictionary<string, SaveableSkin>();
         public static Dictionary<string, SkinPanel> Panels = new Dictionary<string, SkinPanel>();
+        public static Dictionary<string, ConfigPanel> FolderPanels = new Dictionary<string, ConfigPanel>();
 
         public static SaveableSkin CurrentSkin;
 
@@ -59,7 +63,12 @@ namespace Polarite.Networking.Skins
             {
                 pan.panel.hidden = true;
             }
+            foreach(var fol in FolderPanels.Values)
+            {
+                fol.hidden = true;
+            }
             Panels.Clear();
+            FolderPanels.Clear();
         }
         public static string MakeValidFileName(string name)
         {
@@ -76,16 +85,55 @@ namespace Polarite.Networking.Skins
             {
                 Directory.CreateDirectory(Path);
             }
+            if(!Directory.Exists(SkinSavePath))
+            {
+                Directory.CreateDirectory(SkinSavePath);
+            }
+            if (!Directory.Exists(SkinPresetPath))
+            {
+                Directory.CreateDirectory(SkinPresetPath);
+                InitPresets();
+            }
         }
-        public static void MakePanel(string name)
+        public static void InitPresets()
+        {
+            string basePresetPath = System.IO.Path.Combine(Directory.GetParent(ItePlugin.Instance.Info.Location).FullName, "skinpresets/");
+            if(Directory.Exists(basePresetPath))
+            {
+                foreach(var file in Directory.GetFiles(basePresetPath, "*.polarskin"))
+                {
+                    File.Copy(file, SkinPresetPath + System.IO.Path.GetFileName(file));
+                    File.Delete(file);
+                }
+                Directory.Delete(basePresetPath);
+            }
+            else
+            {
+                InitPresets2();
+            }
+        }
+        public static void InitPresets2()
+        {
+            foreach (var file in Directory.GetFiles(Directory.GetParent(ItePlugin.Instance.Info.Location).FullName, "*.polarskin"))
+            {
+                File.Copy(file, SkinPresetPath + System.IO.Path.GetFileName(file));
+                File.Delete(file);
+            }
+        }
+        public static void MakePanel(string name, string folderPath, string parentFolder = "")
         {
             string validName = MakeValidFileName(name);
+            string folderName = MakeValidFileName(System.IO.Path.GetFileName(folderPath));
+            if (!FolderPanels.ContainsKey(folderName) && folderPath != Path)
+            {
+                FolderPanels[folderName] = new ConfigPanel(string.IsNullOrEmpty(parentFolder) ? ItePlugin.savePanel : FolderPanels[parentFolder], folderName, $"folder.{folderName}.{UnityEngine.Random.Range(0, int.MaxValue)}");
+            }
             if (!Panels.ContainsKey(validName))
             {
-                SaveableSkin readData = ReadSkin(validName);
+                SaveableSkin readData = ReadSkin(validName, folderPath);
                 // incase it's a safe skin
                 validName = MakeValidFileName(readData.name);
-                SkinPanel panel = new SkinPanel(readData);
+                SkinPanel panel = new SkinPanel(readData, folderPath + "/", (folderPath != Path) ? FolderPanels[folderName] : ItePlugin.savePanel);
                 Panels[validName] = panel;
             }
         }
@@ -104,20 +152,21 @@ namespace Polarite.Networking.Skins
             // use a packet writer since it does bytes aswell
             PacketWriter writer = new PacketWriter();
             writer.WriteSkin(save.data);
-            File.WriteAllBytes(Path + validName + ".polarskin", writer.GetBytes());
+            File.WriteAllBytes(SkinSavePath + validName + ".polarskin", writer.GetBytes());
             if(!secret)
             {
-                MakePanel(validName);
-                Application.OpenURL(Path);
+                MakePanel(validName, Application.persistentDataPath + "/Skins/Saved");
+                Application.OpenURL(SkinSavePath);
             }
         }
-        public static SaveableSkin ReadSkin(string name)
+        public static SaveableSkin ReadSkin(string name, string pathA)
         {
-            if (File.Exists(Path + name + ".polarskin"))
+            string path = pathA + "/";
+            if (File.Exists(path + name + ".polarskin"))
             {
                 try
                 {
-                    byte[] data = File.ReadAllBytes(Path + name + ".polarskin");
+                    byte[] data = File.ReadAllBytes(path + name + ".polarskin");
                     BinaryPacketReader reader = new BinaryPacketReader(data, data.Length);
                     Skin skin = reader.ReadSkin();
                     SaveableSkin save = new SaveableSkin()
@@ -130,7 +179,7 @@ namespace Polarite.Networking.Skins
                 }
                 catch
                 {
-                    byte[] data = File.ReadAllBytes(Path + name + ".polarskin");
+                    byte[] data = File.ReadAllBytes(path + name + ".polarskin");
                     string newName = name + " (Fixed)";
                     SaveableSkin skin = new SaveableSkin()
                     {
@@ -139,7 +188,7 @@ namespace Polarite.Networking.Skins
                     };
                     Skins[newName] = skin;
                     Logs.Warn($"Detected potentially outdated skin {name}, The skin has been remade.");
-                    DeleteSkin(name);
+                    DeleteSkin(name, path);
                     SaveSkin(skin, true);
                     return skin;
                 }
@@ -161,7 +210,7 @@ namespace Polarite.Networking.Skins
             newSkin = ItePlugin.Instance.GetSkin(baseCol, baseLightCol, wingLightCol, Color.gray, 0.5f, namePlate, baseLightCol);
             return newSkin;
         }
-        public static void DeleteSkin(string name)
+        public static void DeleteSkin(string name, string path)
         {
             if (Skins.ContainsKey(name))
             {
@@ -171,9 +220,9 @@ namespace Polarite.Networking.Skins
             {
                 Panels.Remove(name);
             }
-            if (File.Exists(Path + name + ".polarskin"))
+            if (File.Exists(path + name + ".polarskin"))
             {
-                File.Delete(Path + name + ".polarskin");
+                File.Delete(path + name + ".polarskin");
             }
         }
         public static void LoadSkin(string name)
@@ -197,11 +246,38 @@ namespace Polarite.Networking.Skins
             {
                 Directory.CreateDirectory(Path);
             }
+            string[] folders = Directory.GetDirectories(Path);
             string[] files = Directory.GetFiles(Path, "*.polarskin");
             foreach (string file in files)
             {
                 string name = System.IO.Path.GetFileNameWithoutExtension(file);
-                MakePanel(name);
+                MakePanel(name, Path);
+            }
+            foreach (string folder in folders)
+            {
+                if(folder.Contains("Screenshots"))
+                {
+                    continue;
+                }
+                ReadFolder(folder, "");
+            }
+        }
+        public static void ReadFolder(string folderPath, string parent)
+        {
+            string[] folders = Directory.GetDirectories(folderPath);
+            string[] files = Directory.GetFiles(folderPath, "*.polarskin");
+            foreach (string file in files)
+            {
+                string name = System.IO.Path.GetFileNameWithoutExtension(file);
+                MakePanel(name, folderPath, parent);
+            }
+            foreach (string folder in folders)
+            {
+                if (folder.Contains("Screenshots"))
+                {
+                    continue;
+                }
+                ReadFolder(folder, MakeValidFileName(System.IO.Path.GetFileName(folderPath)));
             }
         }
     }

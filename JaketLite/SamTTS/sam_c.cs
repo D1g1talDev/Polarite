@@ -121,7 +121,6 @@ public static partial class UnitySAM
 	public static Buffer SAMMain()
 	{
 	    Init();
-	    phonemeindex[255] = 32; //to prevent buffer overflow
 
 	    if (!Parser1()) return null;
 

@@ -49,6 +49,12 @@ public enum BulletType
 
 namespace Polarite
 {
+    public class PlayerExplosionId : MonoBehaviour
+    {
+        public string id;
+        public ulong player;
+    }
+
     public static class GunSync
     {
         public static Dictionary<BulletType, string> Bullets = new Dictionary<BulletType, string>
@@ -147,7 +153,7 @@ namespace Polarite
             ps.hasHurtPlayer = false;
             ps.force = 1000f;
         }
-        public static void Blast(Vector3 pos)
+        public static void Blast(Vector3 pos, ulong player)
         {
             GameObject blast = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Explosions/Explosion Wave.prefab").WaitForCompletion(), pos, Quaternion.identity);
             Explosion exp = blast.GetComponentInChildren<Explosion>();
@@ -156,8 +162,9 @@ namespace Polarite
             exp.harmless = false;
             exp.hasHitPlayer = false;
             exp.canHit = AffectedSubjects.PlayerOnly;
+            AddExpId(blast, "blast", player);
         }
-        public static void ProjBoost(Vector3 pos)
+        public static void ProjBoost(Vector3 pos, ulong player)
         {
             GameObject blast = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Explosions/Explosion.prefab").WaitForCompletion(), pos, Quaternion.identity);
             Explosion exp = blast.GetComponentInChildren<Explosion>();
@@ -166,6 +173,13 @@ namespace Polarite
             exp.harmless = false;
             exp.hasHitPlayer = false;
             exp.canHit = AffectedSubjects.PlayerOnly;
+            AddExpId(blast, "parry", player);
+        }
+        public static void AddExpId(GameObject obj, string id, ulong player)
+        {
+            PlayerExplosionId expId = obj.AddComponent<PlayerExplosionId>();
+            expId.id = id;
+            expId.player = player;
         }
         public static void AnimShoot(ulong plr)
         {
@@ -460,13 +474,17 @@ namespace Polarite
                         Explosion[] componentsInChildren = hammer.GetComponentsInChildren<Explosion>();
                         foreach (Explosion explosion in componentsInChildren)
                         {
+                            AddExpId(explosion.gameObject, "default", sender);
                             explosion.hitterWeapon = "hammer";
                             if (pump == 2)
                             {
                                 explosion.maxSize *= 2f;
                             }
                             explosion.canHit = AffectedSubjects.PlayerOnly;
-                            explosion.damage -= 10;
+                            if(ItePlugin.canBeFriendlyFired.value)
+                                explosion.damage -= 10;
+                            else
+                                explosion.damage = 0;
                         }
                         return;
                     }
@@ -526,6 +544,7 @@ namespace Polarite
                 Explosion harm = gre.harmlessExplosion.GetComponentInChildren<Explosion>();
                 if (norm != null)
                 {
+                    AddExpId(norm.gameObject, "default", sender);
                     norm.canHit = AffectedSubjects.PlayerOnly;
                     if (!ItePlugin.canBeFriendlyFired.value)
                     {
@@ -534,6 +553,7 @@ namespace Polarite
                 }
                 if (big != null)
                 {
+                    AddExpId(big.gameObject, "default", sender);
                     big.canHit = AffectedSubjects.PlayerOnly;
                     if (!ItePlugin.canBeFriendlyFired.value)
                     {
@@ -555,6 +575,7 @@ namespace Polarite
                 Explosion potExp = rev.hitParticle.GetComponentInChildren<Explosion>();
                 if (potExp != null)
                 {
+                    AddExpId(potExp.gameObject, "default", sender);
                     potExp.enemy = true;
                     potExp.friendlyFire = false;
                     potExp.hasHitPlayer = false;
@@ -580,6 +601,7 @@ namespace Polarite
                 Explosion potExp = c.interruptionExplosion.GetComponentInChildren<Explosion>();
                 if (potExp != null)
                 {
+                    AddExpId(potExp.gameObject, "default", sender);
                     potExp.enemy = true;
                     potExp.friendlyFire = false;
                     potExp.hasHitPlayer = false;

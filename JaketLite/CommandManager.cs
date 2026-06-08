@@ -50,7 +50,11 @@ namespace Polarite
                 NetworkManager.DisplaySystemChatMessage("Level command usage: /level <level>");
                 return;
             }
-
+            if(args == "Main Menu" || args == "Intro" || args == "Bootstrap")
+            {
+                NetworkManager.DisplayError("Invalid level");
+                return;
+            }
             string levelName = args;
             string overriddeLevelName = string.Empty;
 

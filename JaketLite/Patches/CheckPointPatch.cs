@@ -131,7 +131,7 @@ namespace Polarite.Patches
                 PacketWriter w = new PacketWriter();
                 w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));
                 NetworkManager.Instance.BroadcastPacket(PacketType.Checkpoint, w.GetBytes());
-                NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(NetworkManager.Id));
+                NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(NetworkManager.Id, true));
             }
         }
     }

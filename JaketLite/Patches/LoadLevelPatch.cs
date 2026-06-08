@@ -24,12 +24,23 @@ namespace Polarite.Patches
             {
                 ChatUI.Instance.ForceOff();
                 Net.Pause();
+                NetworkSkull.ClearHolders();
                 NetworkManager.SceneLoading = true;
+                SceneHelper.SetLoadingSubtext("<color=#91FFFF>+++ VIA POLARITE ---");
             }
-            if(sceneName == "Main Menu" && NetworkManager.InLobby)
+            if (sceneName == "uk_construct" && NetworkManager.HostAndConnected)
+            {
+                NetworkManager.DisplayWarningChatMessage($"Anyone can spawn anything even if they don't have cheats in Sandbox, Beware of chaos");
+            }
+            if (sceneName == "Main Menu" && NetworkManager.InLobby)
             {
                 NetworkManager.Instance.LeaveLobby();
                 ItePlugin.ignoreSpectate = true;
+            }
+            if(sceneName == "Level 7-4" && NetworkManager.InLobby)
+            {
+                SceneHelper.LoadScene("Level 8-1");
+                return false;
             }
             if(sceneName == "Intermission1")
             {
@@ -49,7 +60,6 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Level, w.GetBytes());
                 NetworkManager.Instance.CurrentLobby.SetData("level", sceneName);
                 NetworkManager.Instance.CurrentLobby.SetData("difficulty", PrefsManager.Instance.GetInt("difficulty").ToString());
-                SceneHelper.SetLoadingSubtext("<color=#91FFFF>+++ VIA POLARITE ---");
                 return true;
             }
             if(NetworkManager.ClientAndConnected && sceneName != "Main Menu" && SceneHelper.CurrentScene != "Main Menu" && NetworkManager.players.Count > 1 && !ItePlugin.ignoreSpectate)

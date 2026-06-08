@@ -41,7 +41,7 @@ namespace Polarite
                 {
                     netObjUI.SetActive(true);
                     simpleId.text = $"SIMPLE ID: {obj.SimpleID}";
-                    owner.text = $"OWNER: {NetworkManager.GetNameOfId(obj.Owner)}";
+                    owner.text = $"OWNER: {NetworkManager.GetNameOfId(obj.Owner, true)}";
                     index.text = $"INDEX: {obj.Index}";
                     alive.text = $"ALIVE: {obj.Alive}";
                     syncTransform.text = $"TRANSFORM SYNCED: {obj.TransformSynced}";

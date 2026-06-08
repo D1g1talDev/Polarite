@@ -32,9 +32,9 @@ namespace Polarite.Patches
             if(SceneHelper.CurrentScene != "uk_construct" && NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
-                w.WriteString(NetworkManager.GetNameOfId(NetworkManager.Id));
+                w.WriteString(NetworkManager.GetNameOfId(NetworkManager.Id, true));
                 NetworkManager.Instance.BroadcastPacket(PacketType.Cheater, w.GetBytes());
-                NetworkManager.ShoutCheater(NetworkManager.GetNameOfId(NetworkManager.Id));
+                NetworkManager.ShoutCheater(NetworkManager.GetNameOfId(NetworkManager.Id, true));
             }
             return true;
         }

@@ -46,6 +46,7 @@ namespace Polarite.Multiplayer
 
     public enum LobbyType
     {
+        None,
         Private,
         FriendsOnly,
         Public
@@ -88,9 +89,14 @@ namespace Polarite.Multiplayer
         public event Action<Friend, SteamId> OnPlayerJoined;
         public event Action<Friend, SteamId> OnPlayerLeft;
         public Lobby CurrentLobby;
+        public LobbyType currentType = LobbyType.None;
+        public int currentTypeRaw;
+        public string currentLobbyName;
+        public int currentMaxPlayers;
+        public int currentCheats;
 
-        public static bool HostAndConnected;
-        public static bool ClientAndConnected;
+        public static bool HostAndConnected, IsHostSocket;
+        public static bool ClientAndConnected, IsClientSocket;
         public static bool InLobby;
         public static bool HasRichPresence;
         public static bool Sandbox;
@@ -244,17 +250,24 @@ namespace Polarite.Multiplayer
             SteamClient.Shutdown();
         }
 
-        public static string GetNameOfId(ulong id)
+        public static string GetNameOfId(ulong id, bool colorName = false)
         {
+            string colorHex = Net.Dev(id) ? "color=green" : id == GetHostID() ? "color=#00F2FF" : "";
+            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"<{colorHex}>{TMPUtils.StripTMP(new Friend(id).Name)}</color>";
             return TMPUtils.StripTMP(new Friend(id).Name);
         }
-        public async Task CreateLobby(int maxPlayers = 4, LobbyType lobbyType = LobbyType.Public, string lobbyName = "My Lobby", Action<string> onJoin = null, bool canCheat = false)
+        public async Task CreateLobby(int maxPlayers = 10, LobbyType lobbyType = LobbyType.Public, string lobbyName = "My Lobby", Action<string> onJoin = null, bool canCheat = false)
         {
             if (!SteamClient.IsValid) return;
             if (InLobby) LeaveLobby();
             if (!ItePlugin.ReleaseBuild && lobbyType == LobbyType.Public)
             {
                 DisplayError("You cannot make public lobbies on beta builds.");
+                return;
+            }
+            if(maxPlayers <= 0)
+            {
+                DisplayError("...");
                 return;
             }
 
@@ -282,6 +295,7 @@ namespace Polarite.Multiplayer
                 InLobby = true;
                 WasUsed = true;
                 CurrentLobby.SetData("LobbyName", lobbyName);
+                CurrentLobby.SetData("levelName", ItePlugin.GetLevelName());
                 CurrentLobby.SetData("level", SceneHelper.CurrentScene);
                 CurrentLobby.SetData("difficulty", PrefsManager.Instance.GetInt("difficulty").ToString());
                 CurrentLobby.SetData("cheat", (canCheat) ? "1" : "0");
@@ -298,6 +312,10 @@ namespace Polarite.Multiplayer
                 {
                     DisplayWarningChatMessage($"Your lobby is public, Anyone can join this lobby from the public lobbies tab.");
                 }
+                if(Sandbox)
+                {
+                    DisplayWarningChatMessage($"Anyone can spawn anything even if they don't have cheats in Sandbox, Beware of chaos");
+                }
                 PlayerList.UpdatePList();
                 ItePlugin.Instance.CleanLevel();
                 DisplayVoiceTip();
@@ -306,11 +324,21 @@ namespace Polarite.Multiplayer
                 Net.Setup();
                 ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
                 ItePlugin.AnimationCheck();
+                if(SceneHelper.CurrentScene == "Level 7-4")
+                {
+                    SceneHelper.LoadScene("Level 8-1");
+                }
+                currentType = lobbyType;
+                currentTypeRaw = ItePlugin.Instance.LobbyTypeToRaw(lobbyType);
+                currentLobbyName = lobbyName;
+                currentMaxPlayers = maxPlayers;
+                currentCheats = (canCheat) ? 1 : 0;
 
                 // start host server
                 ServerInstance = SteamNetworkingSockets.CreateRelaySocket<SocketManager>(4544);
                 ServerInstance.Interface = Server;
                 Logs.Info("Started host socket", this);
+                IsHostSocket = true;
             }
         }
 
@@ -347,6 +375,12 @@ namespace Polarite.Multiplayer
                     lobby.Value.Leave();
                     return;
                 }
+                if (lobby.Value.MemberCount <= 0)
+                {
+                    DisplayError("There are zero people in this lobby.");
+                    lobby.Value.Leave();
+                    return;
+                }
                 CurrentLobby = lobby.Value;
                 ClientAndConnected = true;
                 InLobby = true;
@@ -377,6 +411,7 @@ namespace Polarite.Multiplayer
                 ClientToHost = SteamNetworkingSockets.ConnectRelay<ConnectionManager>(lobby.Value.Owner.Id, 4544);
                 ClientToHost.Interface = Client;
                 Logs.Info("Connecting to host socket... Id: " + lobby.Value.Owner.Id, this);
+                IsClientSocket = true;
 
                 while(!ClientToHost.Connected)
                 {
@@ -421,16 +456,17 @@ namespace Polarite.Multiplayer
             }
         }
 
-        public void LeaveLobby()
+        public void LeaveLobby(bool bootToMenu = false)
         {
             if (CurrentLobby.Id == 0)
                 return;
 
-            if(HostAndConnected)
+            if(IsHostSocket)
             {
                 PacketWriter w = new PacketWriter();
                 BroadcastPacket(PacketType.HostLeave, w.GetBytes());
                 StopHostServer();
+                currentType = LobbyType.None;
             }
             else
             {
@@ -459,6 +495,10 @@ namespace Polarite.Multiplayer
             PrivateLobby = false;
             ItePlugin.ReverseArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
             ItePlugin.ReverseAnimationCheck();
+            if(bootToMenu)
+            {
+                SceneHelper.LoadScene("Main Menu");
+            }
         }
 
         public string GetLobbyCode()
@@ -496,6 +536,12 @@ namespace Polarite.Multiplayer
                 type = PacketType.Kick;
             }
             SendPacket(type, w.GetBytes(), targetId);
+        }
+        public void ForceKick(ulong id, string reason)
+        {
+            if (!connections.TryGetValue(id, out var con)) return;
+            con.Close();
+            DisplaySystemChatMessage($"{GetNameOfId(id, true)} was auto-kicked from the lobby with the reason: {reason}");
         }
 
         public void GetAllPlayersInLobby(Lobby? lobby, out SteamId[] ids, bool ignoreSelf = true)
@@ -560,11 +606,12 @@ namespace Polarite.Multiplayer
                 ClientToHost.Close();
                 ClientToHost = null;
                 Logs.Info("Disconnected from host socket", this);
+                IsClientSocket = false;
             }
         }
         public void StopHostServer()
         {
-            if(!HostAndConnected)
+            if(!IsHostSocket)
             {
                 return;
             }
@@ -577,6 +624,7 @@ namespace Polarite.Multiplayer
                 ServerInstance.Interface = null;
                 ServerInstance.Close();
                 ServerInstance = null;
+                IsHostSocket = false;
             }
         }
 
@@ -594,7 +642,7 @@ namespace Polarite.Multiplayer
                     NetworkPlayer newPlr = NetworkPlayer.Create(member.Id.Value, GetNameOfId(member.Id));
                     players.Add(member.Id.Value, newPlr);
                 }
-                DisplaySystemChatMessage(GetNameOfId(member.Id) + " has joined this lobby");
+                DisplaySystemChatMessage(GetNameOfId(member.Id, true) + " has joined this lobby");
                 PacketWriter w = new PacketWriter();
                 w.WriteULong(member.Id);
                 foreach (var member1 in CurrentLobby.Members)
@@ -619,7 +667,7 @@ namespace Polarite.Multiplayer
                 NetworkPlayer newPlr = NetworkPlayer.Create(member.Id.Value, GetNameOfId(member.Id));
                 players.Add(member.Id.Value, newPlr);
             }
-            DisplaySystemChatMessage(GetNameOfId(member.Id) + " has joined this lobby");
+            DisplaySystemChatMessage(GetNameOfId(member.Id, true) + " has joined this lobby");
             HostAndConnected = AmIHost();
             ClientAndConnected = !AmIHost();
             InLobby = CurrentLobby.Id != 0;
@@ -635,7 +683,7 @@ namespace Polarite.Multiplayer
             {
                 return;
             }
-            DisplayJoin("green", $"{GetNameOfId(id)} has connected this server");
+            DisplayJoin("green", $"{GetNameOfId(id, true)} has connected this server");
             // share skin aswell
             PacketWriter write = new PacketWriter();
             write.WriteSkin(ItePlugin.currentSkin);
@@ -647,7 +695,7 @@ namespace Polarite.Multiplayer
             {
                 return;
             }
-            DisplayJoin("red", $"{GetNameOfId(id)} has disconnected from this server");
+            DisplayJoin("red", $"{GetNameOfId(id, true)} has disconnected from this server");
         }
 
         private void HandleMemberLeft(Lobby lobby, Friend member)
@@ -664,7 +712,7 @@ namespace Polarite.Multiplayer
                     Destroy(players[member.Id.Value].gameObject);
                     players.Remove(member.Id.Value);
                 }
-                DisplaySystemChatMessage(GetNameOfId(member.Id) + " has left this lobby");
+                DisplaySystemChatMessage(GetNameOfId(member.Id, true) + " has left this lobby");
                 PacketWriter write = new PacketWriter();
                 write.WriteULong(member.Id);
                 foreach (var member1 in CurrentLobby.Members)
@@ -689,7 +737,7 @@ namespace Polarite.Multiplayer
                 Destroy(players[member.Id.Value].gameObject);
                 players.Remove(member.Id.Value);
             }
-            DisplaySystemChatMessage(GetNameOfId(member.Id) + " has left this lobby");
+            DisplaySystemChatMessage(GetNameOfId(member.Id, true) + " has left this lobby");
             HostAndConnected = AmIHost();
             ClientAndConnected = !AmIHost();
             InLobby = CurrentLobby.Id != 0;
@@ -704,13 +752,13 @@ namespace Polarite.Multiplayer
         private void HandleLobbyInvite(Lobby lobby, SteamId id)
         {
             if (!SteamClient.IsValid) return;
-            DisplaySystemChatMessage("Attempting to join " + GetNameOfId(id) + "'s game (via invite)");
+            DisplaySystemChatMessage("Attempting to join " + GetNameOfId(id, true) + "'s game (via invite)");
             JoinLobby(lobby.Id).Forget();
         }
 
         private void HandleLobbyRPJ(Friend friend, string connect)
         {
-            DisplaySystemChatMessage("Attempting to join " + GetNameOfId(friend.Id) + "'s game (via profile)");
+            DisplaySystemChatMessage("Attempting to join " + GetNameOfId(friend.Id, true) + "'s game (via profile)");
             if (ulong.TryParse(connect, out var lobbyId))
             {
                 JoinLobby(lobbyId).Forget();
@@ -812,6 +860,47 @@ namespace Polarite.Multiplayer
             ItePlugin.cameFromPacketRestart = false;
             SceneObjectCache.Rebuild();
         }
+        public void JoinAnnounce(ConnectionInfo info)
+        {
+            StartCoroutine(DelayJoinAnnounce(info));
+        }
+        private IEnumerator DelayJoinAnnounce(ConnectionInfo info)
+        {
+            yield return new WaitForSeconds(0.5f);
+            PacketWriter w = new PacketWriter();
+            w.WriteSkin(ItePlugin.currentSkin);
+            BroadcastPacket(PacketType.Skin, w.GetBytes());
+
+            PacketWriter w2 = new PacketWriter();
+            w2.WriteULong(info.Identity.SteamId);
+            BroadcastPacket(PacketType.GlobalConnectionJoin, w2.GetBytes());
+        }
+        public void JoinAnnounceClient()
+        {
+            StartCoroutine(DelayJoinAnnounceClient());
+        }
+        private IEnumerator DelayJoinAnnounceClient()
+        {
+            yield return new WaitForSeconds(0.45f);
+            PacketWriter w = new PacketWriter();
+            w.WriteSkin(ItePlugin.currentSkin);
+            BroadcastPacket(PacketType.Skin, w.GetBytes());
+        }
+        public static ulong GetNearestPlayerID(Vector3 pos)
+        {
+            NetworkPlayer closest = null;
+            float closestDist = float.MaxValue;
+            foreach (var player in players.Values)
+            {
+                float dist = Vector3.Distance(player == NetworkPlayer.LocalPlayer ? MonoSingleton<NewMovement>.Instance.transform.position : player.transform.position, pos);
+                if (dist < closestDist)
+                {
+                    closestDist = dist;
+                    closest = player;
+                }
+            }
+            return closest.SteamId;
+        }
 
         void Update()
         {
@@ -845,9 +934,120 @@ namespace Polarite.Multiplayer
 
             return CurrentLobby.GetData("banned_" + id.SteamId) == "1";
         }
+        public void ChangeLobbySettings(int maxPlayers, LobbyType newLobbyType, bool allowCheats, string newLobbyName)
+        {
+            PacketWriter w = new PacketWriter();
+            if (currentType != newLobbyType)
+            {
+                SetLobbyType(newLobbyType);
+                currentTypeRaw = ItePlugin.Instance.LobbyTypeToRaw(newLobbyType);
+                w.WriteEnum<LobbyType>(currentType);
+            }
+            else
+            {
+                w.WriteEnum<LobbyType>(LobbyType.None);
+            }
+            if (CurrentLobby.GetData("LobbyName") != newLobbyName)
+            {
+                ChangeLobName(newLobbyName);
+                currentLobbyName = newLobbyName;
+                w.WriteString(newLobbyName);
+            }
+            else
+            {
+                w.WriteString("0");
+            }
+            if(CurrentLobby.MaxMembers != maxPlayers)
+            {
+                ChangeMaxMembers(maxPlayers);
+                currentMaxPlayers = maxPlayers;
+                w.WriteInt(maxPlayers);
+            }
+            else
+            {
+                w.WriteInt(0);
+            }
+            string canCheat = (allowCheats) ? "1" : "0";
+            if (CurrentLobby.GetData("cheat") != canCheat)
+            {
+                ChangeCheats(allowCheats);
+                currentCheats = (allowCheats) ? 1 : 0;
+                w.WriteString(canCheat);
+            }
+            else
+            {
+                w.WriteString("0");
+            }
+            BroadcastPacket(PacketType.LobbySettings, w.GetBytes());
+        }
+        public void ChangeLobName(string newN)
+        {
+            if (string.IsNullOrEmpty(newN))
+            {
+                newN = $"{GetNameOfId(Id)}'s Lobby";
+                ItePlugin.Instance.polrMM.lobbyName.text = newN;
+            }
+            CurrentLobby.SetData("LobbyName", newN);
+            DisplaySystemChatMessage("Lobby name has been changed to: " + newN);
+        }
+        public void ChangeMaxMembers(int newM)
+        {
+            if(newM > 250)
+            {
+                newM = 250;
+                ItePlugin.Instance.polrMM.maxP.text = "250";
+            }
+            int memberCountSnap = CurrentLobby.MemberCount;
+            if(newM <= 0)
+            {
+                LeaveLobby(true);
+            }
+            if(memberCountSnap > newM)
+            {
+                for (int i = memberCountSnap; i > newM; i--)
+                {
+                    ForceKick(CurrentLobby.Members.Last().Id, "Exceeding max player count");
+                }
+            }
+            CurrentLobby.MaxMembers = newM;
+            DisplaySystemChatMessage("Lobby max player limit has been changed to: " + newM);
+        }
+        public void ChangeCheats(bool allow)
+        {
+            CurrentLobby.SetData("cheat", (allow) ? "1" : "0");
+            DisplaySystemChatMessage("Allow cheats has been changed to: " + CurrentLobby.GetData("cheat"));
+        }
+        public void SetLobbyType(LobbyType newT)
+        {
+            if(newT == LobbyType.Public && !ItePlugin.ReleaseBuild)
+            {
+                DisplayError("You can't set this lobby to Public due to being on a beta build.");
+                return;
+            }
+            switch(newT)
+            {
+                case LobbyType.Public:
+                    CurrentLobby.SetPublic();
+                    break;
+                case LobbyType.FriendsOnly:
+                    CurrentLobby.SetFriendsOnly();
+                    break;
+                case LobbyType.Private:
+                    CurrentLobby.SetPrivate();
+                    break;
+            }
+            DisplaySystemChatMessage("Lobby has been set to: " + newT.ToString());
+            currentType = newT;
+        }
+        public static ulong GetHostID()
+        {
+            if (!InLobby) return 0;
+            return Instance.CurrentLobby.Owner.Id;
+        }
         public void HandlePack(byte[] buff, SteamId id)
         {
             int length = buff.Length;
+            PacketType globalType = PacketType.None;
             // voice packets
             if (length > 0 && buff[0] == 0x56)
             {
@@ -858,12 +1058,13 @@ namespace Polarite.Multiplayer
             {
                 if (IsBanned(id) && connections.TryGetValue(id, out var con))
                 {
-                    con.Close();
+                    ForceKick(id, "Bypassing ban");
                     return;
                 }
                 BinaryPacketReader reader = new BinaryPacketReader(buff, length);
 
                 PacketType type = (PacketType)reader.ReadByte();
+                globalType = type;
                 ulong sender = reader.ReadULong();
                 int len = reader.ReadInt();
                 ushort sendtype = reader.ReadUShort();
@@ -890,7 +1091,7 @@ namespace Polarite.Multiplayer
             }
             catch (Exception ex)
             {
-                Logs.Error("[NET] Failed to parse packet on host: " + ex, this);
+                Logs.Error($"[NET] Failed to parse packet on host with type {globalType}: " + ex, this);
             }
         }
         public void HandlePackClient(byte[] buff)
@@ -926,7 +1127,7 @@ namespace Polarite.Multiplayer
             }
             catch (Exception ex)
             {
-                Logs.Error("[NET] Failed to parse packet on client: " + ex, this);
+                Logs.Error($"[NET] Failed to parse packet on client with type {type}: " + ex, this);
             }
         }
         public void CreateTestPlayer()

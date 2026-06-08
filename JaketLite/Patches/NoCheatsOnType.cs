@@ -17,7 +17,15 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool StopCheatsIfTyping()
         {
-            return !ChatUI.isTyping;
+            if (ChatUI.isTyping)
+            {
+                return false;
+            }
+            if(ItePlugin.PolarMenuActive)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }

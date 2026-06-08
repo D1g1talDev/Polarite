@@ -23,7 +23,7 @@ namespace Polarite.Patches
         {
             if (__instance.GetComponent<INetworkObject>() == null && NetworkManager.InLobby)
             {
-                NetworkEnemy.Create(__instance, NetworkManager.Id);
+                NetworkEnemy.Create(__instance, NetworkManager.GetNearestPlayerID(__instance.transform.position));
             }
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]

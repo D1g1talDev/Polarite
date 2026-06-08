@@ -17,6 +17,7 @@ using ULTRAKILL.Portal;
 using System.Threading;
 using Polarite.Debugging;
 using UnityEngine.AI;
+using Polarite.Patches;
 
 namespace Polarite.Multiplayer
 {
@@ -29,7 +30,7 @@ namespace Polarite.Multiplayer
         public bool HelpedWithKill;
         public List<ulong> Helpers = new List<ulong>();
 
-        public static readonly Dictionary<string, NetworkEnemy> allEnemies = new Dictionary<string, NetworkEnemy>();
+        public static Dictionary<string, NetworkEnemy> allEnemies = new Dictionary<string, NetworkEnemy>();
         private static Coroutine globalTargetUpdater;
 
         private Vector3 lastPos;
@@ -48,7 +49,10 @@ namespace Polarite.Multiplayer
             var netE = eid.gameObject.GetOrAddComponent<NetworkEnemy>();
             netE.Enemy = eid;
             netE.IsAlive = true;
-            netE.Owner = owner;
+            if(netE.Owner == 0)
+            {
+                netE.Owner = owner;
+            }
             if(!string.IsNullOrEmpty(id))
             {
                 netE.ID = id;
@@ -64,7 +68,6 @@ namespace Polarite.Multiplayer
         public override void Start()
         {
             if (Enemy == null) return;
-            if (Owner == 0) Owner = NetworkManager.Instance.CurrentLobby.Owner.Id.Value;
             simpleId = Enemy.enemyType.ToString();
             DestroyOnCheckpointRestart destroyComp = Enemy.GetComponent<DestroyOnCheckpointRestart>();
             if (destroyComp != null) Destroy(destroyComp);
@@ -95,7 +98,7 @@ namespace Polarite.Multiplayer
             }
             if (Owns)
             {
-                SyncSpawn();
+                // SyncSpawn();
             }
             UpdateTarget();
         }
@@ -119,6 +122,11 @@ namespace Polarite.Multiplayer
 
         public override void Update()
         {
+            // sometimes this can be null for some reason???
+            if(allEnemies == null)
+            {
+                allEnemies = new Dictionary<string, NetworkEnemy>();
+            }
             alive = IsAlive;
             if (Enemy.health <= 0 && IsAlive)
             {
@@ -319,11 +327,11 @@ namespace Polarite.Multiplayer
         {
             List<Transform> players = new List<Transform>();
             foreach (var player in NetworkManager.players)
-                if (player.Value != null && player.Value != NetworkPlayer.LocalPlayer && !player.Value.isGhost)
+                if (player.Value != null && player.Value != NetworkPlayer.LocalPlayer && !player.Value.isGhost && !player.Value.typing)
                     players.Add(player.Value.transform);
 
             NewMovement localPlayer = MonoSingleton<NewMovement>.Instance;
-            if (localPlayer != null && !NetworkPlayer.selfIsGhost)
+            if (localPlayer != null && !NetworkPlayer.selfIsGhost && !ChatUI.isActuallyTyping)
                 players.Add(localPlayer.transform);
 
             return players.ToArray();
@@ -390,15 +398,17 @@ namespace Polarite.Multiplayer
             w.WriteString(ID);
             w.WriteVector3(Enemy.transform.position);
             NetworkManager.Instance.BroadcastPacket(PacketType.DeathEnemy, w.GetBytes());
-            if (Helpers.Count > 1 && !Enemy.puppet)
+
+            int count = HelpedWithKill ? Helpers.Count + 1 : Helpers.Count;
+            if (count > 2 && !Enemy.puppet)
             {
                 if (HelpedWithKill)
                 {
-                    StyleHUD.Instance.AddPoints(Helpers.Count + 1, $"<color=#91FFFF>TEAMKILL</color> x{Helpers.Count + 1}");
+                    StyleHUD.Instance.AddPoints(count, $"<color=#91FFFF>TEAMKILL</color> x{count}");
                 }
                 else
                 {
-                    StyleHUD.Instance.AddPoints(Helpers.Count, $"<color=#FF3030>TEAMKILL</color> x{Helpers.Count}");
+                    StyleHUD.Instance.AddPoints(count, $"<color=#FF3030>TEAMKILL</color> x{count}");
                 }
             }
             StartCoroutine(CleanupEnemy());
@@ -476,6 +486,8 @@ namespace Polarite.Multiplayer
                 // write idoled and attack enemies state
                 writer.WriteBool(Enemy.blessed);
                 writer.WriteBool(Enemy.attackEnemies);
+                // oops enemies owners aren't synced
+                writer.WriteULong(owner);
                 base.SendState(writer, PacketType.EnemyState);
             }
         }
@@ -504,6 +516,10 @@ namespace Polarite.Multiplayer
             }
             allEnemies.Clear();
             Logs.Info("Flushed all enemies (down the toilet?)", name: "NetworkEnemy");
+            if(CyberSync.Active)
+            {
+                CyberSync.enemies.Clear();
+            }
         }
     }
 }

@@ -322,7 +322,7 @@ namespace Polarite.Multiplayer
 
                     if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0 && SteamClient.IsValid)
                     {
-                        float range = 250f;
+                        float range = 110f;
                         Vector3 myPos = NewMovement.Instance.transform.position;
                         foreach (var kv in NetworkManager.players)
                         {
@@ -338,8 +338,7 @@ namespace Polarite.Multiplayer
                                 }
                                 else
                                 {
-                                    NetworkManager.connections.TryGetValue(plr.SteamId, out var con);
-                                    con.SendMessage(payload, SendType.Unreliable);
+                                    if(NetworkManager.connections.TryGetValue(plr.SteamId, out var con)) con.SendMessage(payload, SendType.Unreliable);
                                 }
                             }
                             catch (Exception e) { Logs.Warn("[Voice] Failed sending packet: " + e, this); }
@@ -569,7 +568,7 @@ namespace Polarite.Multiplayer
             fil.distortionLevel = 0.25f;
             src.spatialBlend = 1f;
             src.rolloffMode = AudioRolloffMode.Logarithmic;
-            src.minDistance = 100f; // music kinda overlaps voice so this will make it so you can hear voice better with music
+            src.minDistance = 75f;
             src.dopplerLevel = 0f;
             src.maxDistance = 110f;
             src.priority = 0;

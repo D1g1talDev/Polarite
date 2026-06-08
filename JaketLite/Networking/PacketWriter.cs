@@ -118,7 +118,7 @@ namespace Polarite.Multiplayer
 
         public void WriteEnum<T>(T value) where T : Enum
         {
-            WriteString(Enum.GetName(typeof(T), value));
+            WriteString(value.ToString());
         }
         public void WriteUShort(ushort value)
         {

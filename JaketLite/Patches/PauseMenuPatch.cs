@@ -93,7 +93,7 @@ namespace Polarite.Patches
             VideoPlayer[] videos = GameObject.FindObjectsOfType<VideoPlayer>();
             foreach (var vid in videos)
             {
-                if (vid.isPlaying)
+                if (vid.isPaused)
                 {
                     vid.Play();
                 }

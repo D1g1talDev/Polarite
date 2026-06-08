@@ -71,6 +71,7 @@ namespace Polarite.Multiplayer
                 typingIndiBG = chatPanel.transform.Find("TypingIndiBG").GetComponent<Image>();
                 typeIndi = typingIndiBG.GetComponentInChildren<TextMeshProUGUI>();
                 chatLog = scrollRect.transform.Find("Viewport").GetComponentInChildren<TextMeshProUGUI>();
+                inputField.characterLimit = 300;
             }
             catch (System.Exception ex)
             {
@@ -195,13 +196,13 @@ namespace Polarite.Multiplayer
             switch(peopleTyping.Count)
             {
                 case 1:
-                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0])} is typing...";
+                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0], true)} is typing...";
                     break;
                 case 2:
-                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0])} and {NetworkManager.GetNameOfId(peopleTyping[1])} are typing...";
+                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0], true)} and {NetworkManager.GetNameOfId(peopleTyping[1])} are typing...";
                     break;
                 case 3:
-                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0])}, {NetworkManager.GetNameOfId(peopleTyping[1])}, {NetworkManager.GetNameOfId(peopleTyping[2])} are typing...";
+                    typeIndi.text = $"{NetworkManager.GetNameOfId(peopleTyping[0], true)}, {NetworkManager.GetNameOfId(peopleTyping[1])}, {NetworkManager.GetNameOfId(peopleTyping[2])} are typing...";
                     break;
                 default:
                     typeIndi.text = $"{peopleTyping.Count} players are typing...";
@@ -356,7 +357,7 @@ namespace Polarite.Multiplayer
         }
 
         /// <summary>
-        /// A way easier way to send a message only the player sees to the chat
+        /// Sends a message only the player sees to the chat.
         /// </summary>
         /// <param name="msg"></param>
         /// <param name="displayTime">The time it takes for the UI to hide itself after this message</param>

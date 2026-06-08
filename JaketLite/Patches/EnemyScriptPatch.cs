@@ -14,7 +14,7 @@ namespace Polarite.Patches
     [HarmonyPatch(typeof(EnemyScript))]
     internal class EnemyScriptPatch
     {
-        // should hopefully force the targets to be the players?
+        // should hopefully force the targets to be the players
         [HarmonyPatch(nameof(EnemyScript.CheckTarget))]
         [HarmonyPrefix]
         static bool Prefix(TargetDataRef __0, EnemyIdentifier __1, bool __result)

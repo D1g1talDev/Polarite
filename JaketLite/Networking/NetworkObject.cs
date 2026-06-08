@@ -51,11 +51,19 @@ namespace Polarite
         }
         public bool Alive
         {
-            get => alive;
+            get
+            {
+                if (Base == null) return false;
+                return alive;
+            }
         }
         public bool Cleanup
         {
-            get => isCleaningUp;
+            get
+            {
+                if(!NetworkList.ValidObjectCheck(Base)) return false;
+                return isCleaningUp;
+            }
         }
         public bool TransformSynced
         {

@@ -68,7 +68,6 @@ namespace Polarite.Networking
             }
         }
 
-
         public static INetworkObject Recover(string simpleId, string id, ulong sender, Vector3 pos)
         {
             if(NetworkManager.Id == sender)

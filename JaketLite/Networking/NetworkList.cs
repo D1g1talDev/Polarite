@@ -125,6 +125,7 @@ namespace Polarite
             List<INetworkObject> snapshot = new List<INetworkObject>(netList);
 
             netList.Clear();
+            blacklist.Clear();
 
             foreach (var obj in snapshot)
             {

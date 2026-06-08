@@ -110,6 +110,14 @@ namespace Polarite.Networking.Skins
             Affected.Clear();
             AffectedMeshes.Clear();
         }
+        public static bool ObjListContains(List<CustomColorObject> list, CustomColorObject obj)
+        {
+            foreach(var cObj in list)
+            {
+                return cObj.Renderer == obj.Renderer && cObj.Index == obj.Index;
+            }
+            return false;
+        }
         public static void AddToDict(CustomColorObject obj)
         {
             List<CustomColorObject> newList = new List<CustomColorObject>();
@@ -117,7 +125,7 @@ namespace Polarite.Networking.Skins
             {
                 newList.AddRange(list);
             }
-            if (!newList.Contains(obj))
+            if (!ObjListContains(newList, obj))
             {
                 newList.Add(obj);
             }

@@ -18,29 +18,28 @@ namespace Polarite.Networking.Sockets
             // map connection to steamid and vice versa
             NetworkManager.AddMapping(connection, info.Identity.SteamId);
 
-            NetworkManager.DisplayJoin("green", $"{NetworkManager.GetNameOfId(info.Identity.SteamId)} connected to the socket server");
-
-            PacketWriter write = new PacketWriter();
-            write.WriteSkin(ItePlugin.currentSkin);
-            NetworkManager.Instance.BroadcastPacket(PacketType.Skin, write.GetBytes());
-
-            PacketWriter write2 = new PacketWriter();
-            write2.WriteULong(info.Identity.SteamId);
-            NetworkManager.Instance.BroadcastPacket(PacketType.GlobalConnectionJoin, write2.GetBytes());
+            NetworkManager.DisplayJoin("green", $"{NetworkManager.GetNameOfId(info.Identity.SteamId, true)} connected to the socket server");
+            NetworkManager.Instance.JoinAnnounce(info);
         }
 
         public void OnConnecting(Connection connection, ConnectionInfo info)
         {
-            NetworkManager.DisplayJoin("yellow", $"{NetworkManager.GetNameOfId(info.Identity.SteamId)} is connecting to the socket server...");
+            NetworkManager.DisplayJoin("yellow", $"{NetworkManager.GetNameOfId(info.Identity.SteamId, true)} is connecting to the socket server...");
             if(NetworkManager.Instance.IsBanned(info.Identity))
             {
-                NetworkManager.DisplayJoin("red", $"Rejected connection from {NetworkManager.GetNameOfId(info.Identity.SteamId)} (banned)");
+                NetworkManager.DisplayJoin("red", $"Rejected connection {NetworkManager.GetNameOfId(info.Identity.SteamId, true)} (banned)");
                 connection.Close();
                 return;
             }
-            if(NetworkManager.Contains(connection))
+            if (NetworkManager.Instance.currentType == LobbyType.FriendsOnly && !new Friend(info.Identity.SteamId).IsFriend)
             {
-                NetworkManager.DisplayJoin("red", $"Rejected connection from {NetworkManager.GetNameOfId(info.Identity.SteamId)} (already connected)");
+                NetworkManager.DisplayJoin("red", $"Rejected connection {NetworkManager.GetNameOfId(info.Identity.SteamId, true)} (not a friend)");
+                connection.Close();
+                return;
+            }
+            if (NetworkManager.Contains(connection))
+            {
+                NetworkManager.DisplayJoin("red", $"Rejected connection from {NetworkManager.GetNameOfId(info.Identity.SteamId, true)} (already connected)");
                 connection.Close();
                 return;
             }
@@ -53,7 +52,7 @@ namespace Polarite.Networking.Sockets
             // clean up mappings
             NetworkManager.RemoveMapping(connection, info.Identity.SteamId);
 
-            NetworkManager.DisplayJoin("red", $"{NetworkManager.GetNameOfId(info.Identity.SteamId)} disconnected from the socket server: {info.EndReason}");
+            NetworkManager.DisplayJoin("red", $"{NetworkManager.GetNameOfId(info.Identity.SteamId, true)} disconnected from the socket server: {info.EndReason}");
 
             PacketWriter write = new PacketWriter();
             write.WriteULong(info.Identity.SteamId);

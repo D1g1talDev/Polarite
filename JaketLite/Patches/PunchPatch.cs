@@ -57,13 +57,30 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void ShopModePatch()
         {
-           NetworkPlayer.ToggleColsForAll(false);
+            NetworkPlayer.Shopping = true;
+        }
+        [HarmonyPatch(nameof(Punch.Update))]
+        [HarmonyPostfix]
+        static void ShopTapPatch(Punch __instance)
+        {
+            if(NetworkManager.InLobby)
+            {
+                if (!MonoSingleton<InputManager>.Instance.PerformingCheatMenuCombo() && MonoSingleton<InputManager>.Instance.InputSource.Fire1.WasPerformedThisFrame && __instance.shopping)
+                {
+                    PacketWriter w = new PacketWriter();
+                    NetworkManager.Instance.BroadcastPacket(PacketType.ShopTap, w.GetBytes());
+                    if(NetworkPlayer.LocalPlayer.testPlayer)
+                    {
+                        NetworkPlayer.LocalPlayer.TapAnim();
+                    }
+                }
+            }
         }
         [HarmonyPatch(nameof(Punch.StopShop))]
         [HarmonyPostfix]
         static void StopShopPatch()
         {
-           NetworkPlayer.ToggleColsForAll(true);
+            NetworkPlayer.Shopping = false;
         }
     }
     [HarmonyPatch(typeof(HookArm))]

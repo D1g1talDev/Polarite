@@ -54,6 +54,8 @@ namespace Polarite.Multiplayer
 
         public Animator armAnimator, weaponAnimator;
 
+        public AudioSource spinSound;
+
         public GameObject[] weapons;
 
         public HeadRotate head;
@@ -62,6 +64,7 @@ namespace Polarite.Multiplayer
 
         private Vector3 targetPosition;
         private Quaternion targetRotation;
+        private Quaternion headTargetRotation;
 
         private Vector3 previousPosition;
 
@@ -83,11 +86,14 @@ namespace Polarite.Multiplayer
 
         public TextMeshProUGUI namePlate;
 
-        public bool typing;
+        public bool typing, sliding = false;
 
         // for targetting purposes
 
         public TargetData customData;
+
+        public static bool Shopping = false;
+        public bool shopping = false, currentlySpinning = false;
 
         public void SpawnNoise()
         {
@@ -124,7 +130,7 @@ namespace Polarite.Multiplayer
         }
         public void SpawnSound(AudioClip clip)
         {
-            if(isGhost)
+            if (isGhost)
             {
                 return;
             }
@@ -163,35 +169,62 @@ namespace Polarite.Multiplayer
             while (true)
             {
                 yield return new WaitForSeconds(0.1f);
-                bool sliding = MonoSingleton<NewMovement>.Instance.sliding;
-                bool grounded = !MonoSingleton<NewMovement>.Instance.gc.onGround;
-                bool walking = MonoSingleton<NewMovement>.Instance.walking;
-                Quaternion rotation = (sliding) ? Quaternion.LookRotation(MonoSingleton<NewMovement>.Instance.rb.velocity) : MonoSingleton<CameraController>.Instance.transform.rotation;
-                PacketWriter writer = new PacketWriter();
-                Vector3 pos = new Vector3(transform.position.x, (sliding) ? (transform.position.y) : (transform.position.y - 1.5f), transform.position.z);
-                Quaternion rot = new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w);
-                writer.WriteVector3(pos);
-                writer.WriteQuaternion(rot);
-                writer.WriteBool(sliding);
-                writer.WriteBool(grounded);
-                writer.WriteBool(walking);
+                try
+                {
+                    bool sliding = MonoSingleton<NewMovement>.Instance.sliding;
+                    bool grounded = !MonoSingleton<NewMovement>.Instance.gc.onGround;
+                    bool walking = MonoSingleton<NewMovement>.Instance.walking;
+                    bool spin = TryGetSpinning();
+                    bool shop = Shopping;
+                    Quaternion rotation = (sliding) ? Quaternion.LookRotation(MonoSingleton<NewMovement>.Instance.rb.velocity) : MonoSingleton<CameraController>.Instance.transform.rotation;
+                    PacketWriter writer = new PacketWriter();
+                    Vector3 pos = new Vector3(transform.position.x, (sliding) ? (transform.position.y) : (transform.position.y - 1.5f), transform.position.z);
+                    Quaternion rot = new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w);
+                    Quaternion rot2 = new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, MonoSingleton<CameraController>.Instance.transform.rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w);
+                    writer.WriteVector3(pos);
+                    writer.WriteQuaternion(rot);
+                    writer.WriteQuaternion(rot2);
+                    writer.WriteBool(sliding);
+                    writer.WriteBool(grounded);
+                    writer.WriteBool(walking);
+                    writer.WriteBool(spin);
+                    writer.WriteBool(shop);
 
-                writer.WriteInt(MonoSingleton<NewMovement>.Instance.hp);
-                writer.WriteBool(ChatUI.isActuallyTyping);
+                    writer.WriteInt(MonoSingleton<NewMovement>.Instance.hp);
+                    writer.WriteBool(ChatUI.isActuallyTyping);
 
-                NetworkManager.Instance.BroadcastPacket(PacketType.Transform, writer.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
+                    NetworkManager.Instance.BroadcastPacket(PacketType.Transform, writer.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
+                }
+                catch (Exception)
+                {
+                    // ignore
+                }
             }
         }
 
-        public void SetTargetTransform(Vector3 pos, Quaternion rot)
+        public void SetTargetTransform(Vector3 pos, Quaternion rot, Quaternion rot2)
         {
             previousPosition = transform.position;
 
             targetPosition = pos;
             targetRotation = rot;
+            headTargetRotation = rot2;
         }
-        public void SetAnimation(bool slide, bool air, bool walk)
+        public void SetAnimation(bool slide, bool air, bool walk, bool spin)
         {
+            sliding = slide;
+            if (spin && !currentlySpinning)
+            {
+                weaponAnimator.SetTrigger("Spin");
+                spinSound.mute = false;
+                currentlySpinning = true;
+            }
+            if (!spin && currentlySpinning)
+            {
+                weaponAnimator.ResetTrigger("Spin");
+                spinSound.mute = true;
+                currentlySpinning = false;
+            }
             animator.SetBool("Sliding", slide);
             animator.SetBool("InAir", air);
             if (!air)
@@ -283,21 +316,33 @@ namespace Polarite.Multiplayer
         }
         public void CoinAnim()
         {
+            armAnimator.SetBool("Idle", false);
+            armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdle));
+            CancelInvoke(nameof(GoBackToIdleShop));
             armAnimator.SetTrigger("Coin");
             Invoke(nameof(GoBackToIdle), 0.7f);
+            Invoke(nameof(GoBackToIdleShop), 0.7f);
         }
         public void PunchAnim()
         {
+            armAnimator.SetBool("Idle", false);
+            armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdle));
+            CancelInvoke(nameof(GoBackToIdleShop));
             armAnimator.SetTrigger("Punch");
             Invoke(nameof(GoBackToIdle), 0.967f);
+            Invoke(nameof(GoBackToIdleShop), 0.967f);
         }
         public void WhipAnim()
         {
+            armAnimator.SetBool("Idle", false);
+            armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdle));
+            CancelInvoke(nameof(GoBackToIdleShop));
             armAnimator.SetTrigger("Whiplash");
             Invoke(nameof(GoBackToIdle), 1);
+            Invoke(nameof(GoBackToIdleShop), 1);
         }
         public void ShootAnim()
         {
@@ -309,7 +354,55 @@ namespace Polarite.Multiplayer
         }
         public void GoBackToIdle()
         {
-            armAnimator.Play("idle");
+            armAnimator.SetBool("Idle", true);
+        }
+        public void GoBackToIdleShop()
+        {
+            if (!shopping)
+            {
+                return;
+            }
+            armAnimator.SetBool("Nerd", true);
+        }
+        public void ShopMode(bool shop)
+        {
+            if (shopping == shop)
+            {
+                return;
+            }
+            shopping = shop;
+            if (shop)
+            {
+                armAnimator.SetBool("Nerd", true);
+                armAnimator.SetBool("Idle", false);
+            }
+            else
+            {
+                armAnimator.SetBool("Nerd", false);
+                armAnimator.SetBool("Idle", true);
+            }
+        }
+        public void TapAnim()
+        {
+            armAnimator.SetBool("Nerd", false);
+            CancelInvoke(nameof(GoBackToIdleShop));
+            armAnimator.SetTrigger("Tap");
+            Invoke(nameof(GoBackToIdleShop), 0.450f);
+        }
+        public bool TryGetSpinning()
+        {
+            try
+            {
+                if (!MonoSingleton<GunControl>.Instance.currentWeapon.TryGetComponent<Revolver>(out var rev))
+                {
+                    return false;
+                }
+                return rev.gunVariation == 2 && rev.chargingPierce;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private void Update()
@@ -321,9 +414,10 @@ namespace Polarite.Multiplayer
             if (testPlayer)
             {
                 Quaternion rotation = (NewMovement.Instance.sliding) ? Quaternion.LookRotation(MonoSingleton<NewMovement>.Instance.rb.velocity) : MonoSingleton<CameraController>.Instance.transform.rotation;
-                SetTargetTransform(new Vector3(MonoSingleton<NewMovement>.Instance.transform.position.x, (NewMovement.Instance.sliding) ? MonoSingleton<NewMovement>.Instance.transform.position.y : MonoSingleton<NewMovement>.Instance.transform.position.y - 1.5f, MonoSingleton<NewMovement>.Instance.transform.position.z), new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-                SetAnimation(NewMovement.Instance.sliding, !NewMovement.Instance.gc.onGround, NewMovement.Instance.walking);
+                SetTargetTransform(new Vector3(MonoSingleton<NewMovement>.Instance.transform.position.x, (NewMovement.Instance.sliding) ? MonoSingleton<NewMovement>.Instance.transform.position.y : MonoSingleton<NewMovement>.Instance.transform.position.y - 1.5f, MonoSingleton<NewMovement>.Instance.transform.position.z), new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w), new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, MonoSingleton<CameraController>.Instance.transform.rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w));
+                SetAnimation(NewMovement.Instance.sliding, !NewMovement.Instance.gc.onGround, NewMovement.Instance.walking, TryGetSpinning());
                 SetHP(NewMovement.Instance.hp);
+                ShopMode(Shopping);
             }
             if (isGhost)
             {
@@ -348,7 +442,7 @@ namespace Polarite.Multiplayer
 
             transform.rotation = newRotation;
 
-            head.targetRotation = targetRotation;
+            head.targetRotation = headTargetRotation;
 
             customData.position = transform.position;
             customData.rotation = transform.rotation;
@@ -464,7 +558,7 @@ namespace Polarite.Multiplayer
 
         public static NetworkPlayer Find(ulong id)
         {
-            if(id == NetworkManager.Id)
+            if (id == NetworkManager.Id)
             {
                 return LocalPlayer;
             }
@@ -532,7 +626,7 @@ namespace Polarite.Multiplayer
             if (nameplate != null)
             {
                 tmp = nameplate.GetComponent<TextMeshProUGUI>();
-                if(tmp != null)
+                if (tmp != null)
                 {
                     tmp.text = ItePlugin.namePlate.value;
                 }
@@ -559,6 +653,7 @@ namespace Polarite.Multiplayer
             Animator animator = v2Rig.GetComponentInChildren<Animator>();
             Animator wepAnim = v2Rig.transform.Find("v2_combined").GetComponentsInChildren<Animator>()[1];
             Animator armAnim = v2Rig.transform.Find("v2_combined").GetComponentsInChildren<Animator>()[2];
+            AudioSource wepNoise = wepAnim.GetComponent<AudioSource>();
             if (id == NetworkManager.Id)
             {
                 v2Rig.transform.Find("v2_combined").gameObject.SetActive(false);
@@ -576,6 +671,7 @@ namespace Polarite.Multiplayer
             plr.animator = animator;
             plr.armAnimator = armAnim;
             plr.weaponAnimator = wepAnim;
+            plr.spinSound = wepNoise;
             plr.weapons = weapons;
             plr.head = headR;
             plr.mainRenderer = smr;
@@ -598,6 +694,13 @@ namespace Polarite.Multiplayer
             NameTag.gameObject.SetActive(value);
             Voice.Toggle(value, SteamId);
             rigActive = value;
+        }
+        public void ClearHolder()
+        {
+            foreach (Transform t in holderObject)
+            {
+                Destroy(t.gameObject);
+            }
         }
         public static void EnsureAllObjectsAreCleaned(Transform t, bool local)
         {
@@ -662,7 +765,7 @@ namespace Polarite.Multiplayer
         public static void DoFriendlyDamage(ulong whoDidIt, int damage)
         {
             MonoSingleton<NewMovement>.Instance.GetHurt(damage, false);
-            DeadPatch.Death("was friendly fired by ", whoDidIt);
+            DeadPatch.Death("was friendly fired by ", whoDidIt, true);
         }
 
         public void SetData(ref TargetData data)

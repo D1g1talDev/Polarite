@@ -31,7 +31,7 @@ namespace Polarite
             NetworkManager.Instance.GetAllPlayersInLobby(NetworkManager.Instance.CurrentLobby, out SteamId[] ids, false);
             foreach(var p in ids)
             {
-                Add(NetworkManager.GetNameOfId(p), p.Value);
+                Add(NetworkManager.GetNameOfId(p, true), p.Value);
             }
         }
         public static Transform Add(string name, ulong id)

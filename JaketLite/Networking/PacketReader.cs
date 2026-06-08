@@ -1,15 +1,13 @@
-﻿using System;
-using System.Net.Sockets;
-
-using Polarite.Patches;
-
-using Steamworks;
-
-using UnityEngine;
-using Polarite.Networking;
+﻿using Polarite.Networking;
 using Polarite.Networking.Skins;
+using Polarite.Patches;
+using Steamworks;
+using System;
 using System.Net.Http;
-
+using System.Net.Sockets;
+using Unity.Burst.Intrinsics;
+using UnityEngine;
+using static Unity.Burst.Intrinsics.Arm;
 using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
@@ -105,7 +103,17 @@ namespace Polarite.Multiplayer
         PunchHeavy = 54,
         PunchParry = 55,
         // cybergrind progress
-        CyberProgress = 56
+        CyberProgress = 56,
+        // level start
+        LevelStart = 57,
+        // more player animations
+        ShopTap = 58,
+        // 💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀☠️💀
+        SkullState = 59,
+        // flammables
+        Flammable = 60,
+        // changing lobby settings
+        LobbySettings = 61
     }
 
     public static class PacketReader
@@ -134,12 +142,12 @@ namespace Polarite.Multiplayer
                     break;
 
                 case PacketType.Kick:
-                    NetworkManager.Instance.LeaveLobby();
+                    NetworkManager.Instance.LeaveLobby(true);
                     NetworkManager.DisplaySystemChatMessage("You have been kicked from the lobby.");
                     break;
 
                 case PacketType.Ban:
-                    NetworkManager.Instance.LeaveLobby();
+                    NetworkManager.Instance.LeaveLobby(true);
                     NetworkManager.DisplaySystemChatMessage("You have been banned from the lobby.");
                     break;
 
@@ -153,15 +161,23 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Die:
                     {
-                        byte msgB = reader.ReadByte(); ulong id = reader.ReadULong();
+                        byte msgB = reader.ReadByte();
+                        byte wMsgB = reader.ReadByte();
+                        ulong arg = reader.ReadULong();
+                        ulong wArg = reader.ReadULong();
 
-                        string msg = DeadPatch.DeathMessages[msgB];
-                        if (msgB == 1) msg += NetworkManager.GetNameOfId(id);
-                        else if (id != 0) msg += ((EnemyType)id).ToString();
-                        msg = msg.Replace("{0}", "");
+                        DeathMsg msg = DeadPatch.DeathMessages[msgB];
+                        DeathMsg whilstMsg = DeadPatch.DeathMessages[wMsgB];
 
                         NetworkPlayer.Find(senderId)?.DeathNoise();
-                        NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId) + " " + msg);
+                        if (!whilstMsg.IsDefault() && wArg != 0 && wArg != arg)
+                        {
+                            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId, true) + " " + msg.Translate(arg) + " " + whilstMsg.Translate(wArg, true));
+                        }
+                        else
+                        {
+                            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId, true) + " " + msg.Translate(arg));
+                        }
                         break;
                     }
 
@@ -242,19 +258,23 @@ namespace Polarite.Multiplayer
                     {
                         Vector3 pos = reader.ReadVector3();
                         Quaternion rot = reader.ReadQuaternion();
+                        Quaternion rot2 = reader.ReadQuaternion();
                         bool sliding = reader.ReadBool();
                         bool air = reader.ReadBool();
                         bool walking = reader.ReadBool();
+                        bool spin = reader.ReadBool();
+                        bool shop = reader.ReadBool();
                         int hp = reader.ReadInt();
                         bool typing = reader.ReadBool();
 
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
                         {
-                            p.SetTargetTransform(pos, rot);
-                            p.SetAnimation(sliding, air, walking);
+                            p.SetTargetTransform(pos, rot, rot2);
+                            p.SetAnimation(sliding, air, walking, spin);
                             p.SetHP(hp);
                             p.typing = typing;
+                            p.ShopMode(shop);
                         }
                         // double check rig state to prevent weird edge cases where a player gets stuck invisible after dying
                         if (hp > 0 && !p.rigActive)
@@ -272,7 +292,7 @@ namespace Polarite.Multiplayer
                     {
                         string text = reader.ReadString();
                         var p = NetworkPlayer.Find(senderId);
-                        string name = NetworkManager.GetNameOfId(senderId);
+                        string name = NetworkManager.GetNameOfId(senderId, true);
                         bool tts;
 
                         string format;
@@ -313,7 +333,7 @@ namespace Polarite.Multiplayer
                         Quaternion rot = reader.ReadQuaternion();
                         INetworkObject e = Net.Get(id, senderId, pos);
 
-                        if (e != null)
+                        if (e.Base != null)
                             e.State(pos, rot, reader);
                         break;
                     }
@@ -333,6 +353,7 @@ namespace Polarite.Multiplayer
                         bool idol = reader.ReadBool();
                         bool attackEids = reader.ReadBool();
 
+                        ulong owner = reader.ReadULong();
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
                         Quaternion rot = reader.ReadQuaternion();
@@ -340,7 +361,9 @@ namespace Polarite.Multiplayer
 
                         if (e.Base != null)
                         {
-                            if(e.Base.TryGetComponent<EnemyIdentifier>(out var eid))
+                            e.Owner = owner;
+                            e.State(pos, rot, reader);
+                            if (e.Base.TryGetComponent<EnemyIdentifier>(out var eid))
                             {
                                 eid.healthBuff = hBuff;
                                 eid.speedBuff = sBuff;
@@ -355,7 +378,6 @@ namespace Polarite.Multiplayer
 
                                 eid.blessed = idol;
                                 eid.attackEnemies = attackEids;
-                                e.State(pos, rot, reader);
                             }
                         }
                         break;
@@ -414,7 +436,11 @@ namespace Polarite.Multiplayer
                             return;
                         }
                         INetworkObject obj = Net.Get(path, owner, pos);
-                        if(!obj.Base.TryGetComponent<EnemyIdentifier>(out var eid))
+                        if(obj.Base == null)
+                        {
+                            return;
+                        }
+                        if (!obj.Base.TryGetComponent<EnemyIdentifier>(out var eid))
                         {
                             return;
                         }
@@ -486,13 +512,17 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Checkpoint:
                     {
+                        if(ItePlugin.disableCheckpointSync.value)
+                        {
+                            break;
+                        }
                         string path = reader.ReadString();
                         var checkpoint = SceneObjectCache.Find(path).GetComponent<CheckPoint>();
                         if (checkpoint && !checkpoint.activated)
                         {
                             checkpoint.activated = true;
                             checkpoint.ActivateCheckPoint();
-                            NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(senderId));
+                            NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(senderId, true));
                             if (NetworkPlayer.selfIsGhost)
                             {
                                 ItePlugin.Ghost(false);
@@ -525,7 +555,7 @@ namespace Polarite.Multiplayer
                     }
 
                 case PacketType.HostLeave:
-                    NetworkManager.Instance.LeaveLobby();
+                    NetworkManager.Instance.LeaveLobby(true);
                     break;
                 /*
             case PacketType.SkipVoteRequest:
@@ -565,23 +595,11 @@ namespace Polarite.Multiplayer
                         int wave = reader.ReadInt();
                         string h = reader.ReadString();
                         string p = reader.ReadString();
-                        bool basic = reader.ReadBool();
-                        if(basic)
+                        CyberSync.LoadPattern(new ArenaPattern
                         {
-                            CyberSync.BasicLoad(new ArenaPattern
-                            {
-                                heights = h,
-                                prefabs = p
-                            }, wave);
-                        }
-                        else
-                        {
-                            CyberSync.LoadPattern(new ArenaPattern
-                            {
-                                heights = h,
-                                prefabs = p
-                            }, wave);
-                        }
+                            heights = h,
+                            prefabs = p
+                        }, wave);
                         break;
                     }
                 case PacketType.CyberGameOver:
@@ -610,7 +628,7 @@ namespace Polarite.Multiplayer
                             {
                                 if(CyberSync.Active)
                                 {
-                                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId)} became a ghost. {NetworkPlayer.PlayersAlive()} remain.</color>", false, $"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId)} became a ghost. {NetworkPlayer.PlayersAlive()} remain.</color>", tts: false);
+                                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId, true)} became a ghost. {NetworkPlayer.PlayersAlive()} remain.</color>", false, $"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId, true)} became a ghost. {NetworkPlayer.PlayersAlive()} remain.</color>", tts: false);
                                     if (NetworkPlayer.LastPlayerAlive() && !NetworkPlayer.selfIsGhost)
                                     {
                                         NetworkManager.DisplayWarningChatMessage("You're the last player alive! If you die, it's game over.");
@@ -623,7 +641,7 @@ namespace Polarite.Multiplayer
                                 }
                                 else
                                 {
-                                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId)} became a ghost.</color>", false, $"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId)} became a ghost.</color>", tts: false);
+                                    ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId, true)} became a ghost.</color>", false, $"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId, true)} became a ghost.</color>", tts: false);
                                     ChatUI.Instance.ShowUIForBit(5f);
                                 }
                             }
@@ -659,13 +677,13 @@ namespace Polarite.Multiplayer
                 case PacketType.Blast:
                     {
                         Vector3 pos = reader.ReadVector3();
-                        GunSync.Blast(pos);
+                        GunSync.Blast(pos, senderId);
                         break;
                     }
                 case PacketType.ProjExplode:
                     {
                         Vector3 pos = reader.ReadVector3();
-                        GunSync.ProjBoost(pos);
+                        GunSync.ProjBoost(pos, senderId);
                         break;
                     }
                 case PacketType.RocketFreeze:
@@ -794,6 +812,72 @@ namespace Polarite.Multiplayer
                                 }
                             }
                         }
+                        break;
+                    }
+                case PacketType.LevelStart:
+                    {
+                        bool startTimer = reader.ReadBool();
+                        bool startMusic = reader.ReadBool();
+                        MonoSingleton<OnLevelStart>.Instance.StartLevel(startTimer, startMusic);
+                        break;
+                    }
+                case PacketType.ShopTap:
+                    {
+                        NetworkPlayer plr = NetworkPlayer.Find(senderId);
+                        if(plr != null)
+                        {
+                            plr.TapAnim();
+                        }
+                        break;
+                    }
+                case PacketType.SkullState:
+                    {
+                        string placed = reader.ReadString();
+                        bool dropped = reader.ReadBool();
+                        string id = reader.ReadString();
+                        Vector3 pos = reader.ReadVector3();
+                        Quaternion rot = reader.ReadQuaternion();
+                        INetworkObject e = Net.Get(id, senderId, pos, true);
+                        if(e.Base != null)
+                        {
+                            if(Net.IsOwner(e))
+                            {
+                                break;
+                            }
+                            NetworkSkull skull = e.Base as NetworkSkull;
+                            skull.placedOn = placed;
+                            skull.dropped = dropped;
+                            e.State(pos, rot, reader);
+                        }
+                        break;
+                    }
+                case PacketType.Flammable:
+                    {
+                        float heat = reader.ReadFloat();
+                        bool instaDmg = reader.ReadBool();
+                        string id = reader.ReadString();
+                        GameObject flammableObj = SceneObjectCache.Find(id);
+                        if(flammableObj != null)
+                        {
+                            Flammable flam = flammableObj.GetComponent<Flammable>();
+                            flam.Burn(heat, instaDmg);
+                        }
+                        break;
+                    }
+                case PacketType.LobbySettings:
+                    {
+                        LobbyType lobType = reader.ReadEnum<LobbyType>();
+                        string newLobName = reader.ReadString();
+                        int max = reader.ReadInt();
+                        string newAllowCheats = reader.ReadString();
+                        if (lobType != LobbyType.None)
+                            NetworkManager.DisplaySystemChatMessage("Lobby has been set to: " + lobType.ToString());
+                        if(newLobName != "0")
+                            NetworkManager.DisplaySystemChatMessage("Lobby name has been changed to: " + newLobName);
+                        if(max != 0)
+                            NetworkManager.DisplaySystemChatMessage("Lobby max player limit has been changed to: " + max);
+                        if(newAllowCheats != "0")
+                            NetworkManager.DisplaySystemChatMessage("Allow cheats has been changed to: " + newAllowCheats);
                         break;
                     }
             }

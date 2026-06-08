@@ -68,22 +68,27 @@ namespace Polarite.Patches
             events.Clear();
             current = pat;
             wave = wav;
+            bool starting = false;
             Collider trigger = EndlessGrid.Instance.GetComponent<Collider>();
             if (trigger.enabled)
             {
                 GameObject.Find("Everything").transform.Find("Timer").gameObject.SetActive(true);
                 trigger.enabled = false;
+                starting = true;
                 return;
             }
             EndlessGrid.Instance.NextWave();
             EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);
-            CrowdReactions.Instance.React(CrowdReactions.Instance.cheerLong);
-            NewMovement i = MonoSingleton<NewMovement>.Instance;
-            WeaponCharges.Instance.MaxCharges();
-            i.exploded = false;
-            i.ResetHardDamage();
-            i.FullStamina();
-            i.GetHealth(454545, true);
+            if(!starting)
+            {
+                CrowdReactions.Instance.React(CrowdReactions.Instance.cheerLong);
+                NewMovement i = MonoSingleton<NewMovement>.Instance;
+                WeaponCharges.Instance.MaxCharges();
+                i.exploded = false;
+                i.ResetHardDamage();
+                i.FullStamina();
+                i.GetHealth(454545, true);
+            }
             if (NetworkPlayer.selfIsGhost)
             {
                 ItePlugin.Ghost(false);
@@ -105,15 +110,6 @@ namespace Polarite.Patches
         }
 
         // patch stuff
-        [HarmonyPatch(nameof(EndlessGrid.Start))]
-        [HarmonyPostfix]
-        static void LoadPatternOnStart()
-        {
-            if(NetworkManager.ClientAndConnected && Active && LobbyHasPattern && int.TryParse(NetworkManager.Instance.CurrentLobby.GetData("cyberWave"), out int wave))
-            {
-                BasicLoad(LobbyPattern, wave);
-            }
-        }
         [HarmonyPatch(nameof(EndlessGrid.OnTriggerEnter))]
         [HarmonyPrefix]
         static bool OnlyHost()
@@ -151,10 +147,6 @@ namespace Polarite.Patches
         {
             if (NetworkManager.ClientAndConnected)
             {
-                if(current == null && __instance.gameObject.activeSelf && Active && LobbyHasPattern && int.TryParse(NetworkManager.Instance.CurrentLobby.GetData("cyberWave"), out int wav))
-                {
-                    BasicLoad(LobbyPattern, wav);
-                }
                 __instance.anw.deadEnemies = 0;
                 __instance.currentWave = wave;
                 __instance.enemiesLeftText.text = enemies.Count.ToString() ?? "";

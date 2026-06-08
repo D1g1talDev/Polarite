@@ -15,9 +15,7 @@ namespace Polarite.Networking.Sockets
         public void OnConnected(ConnectionInfo info)
         {
             NetworkManager.DisplayJoin("green", $"Connected to socket server");
-            PacketWriter write = new PacketWriter();
-            write.WriteSkin(ItePlugin.currentSkin);
-            NetworkManager.Instance.BroadcastPacket(PacketType.Skin, write.GetBytes());
+            NetworkManager.Instance.JoinAnnounceClient();
         }
 
         public void OnConnecting(ConnectionInfo info)
@@ -28,7 +26,7 @@ namespace Polarite.Networking.Sockets
         public void OnDisconnected(ConnectionInfo info)
         {
             NetworkManager.DisplayJoin("red", $"Disconnected from socket server: {info.EndReason}");
-            NetworkManager.Instance.LeaveLobby();
+            NetworkManager.Instance.LeaveLobby(true);
         }
 
         public void OnMessage(IntPtr data, int size, long messageNum, long recvTime, int channel)

@@ -23,7 +23,7 @@ namespace Polarite.Multiplayer
         public static bool needsRebuild;
         public static bool scheduledRebuild;
 
-        public static void Initialize()
+        public static void Init()
         {
             if (initialized) Clear();
 
@@ -68,8 +68,7 @@ namespace Polarite.Multiplayer
         {
             if (NetworkManager.SceneLoading) return;
 
-            var scenes = GetLoadedScenes().ToArray();
-
+            Scene[] scenes = GetLoadedScenes().ToArray();
             lock (sync)
             {
                 Paths.Clear();
@@ -84,27 +83,12 @@ namespace Polarite.Multiplayer
                 }
             }
         }
-        private static GameObject FindByIndex(int index)
-        {
-            if (index == -1) return null;
-
-            lock (sync)
-            {
-                if (NetObjectIndex.TryGetValue(index, out var obj))
-                {
-                    return obj;
-                }
-            }
-
-            return null;
-        }
 
         private static void AddRecursive(GameObject obj)
         {
             if (obj == null) return;
 
             string path = BuildPathForObject(obj);
-
             lock (sync)
             {
                 bool isNet = obj.IsNetwork();
@@ -189,7 +173,6 @@ namespace Polarite.Multiplayer
             if (obj == null) return "";
 
             int id = obj.GetInstanceID();
-
             lock (sync)
             {
                 if (Ids.TryGetValue(id, out string cached))
@@ -199,7 +182,6 @@ namespace Polarite.Multiplayer
             }
 
             string newPath = BuildPathForObject(obj);
-
             lock (sync)
             {
                 Paths[newPath] = obj;
@@ -208,13 +190,22 @@ namespace Polarite.Multiplayer
 
             return newPath;
         }
+        private static bool EnemyValid(GameObject obj)
+        {
+            EnemyIdentifier eid = obj.GetComponentInChildren<EnemyIdentifier>(true);
+            if(eid == null)
+            {
+                return false;
+            }
+            return !eid.dead && eid.health > 0;
+        }
 
         public static EnemyIdentifier TrySpawnEnemy(string path, EnemyType fallback, Vector3 pos, Quaternion rot, ulong owner)
         {
             try
             {
                 GameObject obj = Find(path);
-                if (obj == null)
+                if (!EnemyValid(obj))
                 {
                     EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, owner, path);
                     INetworkObject netObj = newE.gameObject.NetObject();
@@ -228,7 +219,7 @@ namespace Polarite.Multiplayer
                 obj.SetActive(true);
                 obj.transform.SetPositionAndRotation(pos, rot);
                 INetworkObject newNet = EntityStorage.AddNetEnemy(obj, owner, path);
-                return obj.GetComponent<EnemyIdentifier>();
+                return obj.GetComponentInChildren<EnemyIdentifier>(true);
             }
             catch
             {
@@ -272,7 +263,6 @@ namespace Polarite.Multiplayer
             if (obj == null) return;
 
             string path = GetScenePath(obj);
-
             lock (sync)
             {
                 Paths[path] = obj;

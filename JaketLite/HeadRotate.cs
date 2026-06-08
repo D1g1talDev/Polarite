@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Polarite.Multiplayer;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,23 +17,16 @@ namespace Polarite
         public Transform arm;
         public Quaternion targetRotation;
         private Transform spine3;
+        private NetworkPlayer plr;
 
-        void Awake()
+        void Start()
         {
-            // traverse parents upward until finding a parent named "spine.003"
-            Transform p = transform.parent;
-            while (p != null)
-            {
-                if (p.name.Equals("spine.003", StringComparison.OrdinalIgnoreCase))
-                {
-                    spine3 = p;
-                    break;
-                }
-                p = p.parent;
-            }
+            // head is inside of spine.005
+            spine3 = head.parent.parent.parent;
+            plr = GetComponentInParent<NetworkPlayer>();
         }
 
-        public void Update()
+        public void LateUpdate()
         {
             if (head != null)
             {
@@ -39,16 +34,12 @@ namespace Polarite
 
                 Vector3 targetHeadEuler = targetRotation.eulerAngles;
 
-                float newX = Mathf.LerpAngle(currentHeadEuler.x, targetHeadEuler.x, Time.unscaledDeltaTime * 10f);
+                float newX = Mathf.LerpAngle(currentHeadEuler.x, targetHeadEuler.x, Time.unscaledDeltaTime * 20f);
 
                 head.localRotation = Quaternion.Euler(newX * 1, 0f, 0f);
                 if (spine3 != null)
                 {
-                    // apply a smaller fraction of the head rotation to spine3
-                    float spineX = newX * 0.25f; // reduced rotation
-                    Vector3 cur = spine3.localRotation.eulerAngles;
-                    float snewX = Mathf.LerpAngle(cur.x, spineX, Time.unscaledDeltaTime * 5f);
-                    spine3.localRotation = Quaternion.Euler(snewX, cur.y, cur.z);
+                    spine3.localRotation *= head.localRotation;
                 }
             }
         }

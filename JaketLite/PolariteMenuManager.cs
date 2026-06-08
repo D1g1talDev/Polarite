@@ -11,13 +11,13 @@ namespace Polarite
 {
     public class PolariteMenuManager : MonoBehaviour
     {
-        public Button uiOpen;
+        public Button uiOpen, saveLobSettings;
         public UnityEvent host, leave, invite, join;
         public GameObject mainPanel;
         public TMP_InputField maxP, lobbyName, code;
         public TMP_Dropdown lobbyType, canCheat;
 
-        public TextMeshProUGUI statusHost, statusJoin;
+        public TextMeshProUGUI statusHost, statusJoin, lowerMaxPWarn;
         public string codeHost;
 
         public GameObject notifBox;
