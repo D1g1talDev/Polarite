@@ -12,7 +12,7 @@ Works with **Steam**
 - Respawning, and dying
 - Enemy spawns, Enemy positions and rotations, damage to enemies, radiance
 - Breakables, hook points, checkpoints
-- Arenas
+- Arenas and Skulls
 - Cybergrind and Sandbox
 - Fraud Elevators
 
