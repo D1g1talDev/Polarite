@@ -876,7 +876,7 @@ namespace Polarite.Multiplayer
                             NetworkManager.DisplaySystemChatMessage("Lobby name has been changed to: " + newLobName);
                         if(max != 0)
                             NetworkManager.DisplaySystemChatMessage("Lobby max player limit has been changed to: " + max);
-                        if(newAllowCheats != "0")
+                        if(newAllowCheats != "null")
                             NetworkManager.DisplaySystemChatMessage("Allow cheats has been changed to: " + newAllowCheats);
                         break;
                     }

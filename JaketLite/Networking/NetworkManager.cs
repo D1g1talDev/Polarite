@@ -976,7 +976,7 @@ namespace Polarite.Multiplayer
             }
             else
             {
-                w.WriteString("0");
+                w.WriteString("null");
             }
             BroadcastPacket(PacketType.LobbySettings, w.GetBytes());
         }
