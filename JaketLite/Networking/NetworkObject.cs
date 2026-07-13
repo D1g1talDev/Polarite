@@ -5,7 +5,6 @@ using Polarite.Networking;
 using UnityEngine.ProBuilder.MeshOperations;
 using Polarite.Debugging;
 using System.Collections;
-using Polarite.Patches;
 
 namespace Polarite
 {
@@ -192,7 +191,7 @@ namespace Polarite
         public virtual void State(Vector3 pos, Quaternion rot, BinaryPacketReader reader)
         {
             if (!alive) return;
-            lastState = 3f;
+            lastState = 2f;
 
             if (syncTransform)
             {
@@ -215,7 +214,7 @@ namespace Polarite
             isCleaningUp = false;
             if(TryGetComponent<Enemy>(out var e))
             {
-                if(!CyberSync.Active && !e.eid.puppet)
+                if(!e.eid.puppet && e.eid.enemyType == EnemyType.Providence)
                 {
                     e.anw.AddDeadEnemy();
                 }
