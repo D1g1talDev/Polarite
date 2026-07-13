@@ -313,10 +313,6 @@ namespace Polarite.Multiplayer
                 {
                     DisplayWarningChatMessage($"Your lobby is public, Anyone can join this lobby from the public lobbies tab.");
                 }
-                if(Sandbox)
-                {
-                    DisplayWarningChatMessage($"Anyone can spawn anything even if they don't have cheats in Sandbox, Beware of chaos");
-                }
                 PlayerList.UpdatePList();
                 ItePlugin.Instance.CleanLevel();
                 DisplaySkinTip();

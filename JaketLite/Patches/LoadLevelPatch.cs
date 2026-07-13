@@ -28,10 +28,6 @@ namespace Polarite.Patches
                 NetworkManager.SceneLoading = true;
                 SceneHelper.SetLoadingSubtext("<color=#91FFFF>+++ VIA POLARITE ---");
             }
-            if (sceneName == "uk_construct" && NetworkManager.HostAndConnected)
-            {
-                NetworkManager.DisplayWarningChatMessage($"Anyone can spawn anything even if they don't have cheats in Sandbox, Beware of chaos");
-            }
             if (sceneName == "Main Menu" && NetworkManager.InLobby)
             {
                 NetworkManager.Instance.LeaveLobby();
