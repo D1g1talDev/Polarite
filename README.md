@@ -1,6 +1,6 @@
 # Polarite
 
-## Well well well, Look what happened, Fraud broke Polarite! and i'm currently still working on it. Please be patient because fraud is not everything I need to do, I still have other stuff to do with Polarite.
+## Soon..
 
 A simple multiplayer mod for **ULTRAKILL** inspired by **Jaket**.
 
