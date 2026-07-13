@@ -5,6 +5,7 @@ using Polarite.Networking;
 using UnityEngine.ProBuilder.MeshOperations;
 using Polarite.Debugging;
 using System.Collections;
+using Polarite.Patches;
 
 namespace Polarite
 {
@@ -214,7 +215,7 @@ namespace Polarite
             isCleaningUp = false;
             if(TryGetComponent<Enemy>(out var e))
             {
-                if(!e.eid.puppet && e.eid.enemyType == EnemyType.Providence)
+                if(!CyberSync.Active && !e.eid.puppet)
                 {
                     e.anw.AddDeadEnemy();
                 }
