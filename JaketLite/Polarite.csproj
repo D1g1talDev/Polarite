@@ -492,7 +492,11 @@
     <Compile Include="Debugging\LineTargetTool.cs" />
     <Compile Include="Debugging\Logs.cs" />
     <Compile Include="Debugging\ShaderPropGrabber.cs" />
+    <Compile Include="Networking\Extensions\StringExtensions.cs" />
+    <Compile Include="Networking\Extensions\TaskExtensions.cs" />
     <Compile Include="Networking\Skins\SkinManagerV2.cs" />
+    <Compile Include="Patches\CamVisiblePatch.cs" />
+    <Compile Include="Patches\GravVolumePatch.cs" />
     <Compile Include="Patches\GunSync.cs" />
     <Compile Include="MasterShaderizer.cs" />
     <Compile Include="NetworkDebugRef.cs" />
@@ -523,7 +527,10 @@
     <Compile Include="Patches\FistPatch.cs" />
     <Compile Include="Patches\ItemPatch.cs" />
     <Compile Include="Patches\LevelStartPatch.cs" />
+    <Compile Include="Patches\RevolverPatch.cs" />
     <Compile Include="Patches\SaveFilePatches.cs" />
+    <Compile Include="Patches\SpecialHudCameraAddPatch.cs" />
+    <Compile Include="Patches\StatsManagerPatch.cs" />
     <Compile Include="Ragdoll.cs" />
     <Compile Include="Networking\PacketReader.cs" />
     <Compile Include="Networking\PacketWriter.cs" />
@@ -585,11 +592,17 @@
     <Compile Include="SamTTS\RenderTabs_h.cs" />
     <Compile Include="SamTTS\render_c.cs" />
     <Compile Include="SamTTS\SamDebug.cs" />
+    <Compile Include="SamTTS\SamPitch.cs" />
     <Compile Include="SamTTS\SamTabs_h.cs" />
     <Compile Include="SamTTS\sam_c.cs" />
     <Compile Include="SamTTS\TextReader.cs" />
     <Compile Include="SpectatorCam.cs" />
-    <Compile Include="VoiceChatManager.cs" />
+    <Compile Include="UIAnchors.cs" />
+    <Compile Include="BannedModsDetector.cs" />
+    <Compile Include="VoiceChat\OnLoop.cs" />
+    <Compile Include="VoiceChat\VoiceChatManager.cs" />
+    <Compile Include="VoiceChat\VoicePTTBind.cs" />
+    <Compile Include="VoiceChat\VoiceUI.cs" />
     <Compile Include="Web\XServers.cs" />
   </ItemGroup>
   <ItemGroup>

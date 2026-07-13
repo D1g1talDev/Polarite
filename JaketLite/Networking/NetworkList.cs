@@ -23,7 +23,7 @@ namespace Polarite
         public INetworkObject this[string id] => id != null ? netList.Find(obj => obj.ID == id) : null;
         public INetworkObject Add(INetworkObject obj)
         {
-            if (obj == null)
+            if (!ValidObjectCheck(obj))
                 return null;
 
             if (netList.Contains(obj))
@@ -46,7 +46,7 @@ namespace Polarite
 
             foreach (var obj in Objects)
             {
-                if(ValidObjectCheck(obj))
+                if (ValidObjectCheck(obj))
                 {
                     obj.SendState(new PacketWriter(), PacketType.ObjectState);
                 }

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Polarite.Multiplayer;
-
+using Polarite.Networking.Skins;
 using Steamworks;
 
 using TMPro;
@@ -39,6 +39,7 @@ namespace Polarite
             Transform newList = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("PlayerListing"), ContentB).transform;
             newList.Find("Name").GetComponent<TextMeshProUGUI>().text = name;
             FetchAvatar(newList.Find("PFP").GetComponent<Image>(), new Friend(id));
+            if(SkinManagerV2.Previews.TryGetValue(id, out var icon)) newList.Find("Skin").GetComponent<Image>().sprite = icon;
             Button kick = newList.Find("Kick").GetComponent<Button>();
             Button ban = newList.Find("Ban").GetComponent<Button>();
             Button steam = newList.Find("Steam").GetComponent<Button>();
@@ -98,7 +99,7 @@ namespace Polarite
             }
             return newList;
         }
-        public static async void FetchAvatar(Image target, Friend user)
+        public static async void FetchAvatar(Image target, Friend user, bool setSize = true)
         {
             Steamworks.Data.Image? image = await user.GetMediumAvatarAsync();
             if (image.HasValue)
@@ -121,7 +122,7 @@ namespace Polarite
 
                 target.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
                 target.preserveAspect = true;
-                target.SetNativeSize();
+                if (setSize) target.SetNativeSize();
             }
         }
 

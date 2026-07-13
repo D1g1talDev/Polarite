@@ -21,6 +21,7 @@ namespace Polarite
         public string codeHost;
 
         public GameObject notifBox;
+        public GameObject redFlash, blueFlash, ghostFlash;
 
         public void ToggleMainPanel()
         {

@@ -45,7 +45,7 @@ namespace Polarite
         }
         public override void SendState(PacketWriter writer, PacketType type)
         {
-            writer.WriteString(placedOn);
+            writer.WriteString(placedOn ?? "");
             writer.WriteBool(!item.pickedUp);
             base.SendState(writer, PacketType.SkullState);
         }
@@ -66,7 +66,9 @@ namespace Polarite
         }
         public override void Update()
         {
+            dontChangeIDOnEnable = true;
             syncTransform = false;
+            allowLastState = false;
             base.Update();
             if (Owns)
             {

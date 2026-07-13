@@ -1,4 +1,5 @@
 ﻿using Polarite.Networking.Skins;
+using Polarite.SamTTS;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -43,6 +44,7 @@ namespace Polarite.Multiplayer
 
         public void WriteString(string value)
         {
+            if(string.IsNullOrEmpty(value)) value = "";
             byte[] data = Encoding.UTF8.GetBytes(value);
             WriteInt(data.Length);
             buffer.AddRange(data);
@@ -87,6 +89,13 @@ namespace Polarite.Multiplayer
             WriteULong(skin.ID);
             WriteString(skin.Nameplate);
             WriteColor(skin.NameplateColor);
+        }
+        public void WriteSam(Sam sam)
+        {
+            WriteInt(sam.speed);
+            WriteInt(sam.pitch);
+            WriteInt(sam.mouth);
+            WriteInt(sam.throat);
         }
 
         public void WriteIntArray(int[] values)

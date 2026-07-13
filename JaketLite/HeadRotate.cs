@@ -16,7 +16,7 @@ namespace Polarite
         public Transform head;
         public Transform arm;
         public Quaternion targetRotation;
-        private Transform spine3;
+        public Transform spine3;
         private NetworkPlayer plr;
 
         void Start()

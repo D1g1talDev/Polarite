@@ -23,7 +23,11 @@ namespace Polarite.Patches
         {
             if (__instance.GetComponent<INetworkObject>() == null && NetworkManager.InLobby)
             {
-                NetworkEnemy.Create(__instance, NetworkManager.GetNearestPlayerID(__instance.transform.position));
+                NetworkEnemy e = NetworkEnemy.Create(__instance, NetworkManager.GetNearestPlayerID(__instance.transform.position));
+                if (CyberSync.Active && !CyberSync.enemies.Contains(e))
+                {
+                    CyberSync.enemies.Add(e);
+                }
             }
         }
         [HarmonyPatch(nameof(EnemyIdentifier.DeliverDamage))]

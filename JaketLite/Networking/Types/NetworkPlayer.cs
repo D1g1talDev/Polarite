@@ -1,6 +1,7 @@
 ﻿using Polarite.Debugging;
 using Polarite.Networking.Skins;
 using Polarite.Patches;
+using Polarite.VoiceChat;
 using Steamworks;
 using System;
 using System.Collections;
@@ -9,6 +10,7 @@ using System.Data;
 using System.Linq;
 using TMPro;
 using ULTRAKILL.Enemy;
+using ULTRAKILL.Portal;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.Initialization;
@@ -16,7 +18,7 @@ using UnityEngine.AI;
 using UnityEngine.Assertions.Must;
 using UnityEngine.Localization.Pseudo;
 using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
@@ -72,7 +74,7 @@ namespace Polarite.Multiplayer
 
         public static NetworkPlayer LocalPlayer;
 
-        public static bool selfIsGhost = false;
+        public static bool selfIsGhost = false, hadLocPlr;
 
         public bool isGhost = false;
 
@@ -85,6 +87,9 @@ namespace Polarite.Multiplayer
         public Skin currentSkin = new Skin();
 
         public TextMeshProUGUI namePlate;
+        public Image showWhenHidden;
+
+        public bool forceDisplayHiddenIndi = false;
 
         public bool typing, sliding = false;
 
@@ -94,6 +99,8 @@ namespace Polarite.Multiplayer
 
         public static bool Shopping = false;
         public bool shopping = false, currentlySpinning = false;
+        public Vector3 gravOffset;
+        public Vector3 gravity = new Vector3(0, -40, 0);
 
         public void SpawnNoise()
         {
@@ -150,6 +157,7 @@ namespace Polarite.Multiplayer
             if (LocalPlayer == null && steamId == NetworkManager.Id)
             {
                 LocalPlayer = this;
+                hadLocPlr = true;
             }
             DontDestroyOnLoad(gameObject);
             SpawnNoise();
@@ -157,17 +165,41 @@ namespace Polarite.Multiplayer
             customData = new TargetData();
             customData.ResetToDefault();
             customData.handle = new TargetHandle(this);
+            foreach (var w in weapons)
+            {
+                foreach (Transform par in w.transform)
+                {
+                    par.gameObject.SetActive(false);
+                }
+            }
+            UpdGravOff();
         }
         private void OnSceneLoaded(Scene args, LoadSceneMode args2)
         {
             updatePos = StartCoroutine(UpdatePos());
         }
+        private void UpdGravOff()
+        {
+            gravOffset = transform.rotation * new Vector3(0f, -1.5f, 0f);
+        }
 
         public IEnumerator UpdatePos()
         {
-            Transform transform = MonoSingleton<NewMovement>.Instance.transform;
+            Transform transform;
+            if (MonoSingleton<NewMovement>.Instance != null)
+            {
+                transform = MonoSingleton<NewMovement>.Instance.transform;
+            }
+            else
+            {
+                transform = null;
+            }
             while (true)
             {
+                if(transform == null)
+                {
+                    yield return null;
+                }
                 yield return new WaitForSeconds(0.1f);
                 try
                 {
@@ -178,9 +210,9 @@ namespace Polarite.Multiplayer
                     bool shop = Shopping;
                     Quaternion rotation = (sliding) ? Quaternion.LookRotation(MonoSingleton<NewMovement>.Instance.rb.velocity) : MonoSingleton<CameraController>.Instance.transform.rotation;
                     PacketWriter writer = new PacketWriter();
-                    Vector3 pos = new Vector3(transform.position.x, (sliding) ? (transform.position.y) : (transform.position.y - 1.5f), transform.position.z);
+                    Vector3 pos = new Vector3(transform.position.x, (sliding) ? transform.position.y : (transform.position + gravOffset).y, transform.position.z);
                     Quaternion rot = new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w);
-                    Quaternion rot2 = new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, MonoSingleton<CameraController>.Instance.transform.rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w);
+                    Quaternion rot2 = new Quaternion(MonoSingleton<CameraController>.Instance.transform.localRotation.x, MonoSingleton<CameraController>.Instance.transform.localRotation.y, MonoSingleton<CameraController>.Instance.transform.localRotation.z, MonoSingleton<CameraController>.Instance.transform.localRotation.w);
                     writer.WriteVector3(pos);
                     writer.WriteQuaternion(rot);
                     writer.WriteQuaternion(rot2);
@@ -197,7 +229,7 @@ namespace Polarite.Multiplayer
                 }
                 catch (Exception)
                 {
-                    // ignore
+                    NetworkManager.LocPlayerCheck();
                 }
             }
         }
@@ -316,6 +348,7 @@ namespace Polarite.Multiplayer
         }
         public void CoinAnim()
         {
+            if (NetworkManager.SceneLoading) return;
             armAnimator.SetBool("Idle", false);
             armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdle));
@@ -326,6 +359,7 @@ namespace Polarite.Multiplayer
         }
         public void PunchAnim()
         {
+            if (NetworkManager.SceneLoading) return;
             armAnimator.SetBool("Idle", false);
             armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdle));
@@ -336,6 +370,7 @@ namespace Polarite.Multiplayer
         }
         public void WhipAnim()
         {
+            if (NetworkManager.SceneLoading) return;
             armAnimator.SetBool("Idle", false);
             armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdle));
@@ -356,8 +391,17 @@ namespace Polarite.Multiplayer
         {
             armAnimator.SetBool("Idle", true);
         }
+        public void SceneLoading()
+        {
+            armAnimator.SetBool("Nerd", false);
+            armAnimator.SetBool("Idle", true);
+            transform.rotation = Quaternion.identity;
+            gravity = new Vector3(0, -40, 0);
+            UpdGravOff();
+        }
         public void GoBackToIdleShop()
         {
+            if (NetworkManager.SceneLoading) return;
             if (!shopping)
             {
                 return;
@@ -366,6 +410,12 @@ namespace Polarite.Multiplayer
         }
         public void ShopMode(bool shop)
         {
+            if (NetworkManager.SceneLoading)
+            {
+                armAnimator.SetBool("Nerd", false);
+                armAnimator.SetBool("Idle", true);
+                return;
+            }
             if (shopping == shop)
             {
                 return;
@@ -384,6 +434,7 @@ namespace Polarite.Multiplayer
         }
         public void TapAnim()
         {
+            if (NetworkManager.SceneLoading) return;
             armAnimator.SetBool("Nerd", false);
             CancelInvoke(nameof(GoBackToIdleShop));
             armAnimator.SetTrigger("Tap");
@@ -414,7 +465,7 @@ namespace Polarite.Multiplayer
             if (testPlayer)
             {
                 Quaternion rotation = (NewMovement.Instance.sliding) ? Quaternion.LookRotation(MonoSingleton<NewMovement>.Instance.rb.velocity) : MonoSingleton<CameraController>.Instance.transform.rotation;
-                SetTargetTransform(new Vector3(MonoSingleton<NewMovement>.Instance.transform.position.x, (NewMovement.Instance.sliding) ? MonoSingleton<NewMovement>.Instance.transform.position.y : MonoSingleton<NewMovement>.Instance.transform.position.y - 1.5f, MonoSingleton<NewMovement>.Instance.transform.position.z), new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w), new Quaternion(MonoSingleton<CameraController>.Instance.transform.rotation.x, MonoSingleton<CameraController>.Instance.transform.rotation.y, MonoSingleton<CameraController>.Instance.transform.rotation.z, MonoSingleton<CameraController>.Instance.transform.rotation.w));
+                SetTargetTransform(new Vector3(MonoSingleton<NewMovement>.Instance.transform.position.x, (NewMovement.Instance.sliding) ? MonoSingleton<NewMovement>.Instance.transform.position.y : (MonoSingleton<NewMovement>.Instance.transform.position + gravOffset).y, MonoSingleton<NewMovement>.Instance.transform.position.z), new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w), new Quaternion(MonoSingleton<CameraController>.Instance.transform.localRotation.x, MonoSingleton<CameraController>.Instance.transform.localRotation.y, MonoSingleton<CameraController>.Instance.transform.localRotation.z, MonoSingleton<CameraController>.Instance.transform.localRotation.w));
                 SetAnimation(NewMovement.Instance.sliding, !NewMovement.Instance.gc.onGround, NewMovement.Instance.walking, TryGetSpinning());
                 SetHP(NewMovement.Instance.hp);
                 ShopMode(Shopping);
@@ -432,7 +483,8 @@ namespace Polarite.Multiplayer
             {
                 transform.position = Vector3.Lerp(transform.position, targetPosition, Time.unscaledDeltaTime * lerpSpeed);
             }
-            Vector3 currentEuler = transform.rotation.eulerAngles;
+            Transform rig = transform.Find("v2_combined");
+            Vector3 currentEuler = rig.localRotation.eulerAngles;
 
             Vector3 targetEuler = targetRotation.eulerAngles;
 
@@ -440,13 +492,41 @@ namespace Polarite.Multiplayer
 
             Quaternion newRotation = Quaternion.Euler(currentEuler.x, newY, currentEuler.z);
 
-            transform.rotation = newRotation;
+            rig.localRotation = newRotation;
 
             head.targetRotation = headTargetRotation;
 
             customData.position = transform.position;
             customData.rotation = transform.rotation;
             customData.headPosition = head.head.position;
+
+            CameraController gameCam = MonoSingleton<CameraController>.Instance;
+            Vector3 dir = (showWhenHidden.transform.position - gameCam.GetDefaultPos());
+            showWhenHidden.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+            showWhenHidden.transform.parent.gameObject.layer = SpecialHudCameraAddPatch.mask;
+            showWhenHidden.gameObject.layer = SpecialHudCameraAddPatch.mask;
+            Graphic imgGraph = showWhenHidden;
+            try
+            {
+                if(LocalPlayer == this && !ItePlugin.debugMode)
+                {
+                    imgGraph.color = Color.clear;
+                    return;
+                }
+                if (PortalPhysicsV2.Raycast(gameCam.GetDefaultPos(), dir, Vector3.Distance(gameCam.GetDefaultPos(), showWhenHidden.transform.position), LayerMaskDefaults.Get(LMD.Environment)) && rigActive && !ItePlugin.disableHI.value)
+                {
+                    imgGraph.color = Color.Lerp(imgGraph.color, new Color(1f, 1f, 1f, 1f), 10f * Time.deltaTime);
+                }
+                else
+                {
+                    imgGraph.color = Color.Lerp(imgGraph.color, new Color(1f, 1f, 1f, !rigActive ? 0.5f : 0f), 10f * Time.deltaTime);
+                }
+            }
+            catch (Exception e)
+            {
+                Logs.DebugError("[Hidden indicator] Error: " + e.Message, this);
+                imgGraph.color = Color.Lerp(imgGraph.color, new Color(1f, 1f, 1f, !rigActive ? 0.5f : 0f), 10f * Time.deltaTime);
+            }
         }
 
         public void SetHP(int hp)
@@ -490,8 +570,11 @@ namespace Polarite.Multiplayer
             }
             catch (Exception e)
             {
-                Debug.LogWarning("Failed applying shader to rig path: " + e);
+                Logs.Warn("Failed applying shader to rig path: " + e, this);
             }
+            SkinManagerV2.SetIcon(SteamId);
+            VoiceUI.RefreshIcons(ItePlugin.useSkinInsteadOfPFP.value);
+            if(SkinManagerV2.Previews.TryGetValue(SteamId, out var icon)) showWhenHidden.sprite = icon;
         }
 
         public static void SetSkinOfRagdoll(SkinnedMeshRenderer rend, Skin skin, ulong target)
@@ -621,6 +704,7 @@ namespace Polarite.Multiplayer
 
             Transform holder = v2Rig.transform.Find("v2_combined/metarig/spine/spine.001/spine.002/spine.003/Arms/Feedbacker/Armature/UpperArm/Forearm/Hand/HoldPos");
             Transform nameplate = v2Rig.transform.Find("v2_combined/metarig/spine/spine.001/spine.002/spine.003/NameplateCanvas/Nameplate");
+            Transform showHidden = v2Rig.transform.Find("ShowWhenHidden/PlrIndi");
 
             TextMeshProUGUI tmp = null;
             if (nameplate != null)
@@ -677,6 +761,7 @@ namespace Polarite.Multiplayer
             plr.mainRenderer = smr;
             plr.holderObject = holder;
             plr.namePlate = tmp;
+            plr.showWhenHidden = showHidden.GetComponent<Image>();
             plr.Init(id, name);
 
             Logs.Info($"Created player {name} with ID {id}", name: "NetworkPlayer");
@@ -692,7 +777,6 @@ namespace Polarite.Multiplayer
             }
             transform.Find("v2_combined").gameObject.SetActive(value);
             NameTag.gameObject.SetActive(value);
-            Voice.Toggle(value, SteamId);
             rigActive = value;
         }
         public void ClearHolder()
@@ -701,6 +785,15 @@ namespace Polarite.Multiplayer
             {
                 Destroy(t.gameObject);
             }
+            SceneLoading();
+        }
+        public void PortalRotate(Vector3 grav)
+        {
+            gravity = grav;
+            Transform rig = transform.Find("v2_combined");
+            Quaternion quaternion = Quaternion.LookRotation(Vector3.ProjectOnPlane(transform.forward, grav.normalized), -grav.normalized);
+            transform.rotation = quaternion * Quaternion.Euler(-rig.localRotation.x, rig.localRotation.y, rig.localRotation.z);
+            UpdGravOff();
         }
         public static void EnsureAllObjectsAreCleaned(Transform t, bool local)
         {

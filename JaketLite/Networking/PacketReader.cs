@@ -1,12 +1,15 @@
-﻿using Polarite.Networking;
+﻿using Polarite.Debugging;
+using Polarite.Networking;
 using Polarite.Networking.Skins;
 using Polarite.Patches;
+using Polarite.SamTTS;
 using Steamworks;
 using System;
 using System.Net.Http;
 using System.Net.Sockets;
 using Unity.Burst.Intrinsics;
 using UnityEngine;
+using UnityEngine.AI;
 using static Unity.Burst.Intrinsics.Arm;
 using Random = UnityEngine.Random;
 
@@ -113,12 +116,17 @@ namespace Polarite.Multiplayer
         // flammables
         Flammable = 60,
         // changing lobby settings
-        LobbySettings = 61
+        LobbySettings = 61,
+        // voice chat
+        Voice = 62,
+        // level finish
+        LevelFinished = 63,
+        // gravity
+        GravVol = 64
     }
 
     public static class PacketReader
     {
-        // Dispatch incoming packets
         public static void Handle(PacketType type, byte[] data, int len, ulong senderId)
         {
             BinaryPacketReader reader = new BinaryPacketReader(data, len);
@@ -153,9 +161,18 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Hurt:
                     {
+                        Sam sam = reader.ReadSam();
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
+                        {
                             p.HurtNoise();
+                            if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value)
+                            {
+                                SamPitch.Set(sam);
+                                TextReader.SayString(HurtPatch.HurtNoises[Random.Range(0, HurtPatch.HurtNoises.Length)], p.head.transform);
+                                SamPitch.Reset();
+                            }
+                        }
                         break;
                     }
 
@@ -165,18 +182,28 @@ namespace Polarite.Multiplayer
                         byte wMsgB = reader.ReadByte();
                         ulong arg = reader.ReadULong();
                         ulong wArg = reader.ReadULong();
+                        Sam sam = reader.ReadSam();
 
                         DeathMsg msg = DeadPatch.DeathMessages[msgB];
-                        DeathMsg whilstMsg = DeadPatch.DeathMessages[wMsgB];
+                        DeathMsg whileMsg = DeadPatch.DeathMessages[wMsgB];
 
-                        NetworkPlayer.Find(senderId)?.DeathNoise();
-                        if (!whilstMsg.IsDefault() && wArg != 0 && wArg != arg)
+                        NetworkPlayer plr = NetworkPlayer.Find(senderId);
+                        if (plr == null)
                         {
-                            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId, true) + " " + msg.Translate(arg) + " " + whilstMsg.Translate(wArg, true));
+                            return;
+                        }
+                        plr.DeathNoise();
+                        if (!whileMsg.IsDefault() && wArg != 0 && wArg != arg)
+                        {
+                            NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId, true) + " " + msg.Translate(arg) + " " + whileMsg.Translate(wArg, true));
                         }
                         else
                         {
                             NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId, true) + " " + msg.Translate(arg));
+                        }
+                        if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value)
+                        {
+                            ItePlugin.DeathScream(sam, plr.transform);
                         }
                         break;
                     }
@@ -291,6 +318,7 @@ namespace Polarite.Multiplayer
                 case PacketType.ChatMsg:
                     {
                         string text = reader.ReadString();
+                        Sam sam = reader.ReadSam();
                         var p = NetworkPlayer.Find(senderId);
                         string name = NetworkManager.GetNameOfId(senderId, true);
                         bool tts;
@@ -317,7 +345,7 @@ namespace Polarite.Multiplayer
                         }
                         */
 
-                        ChatUI.Instance.OnSubmitMessage(format, false, text, p.transform, tts);
+                        ChatUI.Instance.OnSubmitMessage(format, false, text, p.transform, tts, sam: sam);
                         ChatUI.Instance.ShowUIForBit();
                         if(ItePlugin.chatNoise.value)
                         {
@@ -331,9 +359,8 @@ namespace Polarite.Multiplayer
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
                         Quaternion rot = reader.ReadQuaternion();
-                        INetworkObject e = Net.Get(id, senderId, pos);
 
-                        if (e.Base != null)
+                        if (Net.TryGet(id, senderId, pos, out var e))
                             e.State(pos, rot, reader);
                         break;
                     }
@@ -354,17 +381,19 @@ namespace Polarite.Multiplayer
                         bool attackEids = reader.ReadBool();
 
                         ulong owner = reader.ReadULong();
+                        Vector3 vel = reader.ReadVector3();
+
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
                         Quaternion rot = reader.ReadQuaternion();
-                        INetworkObject e = Net.Get(id, senderId, pos);
 
-                        if (e.Base != null)
+                        if (Net.TryGet(id, owner, pos, out var e))
                         {
                             e.Owner = owner;
-                            e.State(pos, rot, reader);
                             if (e.Base.TryGetComponent<EnemyIdentifier>(out var eid))
                             {
+                                NetworkEnemy netE = e as NetworkEnemy;
+                                eid.TryGetComponent<NavMeshAgent>(out var nma);
                                 eid.healthBuff = hBuff;
                                 eid.speedBuff = sBuff;
                                 eid.damageBuff = dBuff;
@@ -378,6 +407,8 @@ namespace Polarite.Multiplayer
 
                                 eid.blessed = idol;
                                 eid.attackEnemies = attackEids;
+                                netE.SetAgentVelocity(vel);
+                                e.State(pos, rot, reader);
                             }
                         }
                         break;
@@ -387,8 +418,7 @@ namespace Polarite.Multiplayer
                     {
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
-                        INetworkObject e = Net.Get(id, senderId, pos, true);
-                        if (e != null)
+                        if (Net.TryGet(id, senderId, pos, out var e, true))
                             e.Respond(reader, PacketType.EnemyDmg, senderId);
                         break;
                     }
@@ -397,8 +427,7 @@ namespace Polarite.Multiplayer
                     {
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
-                        INetworkObject e = Net.Get(id, senderId, pos, true);
-                        if (e != null)
+                        if (Net.TryGet(id, senderId, pos, out var e, true))
                             e.Respond(reader, PacketType.DeathEnemy, senderId);
                         break;
                     }
@@ -408,8 +437,7 @@ namespace Polarite.Multiplayer
                         string id = reader.ReadString();
                         ulong newOwner = reader.ReadULong();
                         Vector3 pos = reader.ReadVector3();
-                        INetworkObject e = Net.Get(id, senderId, pos);
-                        if (e != null)
+                        if (Net.TryGet(id, senderId, pos, out var e))
                             e.TransferOwnerP2P(newOwner);
                         break;
                     }
@@ -435,8 +463,7 @@ namespace Polarite.Multiplayer
                         {
                             return;
                         }
-                        INetworkObject obj = Net.Get(path, owner, pos);
-                        if(obj.Base == null)
+                        if(!Net.TryGet(path, owner, pos, out var obj))
                         {
                             return;
                         }
@@ -631,7 +658,7 @@ namespace Polarite.Multiplayer
                                     ChatUI.Instance.OnSubmitMessage($"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId, true)} became a ghost. {NetworkPlayer.PlayersAlive()} remain.</color>", false, $"<color=#91FFFF>{NetworkManager.GetNameOfId(senderId, true)} became a ghost. {NetworkPlayer.PlayersAlive()} remain.</color>", tts: false);
                                     if (NetworkPlayer.LastPlayerAlive() && !NetworkPlayer.selfIsGhost)
                                     {
-                                        NetworkManager.DisplayWarningChatMessage("You're the last player alive! If you die, it's game over.");
+                                        NetworkManager.DisplayWarningChatMessage("You're the last player alive! If you die, it's over.");
                                         ChatUI.Instance.ShowUIForBit(7f);
                                     }
                                     else
@@ -663,9 +690,8 @@ namespace Polarite.Multiplayer
                     {
                         Vector3 pos = reader.ReadVector3();
                         string id = reader.ReadString();
-                        INetworkObject e = Net.Get(id, senderId, pos, true);
 
-                        if (e != null)
+                        if (Net.TryGet(id, senderId, pos, out var e, true))
                             e.PrepDestroy();
                         break;
                     }
@@ -698,14 +724,14 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.Trigger:
                     {
-                        if(SceneHelper.CurrentScene == "Level 8-4")
+                        GameObject trigger = SceneObjectCache.Find(reader.ReadString());
+                        ObjectActivator act = trigger.GetComponent<ObjectActivator>();
+                        if (act != null)
                         {
-                            GameObject trigger = SceneObjectCache.Find(reader.ReadString());
-                            ObjectActivator act = trigger.GetComponent<ObjectActivator>();
-                            if (act != null)
+                            act.activating = false;
+                            act.activated = true;
+                            if(act.canUseEvents)
                             {
-                                act.activating = false;
-                                act.activated = true;
                                 act.events.Invoke();
                             }
                         }
@@ -837,8 +863,7 @@ namespace Polarite.Multiplayer
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
                         Quaternion rot = reader.ReadQuaternion();
-                        INetworkObject e = Net.Get(id, senderId, pos, true);
-                        if(e.Base != null)
+                        if(Net.TryGet(id, senderId, pos, out var e, true))
                         {
                             if(Net.IsOwner(e))
                             {
@@ -848,6 +873,10 @@ namespace Polarite.Multiplayer
                             skull.placedOn = placed;
                             skull.dropped = dropped;
                             e.State(pos, rot, reader);
+                        }
+                        else
+                        {
+                            Logs.Error($"(Skull) Couldn't get {id}", name: "PacketReader");
                         }
                         break;
                     }
@@ -878,6 +907,18 @@ namespace Polarite.Multiplayer
                             NetworkManager.DisplaySystemChatMessage("Lobby max player limit has been changed to: " + max);
                         if(newAllowCheats != "null")
                             NetworkManager.DisplaySystemChatMessage("Allow cheats has been changed to: " + newAllowCheats);
+                        break;
+                    }
+                case PacketType.LevelFinished:
+                    {
+                        string time = reader.ReadString();
+                        ChatUI.Message($"<color=#FF5E36>{NetworkManager.GetNameOfId(senderId, true)} finished the level with the time: </color><color=#FFDD57>{time}</color>", 7f);
+                        break;
+                    }
+                case PacketType.GravVol:
+                    {
+                        Vector3 grav = reader.ReadVector3();
+                        NetworkPlayer.Find(senderId)?.PortalRotate(grav);
                         break;
                     }
             }

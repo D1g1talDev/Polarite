@@ -23,5 +23,6 @@ namespace Polarite.Networking.Extensions
         }
         public static ulong OwnerId(this GameObject obj) => obj.NetObject().Owner;
         public static bool IsNetwork(this GameObject obj) => obj.NetObject() != null;
+        public static T FindWithComponent<T>(this GameObject obj, string name) => obj.transform.Find(name).GetComponent<T>();
     }
 }

@@ -63,6 +63,16 @@ namespace Polarite.Debugging
             logger.Error(str, context: context);
             ItePlugin.log.LogError(str);
         }
+        public static void DebugError(string str, object context = null, string name = "")
+        {
+            if (!ItePlugin.logDebugErrorLogs.value)
+            {
+                return;
+            }
+            Logger logger = string.IsNullOrEmpty(name) ? GetLogger(context) : GetLogger(name);
+            logger.Error(str, context: context);
+            ItePlugin.log.LogError(str);
+        }
         public static void Fine(string str, object context = null, string name = "")
         {
             Logger logger = string.IsNullOrEmpty(name) ? GetLogger(context) : GetLogger(name);
@@ -70,8 +80,7 @@ namespace Polarite.Debugging
         }
         public static void Debug(string str, object context = null, string name = "")
         {
-            // no debug logs for release builds
-            if(ItePlugin.ReleaseBuild)
+            if(!ItePlugin.logDebugLogs.value)
             {
                 return;
             }

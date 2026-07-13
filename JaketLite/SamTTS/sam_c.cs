@@ -50,10 +50,10 @@ public static partial class UnitySAM
 	    input[l] = 0;
 	}
 
-	static void SetSpeed(int _speed) {speed = _speed;}
-	static void SetPitch(int _pitch) {pitch = _pitch;}
-	static void SetMouth(int _mouth) {mouth = _mouth;}
-	static void SetThroat(int _throat) {throat = _throat;}
+	public static void SetSpeed(int _speed) {speed = _speed;}
+	public static void SetPitch(int _pitch) {pitch = _pitch;}
+	public static void SetMouth(int _mouth) {mouth = _mouth;}
+	public static void SetThroat(int _throat) {throat = _throat;}
 	static void EnableSingmode() {singmode = true;}
 
 	//	char* GetBuffer(){return buffer;}

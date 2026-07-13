@@ -1,4 +1,5 @@
 ﻿using Polarite.Networking.Skins;
+using Polarite.SamTTS;
 using System;
 using System.Text;
 
@@ -124,6 +125,14 @@ public class BinaryPacketReader
             Nameplate = namePlate,
             NameplateColor = namePlateColor
         };
+    }
+    public Sam ReadSam()
+    {
+        int speed = ReadInt();
+        int pitch = ReadInt();
+        int mouth = ReadInt();
+        int throat = ReadInt();
+        return new Sam(speed, pitch, mouth, throat);
     }
 
     public int[] ReadIntArray()

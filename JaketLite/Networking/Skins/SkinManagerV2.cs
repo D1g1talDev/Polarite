@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Polarite.Multiplayer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -50,11 +51,18 @@ namespace Polarite.Networking.Skins
             Block = new MaterialPropertyBlock();
             rend.materials[matIndex].shader = Addressables.LoadAssetAsync<Shader>((lit) ? "Assets/Shaders/Special/ULTRAKILL-vertexlit-customcolors.shader" : "Assets/Shaders/Main/ULTRAKILL-unlit-customcolors.shader").WaitForCompletion();
 
-            Block.SetTexture("_IDTex", Mask);
-            Block.SetTexture("_Cube", ItePlugin.mainBundle.LoadAsset<Cubemap>("cubemap"));
-            Block.SetColor("_CustomColor1", Color.white);
-            Block.SetColor("_CustomColor2", Color.white);
-            Block.SetColor("_CustomColor3", Color.white);
+            try
+            {
+                Block.SetTexture("_IDTex", Mask);
+                Block.SetTexture("_Cube", ItePlugin.mainBundle.LoadAsset<Cubemap>("cubemap"));
+                Block.SetColor("_CustomColor1", Color.white);
+                Block.SetColor("_CustomColor2", Color.white);
+                Block.SetColor("_CustomColor3", Color.white);
+            }
+            catch(Exception)
+            {
+                // ...
+            }
 
             rend.SetPropertyBlock(Block, matIndex);
         }
@@ -81,6 +89,7 @@ namespace Polarite.Networking.Skins
     {
         public static Dictionary<string, List<CustomColorObject>> Affected = new Dictionary<string, List<CustomColorObject>>();
         public static List<SkinnedMeshRenderer> AffectedMeshes = new List<SkinnedMeshRenderer>();
+        public static Dictionary<ulong, Sprite> Previews = new Dictionary<ulong, Sprite>();
 
         public static void CustomColor(SkinnedMeshRenderer rend, Color baseCol, Color lightCol, Color metalCol, float shinyness, string mask, string name, int targetMatIndex, bool lit = false)
         {
@@ -137,6 +146,36 @@ namespace Polarite.Networking.Skins
             {
                 Affected[obj.Name] = newList;
             }
+        }
+        public static Sprite MakeIcon(Color baseCol, Color lightCol, Color metalCol, Color wingLightCol)
+        {
+            Texture2D baseTex = Texture2D.Instantiate(ItePlugin.mainBundle.LoadAsset<Texture2D>("v1previewmask3"));
+            Color[] pixels = baseTex.GetPixels();
+            for(int i = 0; i < pixels.Length; i++)
+            {
+                if (pixels[i].r > 0.75f && pixels[i].g < 0.75f)
+                    pixels[i] = new Color(baseCol.r, baseCol.g, baseCol.b, pixels[i].a);
+                else if (pixels[i].g > 0.75f && pixels[i].r < 0.75f)
+                    pixels[i] = new Color(lightCol.r, lightCol.g, lightCol.b, pixels[i].a);
+                else if (pixels[i].b > 0.75f)
+                    pixels[i] = new Color(metalCol.r, metalCol.g, metalCol.b, pixels[i].a);
+                else if (pixels[i].r > 0.75f && pixels[i].g > 0.75f)
+                    pixels[i] = new Color(wingLightCol.r, wingLightCol.g, wingLightCol.b, pixels[i].a);
+            }
+            baseTex.SetPixels(pixels);
+            baseTex.Apply(false);
+            return Sprite.Create(baseTex, new Rect(0f, 0f, baseTex.width, baseTex.height), new Vector2(0.5f, 0.5f));
+        }
+        public static void SetIcon(ulong id)
+        {
+            if(NetworkManager.Id == id)
+            {
+                Previews[id] = MakeIcon(ItePlugin.currentSkin.Base, ItePlugin.currentSkin.Light, ItePlugin.currentSkin.Metal, ItePlugin.currentSkin.WingLight);
+                return;
+            }
+            NetworkPlayer plr = NetworkPlayer.Find(id);
+            if (plr == null) return;
+            Previews[id] = MakeIcon(plr.currentSkin.Base, plr.currentSkin.Light, plr.currentSkin.Metal, plr.currentSkin.WingLight);
         }
     }
 }

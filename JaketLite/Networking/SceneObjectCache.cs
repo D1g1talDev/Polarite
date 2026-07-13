@@ -172,7 +172,7 @@ namespace Polarite.Multiplayer
         {
             if (obj == null) return "";
 
-            int id = obj.GetInstanceID();
+            int id = obj.GetInstanceID();      
             lock (sync)
             {
                 if (Ids.TryGetValue(id, out string cached))
@@ -190,23 +190,37 @@ namespace Polarite.Multiplayer
 
             return newPath;
         }
+        public static string RemakePath(GameObject obj)
+        {
+            Remove(obj);
+            return GetScenePath(obj);
+        }
         private static bool EnemyValid(GameObject obj)
         {
-            EnemyIdentifier eid = obj.GetComponentInChildren<EnemyIdentifier>(true);
-            if(eid == null)
+            try
+            {
+                EnemyIdentifier eid = obj.GetComponentInChildren<EnemyIdentifier>(true);
+                if (eid == null)
+                {
+                    return false;
+                }
+                return !eid.dead && eid.health > 0;
+            }
+            catch (Exception)
             {
                 return false;
             }
-            return !eid.dead && eid.health > 0;
         }
 
         public static EnemyIdentifier TrySpawnEnemy(string path, EnemyType fallback, Vector3 pos, Quaternion rot, ulong owner)
         {
             try
             {
+                Logs.Debug("spawnin " + path);
                 GameObject obj = Find(path);
                 if (!EnemyValid(obj))
                 {
+                    Logs.Debug("notvalid " + path);
                     EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, owner, path);
                     INetworkObject netObj = newE.gameObject.NetObject();
                     if (newE != null && !ContainsIndex(newE.gameObject))
@@ -221,11 +235,9 @@ namespace Polarite.Multiplayer
                 INetworkObject newNet = EntityStorage.AddNetEnemy(obj, owner, path);
                 return obj.GetComponentInChildren<EnemyIdentifier>(true);
             }
-            catch
+            catch (Exception)
             {
-                GameObject existing = Find(path);
-                if (existing != null) return existing.GetComponent<EnemyIdentifier>();
-
+                Logs.Debug("catched " + path);
                 EnemyIdentifier newE = EntityStorage.Spawn(fallback, pos, rot, owner, path);
                 INetworkObject netObj = newE.GetComponent<INetworkObject>();
                 if (newE != null && !ContainsIndex(newE.gameObject))
@@ -410,14 +422,7 @@ namespace Polarite.Multiplayer
             private System.Collections.IEnumerator InvokeAfterFrame(Action action)
             {
                 yield return null;
-                try 
-                {   
-                    action?.Invoke(); 
-                }
-                catch (Exception ex)
-                {
-                    Logs.Error($"SceneObjectCache CoroutineRunner action threw: {ex}", this);
-                }
+                action?.Invoke();
             }
         }
     }

@@ -80,76 +80,83 @@ namespace Polarite
 
         public void Update()
         {
-            if (nameText == null) return;
+            try
+            {
+                if (nameText == null) return;
 
-            if(DisabledByDebug)
-            {
-                gameObject.SetActive(false);
-            }
-
-            if(disableTalkTimer > 0)
-            {
-                disableTalkTimer -= Time.deltaTime;
-            }
-            else
-            {
-                if (talking != null && talking.activeSelf)
+                if (DisabledByDebug)
                 {
-                    talking.SetActive(false);
+                    gameObject.SetActive(false);
+                }
+
+                if (disableTalkTimer > 0)
+                {
+                    disableTalkTimer -= Time.deltaTime;
+                }
+                else
+                {
+                    if (talking != null && talking.activeSelf)
+                    {
+                        talking.SetActive(false);
+                    }
+                }
+                float textWidth = nameText.preferredWidth / 6.25f;
+                if (Mathf.Abs(textWidth - lastWidth) > 0.001f)
+                {
+                    lastWidth = textWidth;
+
+                    float normalized = Mathf.InverseLerp(0f, 200f, textWidth);
+                    float scaledWidth = Mathf.Lerp(0.1f, 1.5f, normalized);
+
+                    Vector3 scale = background.localScale;
+                    scale.x = scaledWidth;
+                    background.localScale = scale;
+                }
+                pfpI.rectTransform.sizeDelta = new Vector2(120, 120);
+                Transform cam = Camera.current.transform;
+                Vector3 dir = (mainLookAt.transform.position - cam.position).normalized;
+                mainLookAt.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+                nameText.text = (!dummy) ? playerName : "Dummy";
+
+                bool isHost = false;
+                bool isDev = Net.Dev(id);
+                if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0)
+                {
+                    try { isHost = NetworkManager.Instance.CurrentLobby.Owner.Id == id; } catch { isHost = false; }
+                }
+                hostIcon.gameObject.SetActive(isHost);
+                devIcon.gameObject.SetActive(isDev);
+                nameText.color = isDev ? Color.green : isHost ? Color.cyan : Color.white;
+
+                if (hpText != null)
+                {
+                    displayedHP = Mathf.Lerp(displayedHP, targetHP, Time.deltaTime * hpLerpSpeed);
+
+                    float clamped = Mathf.Clamp(displayedHP, 0f, 200f);
+                    hpText.text = $"({Mathf.RoundToInt(clamped)})";
+
+                    float t = Mathf.Clamp01(clamped / 100f);
+                    Color low = Color.red;
+                    Color mid = Color.yellow;
+                    Color high = Color.green;
+                    Color super = Color.cyan;
+
+                    Color lerpedColor = (t < 0.5f) ? Color.Lerp(low, mid, t * 2f) : (t > 1f) ? Color.Lerp(high, super, (t - 0.5f) * 2f) : Color.Lerp(mid, high, (t - 0.5f) * 2f);
+
+                    hpText.color = lerpedColor;
+
+                    float heartbeatSpeed = Mathf.Lerp(0.8f, 3f, 1f - t);
+                    float heartbeatStrength = Mathf.Lerp(1f, 1.3f, 1f - t);
+
+                    float beat = Mathf.Pow(Mathf.Sin(Time.time * heartbeatSpeed * Mathf.PI), 8f);
+
+                    float scale = Mathf.Lerp(1f, heartbeatStrength, beat);
+                    hpText.transform.localScale = baseHPScale * scale;
                 }
             }
-            float textWidth = nameText.preferredWidth / 6.25f;
-            if (Mathf.Abs(textWidth - lastWidth) > 0.001f)
+            catch (System.Exception)
             {
-                lastWidth = textWidth;
-
-                float normalized = Mathf.InverseLerp(0f, 200f, textWidth);
-                float scaledWidth = Mathf.Lerp(0.1f, 1.5f, normalized);
-
-                Vector3 scale = background.localScale;
-                scale.x = scaledWidth;
-                background.localScale = scale;
-            }
-            pfpI.rectTransform.sizeDelta = new Vector2(120, 120);
-            Transform cam = Camera.current.transform;
-            Vector3 dir = (mainLookAt.transform.position - cam.position).normalized;
-            mainLookAt.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-            nameText.text = (!dummy) ? playerName : "Dummy";
-
-            bool isHost = false;
-            bool isDev = Net.Dev(id);
-            if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0)
-            {
-                try { isHost = NetworkManager.Instance.CurrentLobby.Owner.Id == id; } catch { isHost = false; }
-            }
-            hostIcon.gameObject.SetActive(isHost);
-            devIcon.gameObject.SetActive(isDev);
-            nameText.color = isDev ? Color.green : isHost ? Color.cyan : Color.white;
-
-            if (hpText != null)
-            {
-                displayedHP = Mathf.Lerp(displayedHP, targetHP, Time.deltaTime * hpLerpSpeed);
-
-                float clamped = Mathf.Clamp(displayedHP, 0f, 200f);
-                hpText.text = $"({Mathf.RoundToInt(clamped)})";
-
-                float t = Mathf.Clamp01(clamped / 100f);
-                Color low = Color.red;
-                Color mid = Color.yellow;
-                Color high = Color.green;
-                Color super = Color.cyan;
-
-                Color lerpedColor = (t < 0.5f) ? Color.Lerp(low, mid, t * 2f) : (t > 1f) ? Color.Lerp(high, super, (t - 0.5f) * 2f) : Color.Lerp(mid, high, (t - 0.5f) * 2f);
-
-                hpText.color = lerpedColor;
-
-                float heartbeatSpeed = Mathf.Lerp(0.8f, 3f, 1f - t);
-                float heartbeatStrength = Mathf.Lerp(1f, 1.3f, 1f - t);
-
-                float beat = Mathf.Pow(Mathf.Sin(Time.time * heartbeatSpeed * Mathf.PI), 8f);
-
-                float scale = Mathf.Lerp(1f, heartbeatStrength, beat);
-                hpText.transform.localScale = baseHPScale * scale;
+                // ...
             }
         }
         public void SetHP(float newHP)

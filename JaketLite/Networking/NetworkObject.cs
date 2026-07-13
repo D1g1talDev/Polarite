@@ -18,6 +18,7 @@ namespace Polarite
         protected bool syncTransform = true;
         protected bool isCleaningUp = false;
         protected bool alive = true;
+        protected bool dontChangeIDOnEnable = false;
 
         public string ID
         {
@@ -80,6 +81,10 @@ namespace Polarite
 
         protected float interpolationTime = 0.1f;
         protected float interpTimer = 0f;
+        protected float lastState = 3f;
+        protected bool allowLastState = true;
+
+        private bool justSpawned = false;
 
         public virtual void Start()
         {
@@ -99,6 +104,17 @@ namespace Polarite
             }
 
             Transfer(owner);
+        }
+        public virtual void OnEnable()
+        {
+            if(!justSpawned)
+            {
+                justSpawned = true;
+                return;
+            }
+            if (dontChangeIDOnEnable) return;
+            if (string.IsNullOrEmpty(ID)) return;
+            ID = SceneObjectCache.RemakePath(gameObject);
         }
         public virtual void OnDestroy()
         {
@@ -175,6 +191,7 @@ namespace Polarite
         public virtual void State(Vector3 pos, Quaternion rot, BinaryPacketReader reader)
         {
             if (!alive) return;
+            lastState = 3f;
 
             if (syncTransform)
             {
@@ -195,7 +212,21 @@ namespace Polarite
             isCleaningUp = true;
             yield return new WaitForSeconds(0.5f);
             isCleaningUp = false;
+            if(TryGetComponent<Enemy>(out var e))
+            {
+                e.anw.AddDeadEnemy();
+            }
             Destroy(gameObject);
+        }
+        protected void LastState()
+        {
+            if (!allowLastState)
+            {
+                return;
+            }
+            lastState -= Time.deltaTime;
+            if (lastState <= 0f)
+                PrepDestroy();
         }
         public virtual void Update()
         {
@@ -203,6 +234,8 @@ namespace Polarite
                 return;
             if (!alive)
                 return;
+            if (!Owns)
+                LastState();
 
             if (syncTransform && !Net.IsOwner(this))
             {

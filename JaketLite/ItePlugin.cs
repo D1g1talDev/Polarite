@@ -35,14 +35,16 @@ using static UnityEngine.UIElements.UxmlAttributeDescription;
 using LobbyType = Polarite.Multiplayer.LobbyType;
 using NetworkManager = Polarite.Multiplayer.NetworkManager;
 using Polarite.Networking.Skins;
+using Polarite.SamTTS;
+using UnityEngine.AddressableAssets;
+using Polarite.VoiceChat;
+using System;
+using Random = UnityEngine.Random;
+using System.Runtime.InteropServices;
+using Polarite.Networking.Extensions;
 
 namespace Polarite
 {
-    public enum SkinType
-    {
-        V1,
-        V2
-    }
     public enum VoiceMode
     {
         PushToTalk,
@@ -55,6 +57,39 @@ namespace Polarite
         Low,
         Medium,
         High
+    }
+
+    public enum SearchFolder
+    {
+        Downloads,
+        Videos,
+        Pictures,
+        Desktop,
+        Documents,
+        Other
+    }
+    public enum ChatAlign
+    {
+        TopLeft,
+        TopMiddle,
+        TopRight,
+        MiddleLeft,
+        MiddleRight,
+        BottomLeft,
+        BottomMiddle,
+        BottomRight
+    }
+    public enum VCAlign
+    {
+        Left,
+        Middle,
+        Right
+    }
+    public enum VCListAlign
+    {
+        TopToBottom,
+        Center,
+        BottomToTop
     }
 
     public struct Typewriter
@@ -87,11 +122,17 @@ namespace Polarite
 
         public static ConfigPanel cosmeticRelated = new ConfigPanel(config.rootPanel, "Cosmetic Config", "cosmetic");
 
+        public static ConfigPanel uiConfig = new ConfigPanel(config.rootPanel, "UI Config", "ui");
+
+        public static ConfigPanel debugRelated = new ConfigPanel(config.rootPanel, "Debug zone", "debugzone");
+
         public static BoolField canBeFriendlyFired = new BoolField(mainGameRelated, "Can be friendly fired", "gameplay.client.friendlyfire", true);
 
         public static BoolField disableCheckpointSync = new BoolField(mainGameRelated, "Disable checkpoint sync", "gameplay.client.checkpointsync", false);
 
         public static BoolField timeStopDisable = new BoolField(mainGameRelated, "Disable timestop changes", "timestop.disable", false);
+
+        public static BoolField disableHI = new BoolField(mainGameRelated, "Disable \"hidden indicator\"", "hi.disable", false);
 
         public static KeyCodeField killbind = new KeyCodeField(mainGameRelated, "Killbind", "killbind", KeyCode.K);
 
@@ -107,7 +148,7 @@ namespace Polarite
 
         public static ConfigHeader vcheaderstuff = new ConfigHeader(voiceRelated, "Stuff related to Voice Chat");
 
-        public static KeyCodeField voicePushToTalk = new KeyCodeField(voiceRelated, "Push-to-talk key", "voice.ptt", KeyCode.V);
+        public static KeyCodeField voicePushToTalk = new KeyCodeField(voiceRelated, "Push-to-talk key", "voice.pttkey", KeyCode.None);
 
         // voice chat stuff
         // made by doomahreal
@@ -116,8 +157,6 @@ namespace Polarite
 
         // voice quality setting
         public static EnumField<VoiceQuality> voiceQuality = new EnumField<VoiceQuality>(voiceRelated, "Voice quality", "voice.quality", VoiceQuality.High); // medium didn't sound good to other people
-
-        public static BoolField disableVoiceChatTip = new BoolField(config.rootPanel, "Disable voice chat tip message", "voice.tip.disable", false);
 
         // which microphone index to use (0 = first device)
         public static IntField voiceMicIndex = new IntField(voiceRelated, "Microphone index", "voice.mic", 0);
@@ -129,6 +168,7 @@ namespace Polarite
 
         // whether to receive/hear voice chat
         public static BoolField receiveVoice = new BoolField(voiceRelated, "Hear players voices", "voice.receive", true);
+        public static BoolField vcPlayback = new BoolField(voiceRelated, "Voice playback", "voice.playback", false);
 
         // skins
         public static ConfigPanel skinsMenu = new ConfigPanel(cosmeticRelated, "Skin Config", "skins");
@@ -137,13 +177,20 @@ namespace Polarite
         public static KeyCodeField screenShotSkin = new KeyCodeField(skinsMenu, "Screenshot skin key", "skin.screenie", KeyCode.RightAlt);
 
         // saving skins
-        public static ConfigPanel savePanel = new ConfigPanel(skinsMenu, "Saving/loading skins", "save.skins");
+        public static ConfigPanel savePanel = new ConfigPanel(skinsMenu, "Saving/loading skins", "save.skins", ConfigPanel.PanelFieldType.StandardWithIcon);
 
-        public static ConfigHeader tutorial = new ConfigHeader(savePanel, "<color=yellow>To load other peoples skin, add their .polarskin file into the saved skins folder and refresh.</color>");
-        public static ButtonField openLocation = new ButtonField(savePanel, "Open saved skins folder", "skin.openloc");
+        // public static ConfigHeader tutorial = new ConfigHeader(savePanel, "<color=yellow>To load other peoples skin manually, add their .polarskin file into the saved skins folder and refresh.</color>");
+        // public static ButtonField openLocation = new ButtonField(savePanel, "Open saved skins folder", "skin.openloc");
         public static ButtonField refresh = new ButtonField(savePanel, "Refresh loaded skins", "skin.refresh");
+        // import menu
+        public static ConfigPanel import = new ConfigPanel(savePanel, "Import .polarskin files", "import.skin", ConfigPanel.PanelFieldType.StandardWithIcon);
+        
+        public static EnumField<SearchFolder> searchFolderEnum = new EnumField<SearchFolder>(import, "Search folder", "import.searchfolder", SearchFolder.Downloads);
+        public static StringField customSearchFolder = new StringField(import, "Search folder path", "import.searchfolder.custom", @"C:\Users\" + Environment.UserName + @"\Downloads");
+        public static ButtonField searchnImport = new ButtonField(import, "Search & Import", "import.IMPORT");
+        public static ConfigHeader countOfImported = new ConfigHeader(import, "");
 
-        public static ConfigPanel saveSkinPanel = new ConfigPanel(savePanel, "Save skin", "save.skin");
+        public static ConfigPanel saveSkinPanel = new ConfigPanel(savePanel, "Save skin", "save.skin", ConfigPanel.PanelFieldType.StandardWithIcon);
 
         public static ConfigHeader loadedArea = new ConfigHeader(savePanel, "--- Loaded ---");
 
@@ -167,10 +214,31 @@ namespace Polarite
 
         public static BoolField chatNoise = new BoolField(cosmeticRelated, "Chat noise", "chat.noise", true);
 
-        public static BoolField canTTS = new BoolField(cosmeticRelated, "Play TTS on chat message", "tts", true);
+        public static ConfigPanel ttsPanel = new ConfigPanel(cosmeticRelated, "TTS Config", "cosmetic.ttssam");
 
-        public static BoolField hasHadRandomSkin = new BoolField(config.rootPanel, "Had random skin", "skin.randomized", false);
-        public static BoolField openedPolariteMenu = new BoolField(config.rootPanel, "Pressed globe", "pressed.globe", false);
+        public static BoolField canTTS = new BoolField(ttsPanel, "Enable Sam TTS", "tts.enabled", true);
+        public static BoolField ttsHurtAndDeath = new BoolField(ttsPanel, "Play TTS when getting hurt or while dying", "tts.hurtndyning", true);
+        public static BoolField ttsChat = new BoolField(ttsPanel, "Play TTS when sending/receiving a chat message", "tts.chatter", true);
+        public static IntField ttsSpeed = new IntField(ttsPanel, "TTS speed", "tts.speed", SamPitch.BASE_SPEED);
+        public static IntField ttsPitch = new IntField(ttsPanel, "TTS pitch", "tts.pitch", SamPitch.BASE_PITCH);
+        public static IntField ttsMouth = new IntField(ttsPanel, "TTS mouth", "tts.mouth", SamPitch.BASE_MOUTH);
+        public static IntField ttsThroat = new IntField(ttsPanel, "TTS throat", "tts.throat", SamPitch.BASE_THROAT);
+
+        // ui
+        public static EnumField<ChatAlign> chatAlignment = new EnumField<ChatAlign>(uiConfig, "Chat UI position", "ui.chat", ChatAlign.BottomLeft);
+        public static ConfigPanel voiceUiConfig = new ConfigPanel(uiConfig, "Voice UI", "ui.voice");
+        public static EnumField<VCAlign> vcAlignmentPos = new EnumField<VCAlign>(voiceUiConfig, "Voice chat UI position", "ui.vcpos", VCAlign.Right);
+        public static EnumField<VCListAlign> vcAlignmentList = new EnumField<VCListAlign>(voiceUiConfig, "Voice chat UI list alignment", "ui.vclist", VCListAlign.BottomToTop);
+        public static BoolField useSkinInsteadOfPFP = new BoolField(voiceUiConfig, "Show players custom skin instead of PFP", "ui.showskin", false);
+
+        // hidden options
+        public static BoolField hasHadRandomSkin = new BoolField(debugRelated, "Had random skin", "skin.randomized", false);
+        public static BoolField openedPolariteMenu = new BoolField(debugRelated, "Pressed globe", "pressed.globe", false);
+        public static BoolField hasHadRandomPitch = new BoolField(debugRelated, "Had random voice", "random.voice", false);
+        public static BoolField didSetup = new BoolField(debugRelated, "Setup voice chat", "did.setup", false);
+        public static BoolField logPacketParsing = new BoolField(debugRelated, "Log when parsing packets", "log.packets", false);
+        public static BoolField logDebugLogs = new BoolField(debugRelated, "Allow debug logs", "log.allowdebug", false);
+        public static BoolField logDebugErrorLogs = new BoolField(debugRelated, "Allow debug error logs", "log.allowerrordebug", false);
 
         internal readonly Harmony harm = new Harmony("com.d1g1tal.polarite");
 
@@ -248,7 +316,9 @@ namespace Polarite
 
         public static AudioClip message;
 
-        public static Coroutine currentMoveY;
+        public static Coroutine currentMoveY, currentScreaming, currentFlash;
+
+        public static GameObject screaming;
 
         public static bool PolarMenuActive = false;
 
@@ -308,10 +378,12 @@ namespace Polarite
                         NetworkManager.Instance.CurrentLobby.SetData("bhm", v.ToString());
                     }
                 };
+                /*
                 openLocation.onClick += () =>
                 {
                     Application.OpenURL(SkinSaver.Path);
                 };
+                */
                 refresh.onClick += () =>
                 {
                     SkinSaver.Clear();
@@ -326,21 +398,84 @@ namespace Polarite
                         data = data
                     });
                 };
+                hasHadRandomSkin.onValueChange += (val) =>
+                {
+                    if (currentSkin.Base != Color.clear && !val.value)
+                    {
+                        baseColor.value = Random.ColorHSV();
+                        lightColor.value = Random.ColorHSV();
+                        wingLightColor.value = Random.ColorHSV();
+                        metalColor.value = Random.ColorHSV();
+                        shinyness.value = Random.Range(0f, 1f);
+                        namePlate.value = $"V{Random.Range(1, 1000)}";
+                        namePlateColor.value = Random.ColorHSV();
+                        HandleSkin();
+                        SpawnSound(mainBundle.LoadAsset<AudioClip>("SkinChange"), 1f, MonoSingleton<CameraController>.Instance.transform, 1f);
+                        hasHadRandomSkin.value = true;
+                    }
+                };
+                searchnImport.onClick += () =>
+                {
+                    string path = searchFolderEnum.value == SearchFolder.Other && !string.IsNullOrEmpty(customSearchFolder.value) ? customSearchFolder.value : "";
+                    if(string.IsNullOrEmpty(path))
+                    {
+                        switch(searchFolderEnum.value)
+                        {
+                            case SearchFolder.Downloads:
+                                path = @"C:\Users\" + Environment.UserName + @"\Downloads";
+                                break;
+                            case SearchFolder.Videos:
+                                path = @"C:\Users\" + Environment.UserName + @"\Videos";
+                                break;
+                            case SearchFolder.Pictures:
+                                path = @"C:\Users\" + Environment.UserName + @"\OneDrive\Pictures";
+                                break;
+                            case SearchFolder.Desktop:
+                                path = @"C:\Users\" + Environment.UserName + @"\OneDrive\Desktop";
+                                break;
+                            case SearchFolder.Documents:
+                                path = @"C:\Users\" + Environment.UserName + @"\OneDrive\Documents";
+                                break;
+                        }
+                    }
+                    SkinSaver.SearchAndImport(path);
+                };
+                import.onPannelOpenEvent += (p) =>
+                {
+                    countOfImported.text = "";
+                };
+                useSkinInsteadOfPFP.onValueChange += (val) =>
+                {
+                    VoiceUI.RefreshIcons(val.value);
+                };
+                ttsSpeed.onValueChange += (val) => SamPitch.configSam.speed = val.value;
+                ttsPitch.onValueChange += (val) => SamPitch.configSam.pitch = val.value;
+                ttsMouth.onValueChange += (val) => SamPitch.configSam.mouth = val.value;
+                ttsThroat.onValueChange += (val) => SamPitch.configSam.throat = val.value;
+                chatAlignment.onValueChange += (val) => UIAnchors.Refresh(val.value);
+                vcAlignmentPos.onValueChange += (val) => UIAnchors.Refresh(val.value);
+                vcAlignmentList.onValueChange += (val) => UIAnchors.Refresh(val.value);
                 mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
                 TryRunDiscord();
                 playerData = new TargetData();
-                hasHadRandomSkin.hidden = true;
-                openedPolariteMenu.hidden = true;
+                debugRelated.hidden = !CanEnableDebug;
+                bossHpIncrease.interactable = false;
+                bossHpMult.interactable = false;
+                bossHpIncrease.value = false;
                 SkinSaver.Init();
                 SkinScreenshotter.Init();
                 SkinSaver.LoadAllSkins();
+                saveSkinPanel.icon = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Cheats/Save 1.png").WaitForCompletion();
+                import.icon = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/download_arrow.png").WaitForCompletion();
+                savePanel.icon = mainBundle.LoadAsset<Sprite>("savenloadingicon");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogError("Polarite failed to load! Error message: " + ex.Message);
                 harm.UnpatchSelf();
             }
         }
+
         public Skin DefaultSkin()
         {
             Skin skin = new Skin();
@@ -658,8 +793,19 @@ namespace Polarite
                 Application.runInBackground = true;
                 DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
                 DeadPatch.TickTimer();
+                BannedModsDetector.Tick();
                 if (CheatsController.Instance.cheatsEnabled && NetworkManager.Instance.CurrentLobby.GetData("cheat") == "0" && NetworkManager.ClientAndConnected)
                 {
+                    foreach(var cheats in CheatsManager.Instance.allRegisteredCheats)
+                    {
+                        foreach(var c in cheats.Value)
+                        {
+                            if(c.IsActive)
+                            {
+                                CheatsManager.Instance.DisableCheat(c);
+                            }
+                        }
+                    }
                     CheatsController.Instance.cheatsEnabled = false;
                 }
                 if (OptionsManager.Instance.paused)
@@ -737,13 +883,24 @@ namespace Polarite
                 ArmCheck(SwapWeaponsPatch.AltWeapon(GunControl.Instance.currentWeapon));
                 AnimationCheck();
             }
+            SkinManagerV2.SetIcon(NetworkManager.Id);
+            VoiceUI.RefreshIcons(useSkinInsteadOfPFP.value);
         }
 
         public void Update()
         {
             try
             {
-                if(currentSkin.Base == Color.clear)
+                ttsHurtAndDeath.hidden = !canTTS.value;
+                ttsChat.hidden = !canTTS.value;
+                ttsSpeed.hidden = !canTTS.value;
+                ttsPitch.hidden = !canTTS.value;
+                ttsMouth.hidden = !canTTS.value;
+                ttsThroat.hidden = !canTTS.value;
+
+                customSearchFolder.hidden = searchFolderEnum.value != SearchFolder.Other;
+
+                if (currentSkin.Base == Color.clear)
                 {
                     if (!hasHadRandomSkin.value)
                     {
@@ -754,21 +911,37 @@ namespace Polarite
                         shinyness.value = Random.Range(0f, 1f);
                         namePlate.value = $"V{Random.Range(1, 1000)}";
                         namePlateColor.value = Random.ColorHSV();
+
                         hasHadRandomSkin.value = true;
                     }
                     HandleSkin();
                     SkinSaver.CurrentSkin.name = currentSkin.Nameplate;
                     SkinSaver.CurrentSkin.data = currentSkin;
                 }
+                if(!hasHadRandomPitch.value)
+                {
+                    ttsPitch.value = Random.Range(32, 128);
+                    SamPitch.ReUpdateConfigSam();
+                    hasHadRandomPitch.value = true;
+                }
                 Inputs();
                 TryRunCalls();
+                if(SpecialHudCameraAddPatch.specialHud != null)
+                {
+                    SpecialHudCameraAddPatch.specialHud.SetActive(NetworkManager.InLobby);
+                    Camera camera = SpecialHudCameraAddPatch.specialHud.GetComponent<Camera>();
+                    if(camera != null)
+                    {
+                        camera.fieldOfView = cam.fieldOfView;
+                    }
+                }
                 if (NewMovement.Instance != null) HandleTargetData();
 
                 if (currentUi != null && SceneHelper.CurrentScene != "Main Menu")
                 {
                     if (polrMM != null)
                     {
-                        currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused);
+                        currentUi.SetActive(MonoSingleton<OptionsManager>.Instance.paused && !SceneHelper.Instance.loadingBlocker.activeSelf);
                         if (polrMM.mainPanel.activeSelf && MonoSingleton<OptionsManager>.Instance.paused && MonoSingleton<OptionsManager>.Instance.pauseMenu != null)
                         {
                             TogglePauseMenu(false);
@@ -872,6 +1045,9 @@ namespace Polarite
             }
             if (val == plrActive)
             {
+                CameraController.Instance.activated = val;
+                GunControl.Instance.activated = val;
+                NewMovement.Instance.activated = val;
                 return;
             }
             if (!NetworkManager.InLobby)
@@ -944,11 +1120,8 @@ namespace Polarite
                         TextMeshProUGUI textMsg = motd.Find("MOTDText").GetComponent<TextMeshProUGUI>();
 
                         Sprite unknown = mainBundle.LoadAsset<Sprite>("unknown");
-
-                        pMM.uiOpen.interactable = false;
                         XServers.HasInternet((val) =>
                         {
-                            pMM.uiOpen.interactable = val;
                             if (val)
                             {
                                 img.sprite = unknown;
@@ -965,6 +1138,12 @@ namespace Polarite
                                     Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
                                     Typewriter(msgF, 0.001f, textMsg);
                                 });
+                            }
+                            else
+                            {
+                                img.sprite = unknown;
+                                textMsg.text = "???";
+                                textName.text = "Couldn't get if you had internet connection...";
                             }
                         });
 
@@ -1032,11 +1211,9 @@ namespace Polarite
                             // use the shortcut link incase we have another server nuking :(
                             Application.OpenURL((!IsFoolsDay()) ? "https://polaritemod.com/discord" : "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
                         });
-                        // button will be interactable when site is live
-                        donate.interactable = false;
                         donate.onClick.AddListener(() =>
                         {
-                            Application.OpenURL("https://buymeacoffee.com/albertdevstein");
+                            Application.OpenURL("https://ko-fi.com/albertdevstein");
                         });
                         onPublicClick.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
                         refresh.onClick.AddListener(PublicLobbyManager.RefreshLobbies);
@@ -1062,6 +1239,12 @@ namespace Polarite
                                         Typewriter(msgF, 0.001f, textMsg);
                                     });
                                 }
+                                else
+                                {
+                                    img.sprite = unknown;
+                                    textMsg.text = "???";
+                                    textName.text = "Couldn't get if you had internet connection...";
+                                }
                             });
                         });
 
@@ -1086,6 +1269,12 @@ namespace Polarite
                                         Typewriter(msgF, 0.001f, textMsg);
                                     });
                                 }
+                                else
+                                {
+                                    img.sprite = unknown;
+                                    textMsg.text = "???";
+                                    textName.text = "Couldn't get if you had internet connection...";
+                                }
                             });
                         });
 
@@ -1109,6 +1298,12 @@ namespace Polarite
                                         Typewriter($"(MOTD wrote by{userF})", 0.01f, textName);
                                         Typewriter(msgF, 0.001f, textMsg);
                                     });
+                                }
+                                else
+                                {
+                                    img.sprite = unknown;
+                                    textMsg.text = "???";
+                                    textName.text = "Couldn't get if you had internet connection...";
                                 }
                             });
                         });
@@ -1150,6 +1345,13 @@ namespace Polarite
 
                         pMM.lobbyName.text = $"{NetworkManager.GetNameOfId(NetworkManager.Id)}'s Lobby";
                         pMM.notifBox = notifUi;
+                        pMM.redFlash = notifUi.transform.Find("RedFlash").gameObject;
+                        pMM.blueFlash = notifUi.transform.Find("BlueFlash").gameObject;
+                        pMM.ghostFlash = notifUi.transform.Find("GhostFlash").gameObject;
+
+                        pMM.redFlash.SetActive(false);
+                        pMM.blueFlash.SetActive(false);
+                        pMM.ghostFlash.SetActive(false);
                         DontDestroyOnLoad(notifUi);
                         polrMM = pMM;
                         message = notifUi.GetComponentInChildren<AudioSource>().clip;
@@ -1404,24 +1606,46 @@ namespace Polarite
         {
             if(!openedPolariteMenu.value)
             {
-                bool passedCheck1 = false;
-                XServers.VisualNotif("Psst... Open the pause menu...", true);
-                while (!OptionsManager.Instance.paused && !passedCheck1)
+                if(NetworkManager.InLobby)
                 {
-                    yield return null;
+                    XServers.VisualNotif("Pss- Wait what?", true);
+                    yield return new WaitForSeconds(4f);
+                    ForceHideNotif();
+                    yield return new WaitForSeconds(0.25f);
+                    XServers.VisualNotif("You're already in a lobby...?", true);
+                    yield return new WaitForSeconds(4.5f);
+                    ForceHideNotif();
+                    yield return new WaitForSeconds(0.25f);
+                    XServers.VisualNotif("Oh whatever...", true);
+                    yield return new WaitForSeconds(2f);
+                    ForceHideNotif();
+                    yield return new WaitForSeconds(0.25f);
+
+                    bool passedCheck1 = false;
+                    XServers.VisualNotif("Open the pause menu.", true);
+                    while (!OptionsManager.Instance.paused && !passedCheck1)
+                    {
+                        yield return null;
+                    }
+                    ForceHideNotif();
+                    yield return new WaitForSecondsRealtime(0.25f);
+                    passedCheck1 = true;
+                    XServers.VisualNotif("Click on the globe icon to access the Polarite Menu, where you can join/make lobbies.", true);
                 }
-                ForceHideNotif();
-                yield return new WaitForSecondsRealtime(0.25f);
-                passedCheck1 = true;
-                XServers.VisualNotif("Click on the globe icon to access the Polarite Menu, where you can join/make lobbies.", true);
+                else
+                {
+                    bool passedCheck1 = false;
+                    XServers.VisualNotif("Psst... Open the pause menu...", true);
+                    while (!OptionsManager.Instance.paused && !passedCheck1)
+                    {
+                        yield return null;
+                    }
+                    ForceHideNotif();
+                    yield return new WaitForSecondsRealtime(0.25f);
+                    passedCheck1 = true;
+                    XServers.VisualNotif("Click on the globe icon to access the Polarite Menu, where you can join/make lobbies.", true);
+                }
             }
-        }
-        /// <summary>
-        /// for testing...
-        /// </summary>
-        public static void ResetOpenedGlobeStat()
-        {
-            openedPolariteMenu.value = false;
         }
 
         private void OnSceneLoaded(Scene args1, LoadSceneMode args2)
@@ -1440,6 +1664,10 @@ namespace Polarite
             if (SceneHelper.CurrentScene != "Main Menu" && currentUi == null)
             {
                 CreatePolariteUI();
+            }
+            if (SceneHelper.CurrentScene != "Main Menu" && VoiceUI.currentCanvas == null)
+            {
+                VoiceUI.MakeUI();
             }
             SceneObjectCache.Init();
             if (NetworkManager.HostAndConnected)
@@ -1479,6 +1707,8 @@ namespace Polarite
                     p.ToggleRig(true);
                     p.isGhost = false;
                 }
+                ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+                AnimationCheck();
             }
             NetworkPlayer.selfIsGhost = false;
             NetworkEnemy.Flush();
@@ -1500,11 +1730,14 @@ namespace Polarite
             canBecomeGhost = true;
             SkinManagerV2.Clear();
             NetworkPlayer.Shopping = false;
+            NetworkManager.LocPlayerCheck();
+            Net.List?.Clear();
         }
         public void ForceHideNotif()
         {
             Transform box = polrMM.notifBox.transform.Find("Box");
-            MoveY(box.GetComponent<RectTransform>(), 1400f);
+            Transform up = polrMM.notifBox.transform.Find("BoxUp");
+            MoveY(box.GetComponent<RectTransform>(), up.GetComponent<RectTransform>().position.y);
             XServers.canShowNotif = true;
         }
         public static string GetLevelName()
@@ -1525,7 +1758,7 @@ namespace Polarite
             }
             return levelName;
         }
-        public static void SpawnSound(AudioClip clip, float pitch, Transform parent, float volume, Vector3 overridePos = default)
+        public static AudioSource SpawnSound(AudioClip clip, float pitch, Transform parent, float volume, Vector3 overridePos = default, bool dontRemove = false)
         {
             AudioSource audioSource = new GameObject(clip.name).AddComponent<AudioSource>();
             audioSource.clip = clip;
@@ -1534,10 +1767,11 @@ namespace Polarite
             audioSource.spatialBlend = 1f;
             audioSource.maxDistance = 30f;
             audioSource.minDistance = 100f;
-            audioSource.gameObject.AddComponent<RemoveOnTime>().time = clip.length;
+            if(!dontRemove) audioSource.gameObject.AddComponent<RemoveOnTime>().time = clip.length;
             audioSource.transform.SetParent(parent, (overridePos == default) ? false : true);
-            audioSource.transform.position = (overridePos == default) ? parent.position : overridePos;
+            audioSource.transform.position = (overridePos == default && parent != null) ? parent.position : overridePos;
             audioSource.Play();
+            return audioSource;
         }
         public static void SpectatePlayers(bool loadAll)
         {
@@ -1548,6 +1782,13 @@ namespace Polarite
             Instance.StartCoroutine(SpectatePlayersB(loadAll));
             NetworkManager.SceneLoading = false;
             Net.Unpause();
+        }
+        public static void LeaveEffect(Vector3 pos)
+        {
+            GameObject deleterEffect = Addressables.LoadAssetAsync<GameObject>("Assets/Particles/SandboxDeleterEffect.prefab").WaitForCompletion();
+            AudioClip sound = Addressables.LoadAssetAsync<AudioClip>("Assets/Sounds/Weapons/SandboxDelete.wav").WaitForCompletion();
+            Instantiate(deleterEffect, pos, Quaternion.identity);
+            SpawnSound(sound, 1f, null, 1f, pos);
         }
 
         public static IEnumerator SpectatePlayersB(bool loadAll)
@@ -1602,6 +1843,7 @@ namespace Polarite
             }
             if (val)
             {
+                bool wasLast = NetworkPlayer.LastPlayerAlive();
                 DeadPatch.Respawn(new Vector3(0f, 80f, 62.5f), CameraController.Instance.transform.rotation);
                 ChatUI.Instance.ForceOff();
                 SpawnSound(mainBundle.LoadAsset<AudioClip>("GhostTransform2"), Random.Range(0.95f, 1.15f), CameraController.Instance.transform, 1f);
@@ -1621,6 +1863,10 @@ namespace Polarite
                 NetworkManager.Instance.BroadcastPacket(PacketType.BecameGhost, w.GetBytes());
                 CameraController.Instance.cameraShaking = 0;
                 DoubleCheckForSoftlock();
+                if(!wasLast)
+                {
+                    Flash(false, true);
+                }
             }
             else
             {
@@ -1629,6 +1875,7 @@ namespace Polarite
                 NetworkPlayer.selfIsGhost = false;
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.ReviveGhost, w.GetBytes());
+                Flash(true, false);
             }
         }
         public void AttemptToAddListener()
@@ -1674,14 +1921,20 @@ namespace Polarite
             yield return new WaitForSeconds(0.1f);
             Net.Unpause();
             NetworkManager.Instance.SceneLoad();
-            if(!MonoSingleton<OnLevelStart>.Instance.activated && NetworkManager.ClientAndConnected && NetworkManager.Instance.CurrentLobby.GetData("levelStarted") == "1")
+            try
             {
-                MonoSingleton<OnLevelStart>.Instance.StartLevel();
+                if (!MonoSingleton<OnLevelStart>.Instance.activated && NetworkManager.ClientAndConnected && NetworkManager.Instance.CurrentLobby.GetData("levelStarted") == "1")
+                {
+                    MonoSingleton<OnLevelStart>.Instance.StartLevel();
+                }
+            }
+            catch (Exception)
+            {
+                // ...
             }
         }
         public IEnumerator GooglePing(System.Action<bool> onComplete)
         {
-            Logs.Info("Checking for internet connectivity...", this);
             Ping ping = new Ping("8.8.8.8");
             while (!ping.isDone)
             {
@@ -1697,7 +1950,6 @@ namespace Polarite
             XServers.internet = false;
             ping.DestroyPing();
             onComplete?.Invoke(false);
-            Logs.Warn("No internet connectivity detected.", this);
         }
         // code by Xulfur, thank you :)
         public IEnumerator MOTDGet(System.Action<Sprite, string, string> onComplete, System.Action<Sprite, string, string> onFail)
@@ -1847,6 +2099,7 @@ namespace Polarite
             {
                 Transform box = boxCanvas.transform.Find("Box");
                 Transform boxD = boxCanvas.transform.Find("BoxDown");
+                Transform boxU = boxCanvas.transform.Find("BoxUp");
                 TextMeshProUGUI user = box.Find("User").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI msg = box.Find("Message").GetComponent<TextMeshProUGUI>();
                 TextMeshProUGUI type = box.Find("Type").GetComponent<TextMeshProUGUI>();
@@ -1868,10 +2121,8 @@ namespace Polarite
                 box.GetComponent<AudioSource>().Play();
 
                 RectTransform rect = box.GetComponent<RectTransform>();
-                RectTransform canvas = rect.GetComponentInParent<Canvas>().GetComponent<RectTransform>();
-
                 float y1 = boxD.GetComponent<RectTransform>().position.y;
-                float y2 = canvas.rect.height * 1.25f;
+                float y2 = boxU.GetComponent<RectTransform>().position.y;
                 if (rect != null)
                 {
                     MoveY(rect, y1);
@@ -1903,10 +2154,74 @@ namespace Polarite
             }
             rect.position = new Vector3(rect.position.x, y, 0);
         }
+        public static void DeathScream(Sam sam, Transform parent = null)
+        {
+            currentScreaming = Instance.StartCoroutine(TTSDeathScream(sam, parent));
+        }
+        public static IEnumerator TTSDeathScream(Sam sam, Transform parent = null)
+        {
+            bool self = false;
+            if (parent == null)
+            {
+                parent = MonoSingleton<CameraController>.Instance.transform;
+                self = true;
+            }
+            Transform snapshotParent = new GameObject("TTSScreamer").transform;
+            snapshotParent.transform.position = parent.transform.position;
+            yield return new WaitForSeconds(0.25f);
+            SamPitch.Set(sam);
+            AudioSource samSource = TextReader.SayString("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", snapshotParent, true, !self);
+            SamPitch.Reset();
+            screaming = samSource.gameObject;
+            yield return new WaitForSeconds(0.3f);
+            while(samSource.pitch > 0f)
+            {
+                samSource.pitch = Mathf.MoveTowards(samSource.pitch, 0f, 1f * Time.deltaTime);
+                yield return null;
+            }
+            AudioClip stat = mainBundle.LoadAsset<AudioClip>("ScreamOutOfPower");
+            if(!self) SpawnSound(stat, 1f, snapshotParent, 1f, samSource.transform.position).transform.SetParent(null, true);
+            Destroy(samSource.gameObject);
+            yield return new WaitForSeconds(stat.length);
+            Destroy(snapshotParent.gameObject);
+        }
+        public static void Flash(bool blue, bool ghost)
+        {
+            if(currentFlash != null)
+            {
+                Instance.polrMM.redFlash.SetActive(false);
+                Instance.polrMM.blueFlash.SetActive(false);
+                Instance.polrMM.ghostFlash.SetActive(false);
+                Instance.StopCoroutine(currentFlash);
+                currentFlash = null;
+            }
+            currentFlash = Instance.StartCoroutine(ScreenFlash(blue, ghost));
+        }
+        public static IEnumerator ScreenFlash(bool blue, bool ghost)
+        {
+            Image flash = blue ? Instance.polrMM.blueFlash.GetComponent<Image>() : ghost ? Instance.polrMM.ghostFlash.GetComponent<Image>() : Instance.polrMM.redFlash.GetComponent<Image>();
+            Image icon = flash.gameObject.FindWithComponent<Image>("Image");
+            Image crack = ghost ? flash.gameObject.FindWithComponent<Image>("Crack") : null;
+            flash.gameObject.SetActive(true);
+            flash.color = new Color(flash.color.r, flash.color.g, flash.color.b, 1f);
+            icon.color = new Color(icon.color.r, icon.color.g, icon.color.b, 1f);
+            if (ghost) crack.color = new Color(crack.color.r, crack.color.g, crack.color.b, 1f);
+            while (flash.color.a > 0)
+            {
+                flash.color = Color.Lerp(flash.color, new Color(flash.color.r, flash.color.g, flash.color.b, 0f), 5f * Time.deltaTime);
+                icon.color = Color.Lerp(icon.color, new Color(icon.color.r, icon.color.g, icon.color.b, 0f), 5f * Time.deltaTime);
+                if (ghost) crack.color = Color.Lerp(crack.color, new Color(crack.color.r, crack.color.g, crack.color.b, 0f), 5f * Time.deltaTime);
+                yield return null;
+            }
+            if (ghost) yield break;
+            yield return new WaitUntil(() => !flash.GetComponent<AudioSource>().isPlaying);
+            flash.gameObject.SetActive(false);
+
+        }
 
         public bool IsFoolsDay()
         {
-            return System.DateTime.Now.Month == 4 && System.DateTime.Now.Day == 1;
+            return DateTime.Now.Month == 4 && DateTime.Now.Day == 1;
         }
 
         public static void DoubleCheckForSoftlock()

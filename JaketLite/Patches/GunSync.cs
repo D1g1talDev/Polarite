@@ -199,6 +199,11 @@ namespace Polarite
             {
                 AnimShoot(NetworkManager.Id);
             }
+            Vector3 grav = Vector3.down;
+            if(MonoSingleton<NewMovement>.Instance.rb.TryGetCustomGravity(out var gravity) && MonoSingleton<NewMovement>.Instance.rb.GetCustomGravityMode())
+            {
+                grav = gravity;
+            }
             PacketWriter writer = new PacketWriter();
             writer.WriteInt((int)type);
             writer.WriteVector3(pos);
@@ -208,6 +213,8 @@ namespace Polarite
             writer.WriteVector3(vel);
             writer.WriteFloat(pow);
             writer.WriteInt(var);
+            writer.WriteVector3(grav);
+            writer.WriteVector3(Physics.gravity);
             NetworkManager.Instance.BroadcastPacket(PacketType.Bullet, writer.GetBytes());
         }
         public static void Read(BinaryPacketReader reader, ulong sender)
@@ -221,6 +228,8 @@ namespace Polarite
             Vector3 vel = reader.ReadVector3();
             float pow = reader.ReadFloat();
             int var = reader.ReadInt();
+            Vector3 grav = reader.ReadVector3();
+            Vector3 physGrav = reader.ReadVector3();
             if (Bullets.TryGetValue(type, out string path))
             {
                 bulletPrefab = Addressables.LoadAssetAsync<GameObject>(path).WaitForCompletion();
@@ -257,9 +266,11 @@ namespace Polarite
                     {
                         GameObject coin = GameObject.Instantiate(bulletPrefab, pos, rot);
                         Coin c = coin.GetComponent<Coin>();
-                        Rigidbody rb = coin.GetComponent<Rigidbody>();
-                        rb.AddForce(dir * 20f + -Vector3.down * 15f + vel, ForceMode.VelocityChange);
+                        c.rb.SetCustomGravity(grav.normalized * physGrav.magnitude);
+                        c.rb.SetCustomGravityMode(useCustomGravity: true);
+                        c.rb.AddForce(dir * 20f + -grav.normalized * 15f + vel, ForceMode.VelocityChange);
                         c.power = 0;
+                        BannedModsDetector.AddBullet(coin, sender);
                         return;
                     }
                 case BulletType.ShotgunMain:
@@ -301,6 +312,7 @@ namespace Polarite
                                 pellet.transform.Rotate(Random.Range(0f - 10, 10), Random.Range(0f - 10, 10), Random.Range(0f - 10, 10));
                             }
                             CleanProj(pellet, sender);
+                            BannedModsDetector.AddBullet(pellet, sender, true);
                         }
                         PlayNoise(type, pos);
                         return;
@@ -358,6 +370,7 @@ namespace Polarite
                             if (n.sawblade)
                             {
                                 n.ForceCheckSawbladeRicochet();
+                                BannedModsDetector.AddBullet(projectile, sender);
                             }
                         }
                         CleanProj(projectile, sender);
@@ -429,6 +442,7 @@ namespace Polarite
                         }
                         CleanProj(projectile, sender);
                         PlayNoise(type, pos);
+                        BannedModsDetector.AddBullet(projectile, sender);
                         return;
                     }
                 case BulletType.Cannonball:
@@ -511,6 +525,7 @@ namespace Polarite
             CleanProj(bullet, sender);
             PlayNoise(type, pos);
             AnimShoot(sender);
+            BannedModsDetector.AddBullet(bullet, sender);
         }
         public static void PlayNoise(BulletType type, Vector3 pos)
         {

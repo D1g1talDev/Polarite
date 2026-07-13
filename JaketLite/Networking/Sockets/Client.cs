@@ -16,6 +16,7 @@ namespace Polarite.Networking.Sockets
         {
             NetworkManager.DisplayJoin("green", $"Connected to socket server");
             NetworkManager.Instance.JoinAnnounceClient();
+            NetworkManager.LocPlayerCheck();
         }
 
         public void OnConnecting(ConnectionInfo info)

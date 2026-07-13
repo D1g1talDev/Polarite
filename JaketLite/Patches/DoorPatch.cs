@@ -21,17 +21,23 @@ namespace Polarite.Patches
         {
             if(NetworkManager.InLobby)
             {
-                Vector3 doorPos = __instance.transform.position;
                 bool found = false;
                 foreach (var p in NetworkManager.players.Values)
                 {
-                    if (Vector3.SqrMagnitude(doorPos - p.transform.position) <= 75f)
+                    if (Vector3.Distance(__instance.transform.position, p.transform.position) <= 50f)
                     {
                         found = true;
                         break;
                     }
                 }
                 __instance.enemyIn = found;
+                foreach(var room in __instance.dc.activatedRooms)
+                {
+                    if(__instance.open && !room.activeSelf)
+                    {
+                        room.SetActive(true);
+                    }
+                }
             }
         }
     }

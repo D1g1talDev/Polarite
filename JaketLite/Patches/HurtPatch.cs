@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using Polarite.Multiplayer;
 using Polarite.Networking.Skins;
+using Polarite.SamTTS;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,19 +15,33 @@ namespace Polarite.Patches
     [HarmonyPatch(typeof(NewMovement))]
     internal class HurtPatch
     {
+        public static string[] HurtNoises = new string[]
+        {
+            "ow",
+            "ouch"
+        };
+
         [HarmonyPatch(nameof(NewMovement.GetHurt))]
         [HarmonyPrefix]
-        static bool Prefix(ref int damage, ref bool invincible)
+        static bool Prefix(NewMovement __instance, ref int damage, ref bool invincible)
         {
+            bool wasIFrames = invincible && __instance.hurtInvincibility > 0f;
             if(ItePlugin.immuneToDeath)
             {
                 ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("SlamFail"), Random.Range(0.95f, 1.15f), MonoSingleton<CameraController>.Instance.transform, 1f);
                 return false;
             }
-            if(NetworkManager.InLobby && damage > 0)
+            if(NetworkManager.InLobby && damage > 0 && !wasIFrames && !__instance.boost)
             {
                 PacketWriter w = new PacketWriter();
+                w.WriteSam(SamPitch.configSam);
                 NetworkManager.Instance.BroadcastPacket(PacketType.Hurt, w.GetBytes());
+                if(ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value)
+                {
+                    SamPitch.Set();
+                    TextReader.SayString(HurtNoises[Random.Range(0, HurtNoises.Length)]);
+                    SamPitch.Reset();
+                }
             }
             return true;
         }
@@ -40,6 +55,14 @@ namespace Polarite.Patches
                 DeadPatch.lastMessage = 0;
                 DeadPatch.Arg = 0;
                 DeadPatch.LastArg = 0;
+                if(ItePlugin.currentScreaming != null)
+                {
+                    ItePlugin.Instance.StopCoroutine(ItePlugin.currentScreaming);
+                    if(ItePlugin.screaming != null)
+                    {
+                        ItePlugin.Destroy(ItePlugin.screaming);
+                    }
+                }
 
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Respawn, w.GetBytes());

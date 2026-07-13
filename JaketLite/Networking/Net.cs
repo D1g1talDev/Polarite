@@ -37,10 +37,33 @@ namespace Polarite.Networking
             List = null;
             Logs.Info("Cleared network list", name: "Net");
         }
+        public static bool TryGet(string path, ulong sender, Vector3 fallbackPos, out INetworkObject net, bool noRecovery = false)
+        {
+            try
+            {
+                INetworkObject obj = Get(path, sender, fallbackPos, noRecovery);
+                if (NetworkList.ValidObjectCheck(obj))
+                {
+                    net = obj;
+                    return true;
+                }
+                else
+                {
+                    net = null;
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Logs.Error("TryGet: " + e.Message + " path: " + path, name: "Net");
+                net = null;
+                return false;
+            }
+        }
 
         public static INetworkObject Get(string path, ulong sender, Vector3 fallbackPos, bool noRecovery = false)
         {
-            if(Paused)
+            if (Paused)
             {
                 return null;
             }
@@ -48,28 +71,30 @@ namespace Polarite.Networking
             if (found != null)
             {
                 INetworkObject netObj = found.NetObject();
-                if (netObj != null)
+                if (netObj != null && NetworkList.ValidObjectCheck(netObj))
                     return netObj;
             }
 
             foreach (var obj in List.Objects)
             {
-                if (obj.ID == path)
+                if (obj.ID == path && NetworkList.ValidObjectCheck(obj))
                     return obj;
             }
 
-            if(!noRecovery && !List.Blacklist.Contains(path))
+            if (!noRecovery && !List.Blacklist.Contains(path))
             {
                 return Recover(GetSimpleId(path), path, sender, fallbackPos);
             }
             else
             {
+                Logs.DebugError("rip");
                 return null;
             }
         }
 
         public static INetworkObject Recover(string simpleId, string id, ulong sender, Vector3 pos)
         {
+            Logs.Debug("recovering " + simpleId);
             if(NetworkManager.Id == sender)
             {
                 return null;

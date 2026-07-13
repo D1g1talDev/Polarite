@@ -14,6 +14,7 @@ using Discord;
 using Mono.Cecil.Cil;
 using Polarite.Debugging;
 using Polarite.Networking;
+using Polarite.Networking.Extensions;
 using Polarite.Networking.Sockets;
 using Polarite.Patches;
 
@@ -253,8 +254,8 @@ namespace Polarite.Multiplayer
         public static string GetNameOfId(ulong id, bool colorName = false)
         {
             string colorHex = Net.Dev(id) ? "color=green" : id == GetHostID() ? "color=#00F2FF" : "";
-            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"<{colorHex}>{TMPUtils.StripTMP(new Friend(id).Name)}</color>";
-            return TMPUtils.StripTMP(new Friend(id).Name);
+            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"<{colorHex}>{new Friend(id).Name.WithoutTMP()}</color>";
+            return new Friend(id).Name.WithoutTMP();
         }
         public async Task CreateLobby(int maxPlayers = 10, LobbyType lobbyType = LobbyType.Public, string lobbyName = "My Lobby", Action<string> onJoin = null, bool canCheat = false)
         {
@@ -318,7 +319,6 @@ namespace Polarite.Multiplayer
                 }
                 PlayerList.UpdatePList();
                 ItePlugin.Instance.CleanLevel();
-                DisplayVoiceTip();
                 DisplaySkinTip();
                 PauseMenuPatch.DisablePauseEffects();
                 Net.Setup();
@@ -339,6 +339,7 @@ namespace Polarite.Multiplayer
                 ServerInstance.Interface = Server;
                 Logs.Info("Started host socket", this);
                 IsHostSocket = true;
+                LocPlayerCheck();
             }
         }
 
@@ -398,10 +399,10 @@ namespace Polarite.Multiplayer
                 }
                 LoadLevelAndDifficulty(lobby);
                 PlayerList.UpdatePList();
-                DisplayVoiceTip();
                 DisplaySkinTip();
                 PauseMenuPatch.DisablePauseEffects();
                 Net.Setup();
+                Net.Pause();
                 PrivateLobby = lobby.Value.GetData("priv") == "1";
                 ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
 
@@ -602,8 +603,8 @@ namespace Polarite.Multiplayer
         {
             if(ClientToHost != null)
             {
-                ClientToHost.Interface = null;
                 ClientToHost.Close();
+                ClientToHost.Interface = null;
                 ClientToHost = null;
                 Logs.Info("Disconnected from host socket", this);
                 IsClientSocket = false;
@@ -621,8 +622,8 @@ namespace Polarite.Multiplayer
             }
             if (ServerInstance != null)
             {
-                ServerInstance.Interface = null;
                 ServerInstance.Close();
+                ServerInstance.Interface = null;
                 ServerInstance = null;
                 IsHostSocket = false;
             }
@@ -709,6 +710,7 @@ namespace Polarite.Multiplayer
                 OnPlayerLeft?.Invoke(member, member.Id);
                 if (players.ContainsKey(member.Id.Value))
                 {
+                    ItePlugin.LeaveEffect(players[member.Id.Value].transform.position);
                     Destroy(players[member.Id.Value].gameObject);
                     players.Remove(member.Id.Value);
                 }
@@ -728,12 +730,36 @@ namespace Polarite.Multiplayer
                 }
             }
         }
+        public static void LocPlayerCheck()
+        {
+            try
+            {
+                if (NetworkPlayer.LocalPlayer == null && NetworkPlayer.hadLocPlr)
+                {
+                    foreach (var plr in FindObjectsOfType<NetworkPlayer>(true))
+                    {
+                        if (plr.SteamId == Id)
+                        {
+                            NetworkPlayer.LocalPlayer = plr;
+                        }
+                    }
+                }
+                if(NetworkPlayer.LocalPlayer.updatePos != null)
+                {
+                    NetworkPlayer.LocalPlayer.StopCoroutine(NetworkPlayer.LocalPlayer.updatePos);
+                    NetworkPlayer.LocalPlayer.updatePos = null;
+                }
+                NetworkPlayer.LocalPlayer.updatePos = NetworkPlayer.LocalPlayer.StartCoroutine(NetworkPlayer.LocalPlayer.UpdatePos());
+            }
+            catch { }
+        }
 
         public void HandleMemberLeftNet(Friend member)
         {
             OnPlayerLeft?.Invoke(member, member.Id);
             if (players.ContainsKey(member.Id.Value))
             {
+                ItePlugin.LeaveEffect(players[member.Id.Value].transform.position);
                 Destroy(players[member.Id.Value].gameObject);
                 players.Remove(member.Id.Value);
             }
@@ -751,6 +777,11 @@ namespace Polarite.Multiplayer
 
         private void HandleLobbyInvite(Lobby lobby, SteamId id)
         {
+            if (SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap" || SceneHelper.CurrentScene == "Main Menu")
+            {
+                DisplayError("You must be in a level before joining someone.");
+                return;
+            }
             if (!SteamClient.IsValid) return;
             DisplaySystemChatMessage("Attempting to join " + GetNameOfId(id, true) + "'s game (via invite)");
             JoinLobby(lobby.Id).Forget();
@@ -758,6 +789,12 @@ namespace Polarite.Multiplayer
 
         private void HandleLobbyRPJ(Friend friend, string connect)
         {
+            if(SceneHelper.CurrentScene == "Intro" || SceneHelper.CurrentScene == "Bootstrap" || SceneHelper.CurrentScene == "Main Menu")
+            {
+                DisplayError("You must be in a level before joining someone.");
+                return;
+            }
+            if (!SteamClient.IsValid) return;
             DisplaySystemChatMessage("Attempting to join " + GetNameOfId(friend.Id, true) + "'s game (via profile)");
             if (ulong.TryParse(connect, out var lobbyId))
             {
@@ -1048,12 +1085,7 @@ namespace Polarite.Multiplayer
         {
             int length = buff.Length;
             PacketType globalType = PacketType.None;
-            // voice packets
-            if (length > 0 && buff[0] == 0x56)
-            {
-                VoiceChatManager.Instance?.OnP2PDataReceived(buff, length, id);
-                return;
-            }
+
             try
             {
                 if (IsBanned(id) && connections.TryGetValue(id, out var con))
@@ -1077,7 +1109,21 @@ namespace Polarite.Multiplayer
                 if (sender != id)
                     return;
 
-                // Logs.Debug($"Parsed packet from {GetNameOfId(id)} ({id.Value}), type: {type}, length: {len}, st: {sendtype}", name: "Server");
+                if(ItePlugin.logPacketParsing.value)
+                    Logs.Info($"Parsed packet from {GetNameOfId(id)} ({id.Value}), type: {type}, length: {len}, st: {sendtype}", name: "Server");
+
+                // voice packets
+                if(type == PacketType.Voice)
+                {
+                    BinaryPacketReader vcReader = new BinaryPacketReader(data, data.Length);
+                    byte[] buffer = vcReader.ReadByteArray();
+                    if (length > 0 && buffer[0] == 0x56)
+                    {
+                        VoiceChatManager.Instance?.OnDataReceived(buffer, buffer.Length, id);
+                        return;
+                    }
+                }
+
                 if (HostAndConnected)
                 {
                     // send it to everyone or send it to the target the client wanted to send it to
@@ -1106,12 +1152,6 @@ namespace Polarite.Multiplayer
             ulong target = reader.ReadULong();
             byte[] data = reader.ReadBytes();
 
-            // voice packets
-            if (length > 0 && buff[0] == 0x56)
-            {
-                VoiceChatManager.Instance?.OnP2PDataReceived(buff, length, sender);
-                return;
-            }
             try
             {
                 if (CurrentLobby.GetData("banned_" + Id) == "1")
@@ -1122,7 +1162,21 @@ namespace Polarite.Multiplayer
                 if (sender == Id)
                     return;
 
-                // Logs.Debug($"Parsed packet from {GetNameOfId(id)} ({id.Value}), type: {type}, length: {len}, st: {sendtype}", name: "Client");
+                if(ItePlugin.logPacketParsing.value)
+                    Logs.Info($"Parsed packet from {GetNameOfId(sender)} ({sender}), type: {type}, length: {len}, st: {sendtype}", name: "Client");
+
+                // voice packets
+                if (type == PacketType.Voice)
+                {
+                    BinaryPacketReader vcReader = new BinaryPacketReader(data, data.Length);
+                    byte[] buffer = vcReader.ReadByteArray();
+                    if (length > 0 && buffer[0] == 0x56)
+                    {
+                        VoiceChatManager.Instance?.OnDataReceived(buffer, buffer.Length, sender);
+                        return;
+                    }
+                }
+
                 Handle(type, data, length, sender);
             }
             catch (Exception ex)
@@ -1203,20 +1257,11 @@ namespace Polarite.Multiplayer
                 ChatUI.Instance.ShowUIForBit(7f);
             }
         }
-
-        public static void DisplayVoiceTip()
-        {
-            if(ChatUI.Instance != null && !ItePlugin.disableVoiceChatTip.value)
-            {
-                ChatUI.Instance.OnSubmitMessage("<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (Config > Voice Config) (you can also disable this tip in the plugin configurator)</color>", false, "<color=#34eba4>[TIP]: You can setup proximity voice chat in the plugin configurator! (you can also disable this tip in the plugin configurator)</color>", tts: false);
-                ChatUI.Instance.ShowUIForBit(7f);
-            }
-        }
         public static void DisplaySkinTip()
         {
             if (ChatUI.Instance != null && !ItePlugin.disableSkinTip.value)
             {
-                ChatUI.Instance.OnSubmitMessage("<color=#5EF527>[TIP]: You can change your skin in the plugin configurator! (Config > Cosmetic Config > Skins Config) (you can also disable this tip in the plugin configurator)</color>", false, "<color=#5EF527>[TIP]: You can change your skin in the plugin configurator! (Config > Cosmetic Config > Skins Config) (you can also disable this tip in the plugin configurator)</color>", tts: false);
+                ChatUI.Instance.OnSubmitMessage("<color=#5EF527>[TIP]: You can change your skin in the plugin configurator! (Settings > Plugin Config > Cosmetic Config > Skins Config) (you can also disable this tip in the plugin configurator)</color>", false, "<color=#5EF527>[TIP]: You can change your skin in the plugin configurator! (Config > Cosmetic Config > Skins Config) (you can also disable this tip in the plugin configurator)</color>", tts: false);
                 ChatUI.Instance.OnSubmitMessage($"<color=#27E7F5>[TIP]: You can see what you look like for other people by holding down {ChatUI.GetKeyName(ItePlugin.previewSkin.value)}</color>", false, $"<color=#27E7F5>[TIP]: You can see what you look like for other people by holding down {ChatUI.GetKeyName(ItePlugin.previewSkin.value)}</color>", tts: false);
                 ChatUI.Instance.ShowUIForBit(7f);
             }
@@ -1224,7 +1269,7 @@ namespace Polarite.Multiplayer
 
         public static void DisplayJoin(string color, string msg)
         {
-            if (ChatUI.Instance != null && !ItePlugin.disableVoiceChatTip.value)
+            if (ChatUI.Instance != null)
             {
                 ChatUI.Instance.OnSubmitMessage($"<color={color}>[SERVER]: {msg}</color>", false, $"<color={color}>[LOBBY]: {msg}</color>", tts: false);
                 ChatUI.Instance.ShowUIForBit(5f);
@@ -1243,20 +1288,6 @@ namespace Polarite.Multiplayer
         {
             Logs.Debug("Removing mapping for user: " + typeof(NetworkManager));
             if (Contains(id)) connections.Remove(id);
-        }
-    }
-    public static class TaskExtensions
-    {
-        public static void Forget(this Task task) { }
-    }
-    public static class TMPUtils
-    {
-        private static readonly Regex tmpTagRegex = new Regex("<.*?>", RegexOptions.Compiled);
-
-        public static string StripTMP(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return input;
-            return tmpTagRegex.Replace(input, string.Empty);
         }
     }
 }

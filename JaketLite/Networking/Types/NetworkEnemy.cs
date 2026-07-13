@@ -33,13 +33,8 @@ namespace Polarite.Multiplayer
         public static Dictionary<string, NetworkEnemy> allEnemies = new Dictionary<string, NetworkEnemy>();
         private static Coroutine globalTargetUpdater;
 
-        private Vector3 lastPos;
-        private Quaternion lastRot;
-
-        public Vector3 targetPos;
-        public Quaternion targetRot;
-
         private static readonly WaitForSeconds targetUpdateDelay = new WaitForSeconds(Random.Range(1f, 3f));
+        private Vector3 agentVel;
 
         public static NetworkEnemy Create(EnemyIdentifier eid, ulong owner, string id = "")
         {
@@ -72,13 +67,9 @@ namespace Polarite.Multiplayer
             DestroyOnCheckpointRestart destroyComp = Enemy.GetComponent<DestroyOnCheckpointRestart>();
             if (destroyComp != null) Destroy(destroyComp);
 
-            lastPos = Enemy.transform.position;
-            lastRot = Enemy.transform.rotation;
-            targetPos = Enemy.transform.position;
-            targetRot = Enemy.transform.rotation;
-
             base.Start();
 
+            /*
             if (Enemy.isBoss && NetworkManager.InLobby && NetworkManager.Instance.CurrentLobby.MemberCount > 1 && NetworkManager.Instance.CurrentLobby.GetData("bh") == "1")
             {
                 float playerScale = 1f + (Mathf.Max(0, NetworkManager.Instance.CurrentLobby.MemberCount - 1) * 1.5f);
@@ -96,9 +87,10 @@ namespace Polarite.Multiplayer
                     BossBarManager.Instance.UpdateBossBar(bHB);
                 }
             }
+            */
             if (Owns)
             {
-                // SyncSpawn();
+                SyncSpawn();
             }
             UpdateTarget();
         }
@@ -153,6 +145,11 @@ namespace Polarite.Multiplayer
             }
             Enemy.ignorePlayer = true;
             HandlePositions();
+            if(!Owns) LastState();
+        }
+        public void SetAgentVelocity(Vector3 vel)
+        {
+            agentVel = vel;
         }
         public void HandlePositions()
         {
@@ -196,12 +193,8 @@ namespace Polarite.Multiplayer
                     if (head != null)
                     {
                         head.transform.position = pos;
-                        SetPosAndRot(nma, transform, pos, rot);
                     }
-                    else
-                    {
-                        transform.SetPositionAndRotation(pos, rot);
-                    }
+                    transform.SetPositionAndRotation(pos, rot);
                 }
             }
         }
@@ -210,6 +203,7 @@ namespace Polarite.Multiplayer
             if(agent != null)
             {
                 agent.Warp(pos);
+                agent.velocity = agentVel * 1.5f;
             }
             else
             {
@@ -400,7 +394,7 @@ namespace Polarite.Multiplayer
             NetworkManager.Instance.BroadcastPacket(PacketType.DeathEnemy, w.GetBytes());
 
             int count = HelpedWithKill ? Helpers.Count + 1 : Helpers.Count;
-            if (count > 2 && !Enemy.puppet)
+            if (count > 1 && !Enemy.puppet)
             {
                 if (HelpedWithKill)
                 {
@@ -410,6 +404,10 @@ namespace Polarite.Multiplayer
                 {
                     StyleHUD.Instance.AddPoints(count, $"<color=#FF3030>TEAMKILL</color> x{count}");
                 }
+            }
+            if (CyberSync.Active && CyberSync.enemies.Contains(this))
+            {
+                CyberSync.enemies.Remove(this);
             }
             StartCoroutine(CleanupEnemy());
         }
@@ -442,21 +440,27 @@ namespace Polarite.Multiplayer
                     ApplyDamage(9999, "polr.someonekilled", false, Enemy.transform.position, Owner);
                 }
             }
-            if(Helpers.Count > 0)
+            int count = HelpedWithKill ? Helpers.Count + 1 : Helpers.Count;
+            if (count > 1 && !Enemy.puppet)
             {
                 if (HelpedWithKill)
                 {
-                    StyleHUD.Instance.AddPoints(Helpers.Count + 1, $"<color=#91FFFF>TEAMKILL</color> x{Helpers.Count + 1}");
+                    StyleHUD.Instance.AddPoints(count, $"<color=#91FFFF>TEAMKILL</color> x{count}");
                 }
                 else
                 {
-                    StyleHUD.Instance.AddPoints(Helpers.Count, $"<color=#FF3030>TEAMKILL</color> x{Helpers.Count}");
+                    StyleHUD.Instance.AddPoints(count, $"<color=#FF3030>TEAMKILL</color> x{count}");
                 }
+            }
+            if (CyberSync.Active && CyberSync.enemies.Contains(this))
+            {
+                CyberSync.enemies.Remove(this);
             }
             StartCoroutine(CleanupEnemy());
         }
         public IEnumerator CleanupEnemy()
         {
+            Net.List.AddBlacklist(ID);
             isCleaningUp = true;
             // small delay to hopefully ignore recovery
             yield return new WaitForSecondsRealtime(0.5f);
@@ -476,7 +480,7 @@ namespace Polarite.Multiplayer
                 writer.WriteBool(Enemy.healthBuff);
                 writer.WriteBool(Enemy.speedBuff);
                 writer.WriteBool(Enemy.damageBuff);
-                // write modifiers for... reasons
+                // write modifiers
                 writer.WriteFloat(Enemy.healthBuffModifier);
                 writer.WriteFloat(Enemy.speedBuffModifier);
                 writer.WriteFloat(Enemy.damageBuffModifier);
@@ -488,6 +492,8 @@ namespace Polarite.Multiplayer
                 writer.WriteBool(Enemy.attackEnemies);
                 // oops enemies owners aren't synced
                 writer.WriteULong(owner);
+                // for running animations to work
+                writer.WriteVector3(EE.nma != null ? EE.nma.velocity : Vector3.zero);
                 base.SendState(writer, PacketType.EnemyState);
             }
         }
@@ -515,7 +521,7 @@ namespace Polarite.Multiplayer
                 Destroy(e.gameObject);
             }
             allEnemies.Clear();
-            Logs.Info("Flushed all enemies (down the toilet?)", name: "NetworkEnemy");
+            Logs.Debug("Flushed all enemies (down the toilet?)", name: "NetworkEnemy");
             if(CyberSync.Active)
             {
                 CyberSync.enemies.Clear();

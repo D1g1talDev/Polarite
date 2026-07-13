@@ -95,9 +95,9 @@ namespace Polarite.Web
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Logs.Error($"Error while listening for global notifications: {ex.Message}", this);
+                    // Logs.DebugError($"Error while listening for global notifications: {ex.Message}", this);
                 }
                 response?.Dispose();
                 await Task.Delay(5000);

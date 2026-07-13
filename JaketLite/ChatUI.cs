@@ -11,6 +11,8 @@ using UnityEngine.UI;
 using Polarite.Networking;
 using System.Collections.Generic;
 using Polarite.Debugging;
+using Polarite.SamTTS;
+using Polarite.Networking.Extensions;
 
 namespace Polarite.Multiplayer
 {
@@ -23,31 +25,30 @@ namespace Polarite.Multiplayer
         public ScrollRect scrollRect;
 
         public KeyCode toggleKey = KeyCode.T;
-        public int maxMessages = 15;
 
         private List<ulong> peopleTyping = new List<ulong>();
         private string overrideTypeIndicatorText = string.Empty;
 
         // unlimited history storage
-        private List<string> chatMessages = new List<string>();
-        private StringBuilder chatBuilder = new StringBuilder();
-        private int hardCapMessages = 100000; // very high cap to avoid unbounded memory in pathological cases
+        private readonly List<string> chatMessages = new List<string>();
+        private readonly StringBuilder chatBuilder = new StringBuilder();
+        private readonly int hardCapMessages = 100000; // very high cap to avoid unbounded memory in pathological cases
 
         public static bool isTyping = false;
         public static bool isActuallyTyping = false;
         public static float typeTimer = 0f;
         private Coroutine onlyShowForBit;
+        private HudOpenEffect openEffect;
+        private bool toggled;
 
         public static ChatUI Instance;
 
         void Start()
         {
-
             if (Instance == null)
                 Instance = this;
-            if (chatPanel != null)
-                chatPanel.SetActive(false);
 
+            chatPanel?.SetActive(false);
             CreateUI();
         }
         public void CreateUI()
@@ -65,6 +66,7 @@ namespace Polarite.Multiplayer
             try
             {
                 chatPanel = canvas.transform.Find("ChatPanel").gameObject;
+                openEffect = chatPanel.GetComponent<HudOpenEffect>();
                 inputField = chatPanel.GetComponentInChildren<TMP_InputField>();
                 scrollRect = chatPanel.GetComponentInChildren<ScrollRect>();
                 placeholder = inputField.placeholder.GetComponent<TextMeshProUGUI>();
@@ -77,6 +79,7 @@ namespace Polarite.Multiplayer
             {
                 Logs.Error("Failed to create chat canvas! " + ex.Message);
             }
+            UIAnchors.SetChat(canvas.GetComponent<RectTransform>(), chatPanel.GetComponent<RectTransform>());
             Toggle(false);
 
             if (inputField != null)
@@ -86,13 +89,13 @@ namespace Polarite.Multiplayer
                     // prioritise DEV tag if this user is a developer
                     string author;
                     if (Net.Dev(NetworkManager.Id))
-                        author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+                        author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
                     else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
-                        author = $"<color=#00F2FF>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+                        author = $"<color=#00F2FF>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
                     else
-                        author = $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {TMPUtils.StripTMP(s)}";
+                        author = $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
 
-                    OnSubmitMessage(author, true, TMPUtils.StripTMP(s));
+                    OnSubmitMessage(author, true, s.WithoutTMP(), sam: SamPitch.configSam);
                     StopTyping();
                 });
                 inputField.onValueChanged.AddListener((string s) =>
@@ -112,7 +115,20 @@ namespace Polarite.Multiplayer
         {
             scrollRect.gameObject.SetActive(value);
             inputField.gameObject.SetActive(value);
-            chatPanel.GetComponent<Image>().enabled = value;
+            UIAnchors.Refresh();
+            if(value)
+            {
+                if(!toggled)
+                {
+                    openEffect.targetDimensions = new Vector2(1, 1);
+                    openEffect.OnEnable();
+                }
+            }
+            else
+            {
+                openEffect.Reverse(openEffect.speed);
+            }
+            toggled = value;
         }
         public void FlagIsTyping()
         {
@@ -263,17 +279,23 @@ namespace Polarite.Multiplayer
             if (name.StartsWith("Alpha"))
                 name = name.Substring(5);
             else if (name.StartsWith("Keypad"))
-                name = "Num " + name.Substring(6);
+                name = "Keypad " + name.Substring(6);
             else if (name.StartsWith("Left"))
-                name = name.Substring(4);
+                name = "Left " + name.Substring(4);
             else if (name.StartsWith("Right"))
-                name = name.Substring(5);
+                name = "Right " + name.Substring(5);
+            else if(name.StartsWith("Mouse"))
+                name = "M" + name.Substring(5);
 
             return name;
         }
 
-        public void OnSubmitMessage(string message, bool network, string realMsg, Transform parent = null, bool tts = true)
+        public void OnSubmitMessage(string message, bool network, string realMsg, Transform parent = null, bool tts = true, Sam sam = null)
         {
+            if(sam == null)
+            {
+                sam = new Sam();
+            }
             if(CommandManager.IsCommand(realMsg))
             {
                 CommandManager.CheckCommand(realMsg);
@@ -290,7 +312,7 @@ namespace Polarite.Multiplayer
             {
                 PacketWriter w = new PacketWriter();
                 w.WriteString(realMsg);
-                w.WriteBool(tts);
+                w.WriteSam(sam);
                 NetworkManager.Instance.BroadcastPacket(PacketType.ChatMsg, w.GetBytes());
                 if(ItePlugin.chatNoise.value)
                 {
@@ -320,9 +342,11 @@ namespace Polarite.Multiplayer
                 chatLog.text = chatBuilder.ToString();
             }
 
-            if (ItePlugin.canTTS.value && tts)
+            if (ItePlugin.ttsChat.value && ItePlugin.canTTS.value && tts)
             {
+                SamPitch.Set(sam);
                 TextReader.SayString(realMsg, parent);
+                SamPitch.Reset();
             }
 
             if (inputField != null && network)
