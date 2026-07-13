@@ -24,7 +24,7 @@ namespace Polarite.Patches
                 bool found = false;
                 foreach (var p in NetworkManager.players.Values)
                 {
-                    if (Vector3.Distance(__instance.transform.position, p.transform.position) <= 50f)
+                    if (Vector3.SqrMagnitude(__instance.transform.position - p.transform.position) <= 50f)
                     {
                         found = true;
                         break;
