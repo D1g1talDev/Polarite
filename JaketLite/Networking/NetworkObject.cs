@@ -214,7 +214,10 @@ namespace Polarite
             isCleaningUp = false;
             if(TryGetComponent<Enemy>(out var e))
             {
-                e.anw.AddDeadEnemy();
+                if(!e.eid.puppet && e.eid.enemyType == EnemyType.Providence)
+                {
+                    e.anw.AddDeadEnemy();
+                }
             }
             Destroy(gameObject);
         }
