@@ -36,7 +36,6 @@ namespace Polarite.Networking.Skins
         public MaterialPropertyBlock Block;
         public Texture2D Mask;
         public SkinnedMeshRenderer Renderer;
-        public Material Original;
         public string Name;
         public int Index;
 
@@ -44,7 +43,6 @@ namespace Polarite.Networking.Skins
         {
             Renderer = rend;
             Mask = ItePlugin.mainBundle.LoadAsset<Texture2D>(maskPath);
-            Original = rend.materials[matIndex];
             Name = name;
             Index = matIndex;
 
@@ -78,7 +76,7 @@ namespace Polarite.Networking.Skins
         }
         public void Undo()
         {
-            Renderer.materials[Index] = Original;
+            Renderer.materials[Index].shader = DefaultReferenceManager.Instance.masterShader;
             if(SkinManagerV2.AffectedMeshes.Contains(Renderer))
             {
                 SkinManagerV2.AffectedMeshes.Remove(Renderer);

@@ -64,6 +64,12 @@ namespace Polarite.Patches
                 }
             }
         }
+        [HarmonyPatch(nameof(OptionsManager.UnPause))]
+        [HarmonyPostfix]
+        static void UnpauseFix()
+        {
+            if (!ItePlugin.plrActive && !NetworkManager.InLobby) ItePlugin.CustomTogglePlayer(true);
+        }
         [HarmonyPatch(nameof(OptionsManager.QuitMission))]
         [HarmonyPostfix]
         static void LeaveAswell()
@@ -96,6 +102,25 @@ namespace Polarite.Patches
                 if (vid.isPaused)
                 {
                     vid.Play();
+                }
+            }
+        }
+        public static void EnablePauseEffects()
+        {
+            MonoSingleton<AudioMixerController>.Instance.allSound.SetFloat("allPitch", 0f);
+            MonoSingleton<AudioMixerController>.Instance.doorSound.SetFloat("allPitch", 0f);
+            if (MonoSingleton<MusicManager>.Instance != null)
+            {
+                MonoSingleton<MusicManager>.Instance.FilterMusic();
+            }
+            MonoSingleton<NewMovement>.Instance.enabled = true;
+            // video
+            VideoPlayer[] videos = GameObject.FindObjectsOfType<VideoPlayer>();
+            foreach (var vid in videos)
+            {
+                if (!vid.isPaused)
+                {
+                    vid.Pause();
                 }
             }
         }

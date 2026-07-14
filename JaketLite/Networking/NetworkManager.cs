@@ -473,6 +473,7 @@ namespace Polarite.Multiplayer
             HostAndConnected = false;
             ClientAndConnected = false;
             InLobby = false;
+            if (MonoSingleton<OptionsManager>.Instance.paused) PauseMenuPatch.EnablePauseEffects();
             SetRichPresenceForLobby(null);
             CurrentLobby.Leave();
             CurrentLobby = default;
@@ -488,9 +489,8 @@ namespace Polarite.Multiplayer
             DisplaySystemChatMessage($"Successfully left lobby '{lobbyName}'");
             PlayerList.UpdatePList();
             Net.End();
-            ItePlugin.CustomTogglePlayer(true);
             PrivateLobby = false;
-            ItePlugin.ReverseArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+            ItePlugin.ReverseArmCheck();
             ItePlugin.ReverseAnimationCheck();
             if(bootToMenu)
             {

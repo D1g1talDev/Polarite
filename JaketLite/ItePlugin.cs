@@ -508,7 +508,7 @@ namespace Polarite
                 if (arm != null)
                 {
                     SkinnedMeshRenderer r = arm.GetComponent<SkinnedMeshRenderer>();
-                    SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.RIGHT_ARM_MASK, "RArm" + NetworkManager.Id, 0, true);
+                    SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.RIGHT_ARM_MASK, (alt ? "RArmAlt" : "RArm") + NetworkManager.Id, 0, true);
                 }
             }
             catch
@@ -539,32 +539,13 @@ namespace Polarite
                 // skip
             }
         }
-        public static void ReverseArmCheck(bool alt)
+        public static void ReverseArmCheck()
         {
-            try
-            {
-                Transform arm = MonoSingleton<GunControl>.Instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
-                if (arm != null)
-                {
-                    SkinnedMeshRenderer r = arm.GetComponent<SkinnedMeshRenderer>();
-                    SkinManagerV2.Reset("RArm" + NetworkManager.Id);
-                }
-            }
-            catch
-            {
-                // welp seems the player doesn't have the revolver out
-            }
-            try
-            {
-                // arms
-                SkinManagerV2.Reset("Feedbacker" + NetworkManager.Id);
-                SkinManagerV2.Reset("KB" + NetworkManager.Id);
-                SkinManagerV2.Reset("Whip" + NetworkManager.Id);
-            }
-            catch
-            {
-                // skip
-            }
+            SkinManagerV2.Reset("RArm" + NetworkManager.Id);
+            SkinManagerV2.Reset("RArmAlt" + NetworkManager.Id);
+            SkinManagerV2.Reset("Feedbacker" + NetworkManager.Id);
+            SkinManagerV2.Reset("KB" + NetworkManager.Id);
+            SkinManagerV2.Reset("Whip" + NetworkManager.Id);
         }
         public static void AnimationCheck()
         {
@@ -578,13 +559,13 @@ namespace Polarite
                     {
                         if (i == 0)
                         {
-                            SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.V1_BASE_MASK, "Base" + NetworkManager.Id, i);
+                            SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.Light, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.V1_BASE_MASK, "BaseMir" + NetworkManager.Id, i);
                         }
                         else
                         {
                             // turn the emissive flag off
                             r.materials[i].DisableKeyword("EMISSIVE");
-                            SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.WingLight, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.V1_WING_MASK, "Wing" + NetworkManager.Id, i);
+                            SkinManagerV2.CustomColor(r, currentSkin.Base, currentSkin.WingLight, currentSkin.Metal, currentSkin.Shinyness, MaskConsts.V1_WING_MASK, "WingMir" + NetworkManager.Id, i);
                         }
                     }
                 }
@@ -598,23 +579,18 @@ namespace Polarite
                 if (rig != null)
                 {
                     SkinnedMeshRenderer r = rig.transform.Find("v1_mdl").GetComponent<SkinnedMeshRenderer>();
-                    Material main = mainBundle.LoadAsset<Material>("V1");
-                    Material wing = mainBundle.LoadAsset<Material>("V1Wing");
                     for (int i = 0; i < r.materials.Length; i++)
                     {
-                        if (i == 0)
-                        {
-                            r.materials[i].mainTexture = main.mainTexture;
-                        }
-                        else
+                        if (i >= 1)
                         {
                             // turn the emissive flag back on
                             r.materials[i].EnableKeyword("EMISSIVE");
-                            r.materials[i].mainTexture = wing.mainTexture;
                         }
                     }
                 }
             }
+            SkinManagerV2.Reset("BaseMir" + NetworkManager.Id);
+            SkinManagerV2.Reset("WingMir" + NetworkManager.Id);
         }
         public static void LogDebug(string msg, bool ignore = false)
         {
