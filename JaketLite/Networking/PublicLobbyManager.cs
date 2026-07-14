@@ -44,12 +44,22 @@ namespace Polarite
                     ItePlugin.Typewriter(TranslateDifficulty(lobby.Value.GetData("difficulty")), 0.01f, lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>());
                     ItePlugin.Typewriter(lobby.Value.GetData("levelName"), 0.01f, lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>());
                     Button button = lobbyObj.Find("UsefulButton").GetComponent<Button>();
+                    TextMeshProUGUI buttonText = button.GetComponentInChildren<TextMeshProUGUI>();
                     button.onClick.AddListener(async () =>
                     {
+                        buttonText.text = "JOINING...";
+                        button.interactable = false;
                         await NetworkManager.Instance.JoinLobby(lobby.Value.Id);
                     });
                     bool canJoin = lobby.Value.MemberCount < lobby.Value.MaxMembers && !NetworkManager.InLobby;
                     button.interactable = canJoin;
+                    if(!canJoin)
+                    {
+                        if (NetworkManager.InLobby)
+                            buttonText.text = "LEAVE FIRST";
+                        else
+                            buttonText.text = "FULL";
+                    }
                     lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>().text = $"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}";
                     ItePlugin.Typewriter($"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}", 0.05f, lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>());
                 }
