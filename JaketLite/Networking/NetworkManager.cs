@@ -473,7 +473,7 @@ namespace Polarite.Multiplayer
             HostAndConnected = false;
             ClientAndConnected = false;
             InLobby = false;
-            if (MonoSingleton<OptionsManager>.Instance.paused) PauseMenuPatch.EnablePauseEffects();
+            if (MonoSingleton<OptionsManager>.Instance.paused && !bootToMenu) PauseMenuPatch.EnablePauseEffects();
             SetRichPresenceForLobby(null);
             CurrentLobby.Leave();
             CurrentLobby = default;
