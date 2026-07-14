@@ -145,6 +145,7 @@ namespace Polarite.Multiplayer
             }
             Enemy.ignorePlayer = true;
             HandlePositions();
+            allowLastState = Enemy.enemyType == EnemyType.Providence;
             if(!Owns) LastState();
         }
         public void SetAgentVelocity(Vector3 vel)

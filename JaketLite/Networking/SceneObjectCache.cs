@@ -197,19 +197,16 @@ namespace Polarite.Multiplayer
         }
         private static bool EnemyValid(GameObject obj)
         {
-            try
-            {
-                EnemyIdentifier eid = obj.GetComponentInChildren<EnemyIdentifier>(true);
-                if (eid == null)
-                {
-                    return false;
-                }
-                return !eid.dead && eid.health > 0;
-            }
-            catch (Exception)
+            if(obj == null)
             {
                 return false;
             }
+            EnemyIdentifier eid = obj.GetComponentInChildren<EnemyIdentifier>(true);
+            if (eid == null)
+            {
+                return false;
+            }
+            return !eid.dead && eid.health > 0;
         }
 
         public static EnemyIdentifier TrySpawnEnemy(string path, EnemyType fallback, Vector3 pos, Quaternion rot, ulong owner)

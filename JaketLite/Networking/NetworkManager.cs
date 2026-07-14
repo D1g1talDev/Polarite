@@ -393,7 +393,6 @@ namespace Polarite.Multiplayer
                         players.Add(member.Id.Value, newPlr);
                     }
                 }
-                LoadLevelAndDifficulty(lobby);
                 PlayerList.UpdatePList();
                 DisplaySkinTip();
                 PauseMenuPatch.DisablePauseEffects();
@@ -415,6 +414,7 @@ namespace Polarite.Multiplayer
                     Logs.Debug("Client state: " + ClientToHost.Connection.DetailedStatus(), this);
                     await Task.Delay(100);
                 }
+                LoadLevelAndDifficulty(lobby);
             }
             else
             {
