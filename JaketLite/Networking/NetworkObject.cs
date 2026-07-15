@@ -124,6 +124,7 @@ namespace Polarite
         }
         public virtual void HandDestroy()
         {
+            isCleaningUp = false;
             if (Net.List.Contains(this))
             {
                 Net.List.Remove(this, true);
@@ -211,14 +212,6 @@ namespace Polarite
         {
             isCleaningUp = true;
             yield return new WaitForSeconds(0.5f);
-            isCleaningUp = false;
-            if(TryGetComponent<Enemy>(out var e))
-            {
-                if(!e.eid.puppet && e.eid.enemyType == EnemyType.Providence)
-                {
-                    e.anw.AddDeadEnemy();
-                }
-            }
             Destroy(gameObject);
         }
         protected void LastState()
@@ -229,7 +222,16 @@ namespace Polarite
             }
             lastState -= Time.deltaTime;
             if (lastState <= 0f)
+            {
+                if (TryGetComponent<Enemy>(out var e))
+                {
+                    if (!e.eid.puppet && e.eid.enemyType == EnemyType.Providence)
+                    {
+                        e.anw.AddDeadEnemy();
+                    }
+                }
                 PrepDestroy();
+            }
         }
         public virtual void Update()
         {

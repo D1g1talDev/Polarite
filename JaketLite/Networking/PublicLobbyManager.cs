@@ -45,9 +45,11 @@ namespace Polarite
                     ItePlugin.Typewriter(lobby.Value.GetData("levelName"), 0.01f, lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>());
                     Button button = lobbyObj.Find("UsefulButton").GetComponent<Button>();
                     TextMeshProUGUI buttonText = button.GetComponentInChildren<TextMeshProUGUI>();
+                    float ogFSize = buttonText.fontSize;
                     button.onClick.AddListener(async () =>
                     {
                         buttonText.text = "JOINING...";
+                        buttonText.fontSize = 13;
                         button.interactable = false;
                         await NetworkManager.Instance.JoinLobby(lobby.Value.Id);
                     });
@@ -56,9 +58,15 @@ namespace Polarite
                     if(!canJoin)
                     {
                         if (NetworkManager.InLobby)
+                        {
                             buttonText.text = "LEAVE FIRST";
+                            buttonText.fontSize = 20.3f;
+                        }
                         else
+                        {
                             buttonText.text = "FULL";
+                            buttonText.fontSize = ogFSize;
+                        }
                     }
                     lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>().text = $"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}";
                     ItePlugin.Typewriter($"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}", 0.05f, lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>());

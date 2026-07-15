@@ -38,7 +38,6 @@ namespace Polarite.Multiplayer
         public static bool isActuallyTyping = false;
         public static float typeTimer = 0f;
         private Coroutine onlyShowForBit;
-        private HudOpenEffect openEffect;
         private bool toggled;
 
         public static ChatUI Instance;
@@ -66,7 +65,6 @@ namespace Polarite.Multiplayer
             try
             {
                 chatPanel = canvas.transform.Find("ChatPanel").gameObject;
-                openEffect = chatPanel.GetComponent<HudOpenEffect>();
                 inputField = chatPanel.GetComponentInChildren<TMP_InputField>();
                 scrollRect = chatPanel.GetComponentInChildren<ScrollRect>();
                 placeholder = inputField.placeholder.GetComponent<TextMeshProUGUI>();
@@ -80,7 +78,7 @@ namespace Polarite.Multiplayer
                 Logs.Error("Failed to create chat canvas! " + ex.Message);
             }
             UIAnchors.SetChat(canvas.GetComponent<RectTransform>(), chatPanel.GetComponent<RectTransform>());
-            Toggle(false);
+            Toggle(false, true);
 
             if (inputField != null)
             {
@@ -111,7 +109,23 @@ namespace Polarite.Multiplayer
                 DontDestroyOnLoad(canvas);
             }
         }
-        public void Toggle(bool value)
+        public void OpenEffect(bool value)
+        {
+            HudOpenEffect[] effects = chatPanel.GetComponentsInChildren<HudOpenEffect>();
+            foreach(var effect in effects)
+            {
+                if(value)
+                {
+                    effect.targetDimensions = new Vector2(1, 1);
+                    effect.OnEnable();
+                }
+                else
+                {
+                    effect.Reverse(effect.speed);
+                }
+            }
+        }
+        public void Toggle(bool value, bool instant = false)
         {
             scrollRect.gameObject.SetActive(value);
             inputField.gameObject.SetActive(value);
@@ -120,13 +134,12 @@ namespace Polarite.Multiplayer
             {
                 if(!toggled)
                 {
-                    openEffect.targetDimensions = new Vector2(1, 1);
-                    openEffect.OnEnable();
+                    OpenEffect(true);
                 }
             }
             else
             {
-                openEffect.Reverse(openEffect.speed);
+                OpenEffect(false);
             }
             toggled = value;
         }
