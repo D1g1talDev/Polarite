@@ -145,8 +145,12 @@ namespace Polarite.Multiplayer
             }
             Enemy.ignorePlayer = true;
             HandlePositions();
-            allowLastState = Enemy.enemyType == EnemyType.Providence;
+            allowLastState = true;
             if(!Owns) LastState();
+        }
+        public override void OnTimeout()
+        {
+            HandleDeath();
         }
         public void SetAgentVelocity(Vector3 vel)
         {
@@ -410,7 +414,7 @@ namespace Polarite.Multiplayer
             {
                 CyberSync.enemies.Remove(this);
             }
-            StartCoroutine(CleanupEnemy());
+            CleanupEnemy();
         }
 
         public void ApplyDamage(float damage, string hitter, bool weakpoint, Vector3 point, ulong sender)
@@ -430,7 +434,8 @@ namespace Polarite.Multiplayer
             if (Enemy == null) return;
 
             IsAlive = false;
-            if(!Enemy.dead)
+            Net.List.AddBlacklist(ID);
+            if (!Enemy.dead)
             {
                 if (Enemy.idol != null)
                 {
@@ -457,21 +462,16 @@ namespace Polarite.Multiplayer
             {
                 CyberSync.enemies.Remove(this);
             }
-            StartCoroutine(CleanupEnemy());
+            CleanupEnemy();
         }
-        public IEnumerator CleanupEnemy()
+        public void CleanupEnemy()
         {
-            Net.List.AddBlacklist(ID);
-            isCleaningUp = true;
-            // small delay to hopefully ignore recovery
-            yield return new WaitForSecondsRealtime(0.5f);
             allEnemies.Remove(ID);
             if(Net.List.Contains(this))
             {
                 Net.List.Remove(this, false);
             }
             SceneObjectCache.Remove(gameObject);
-            isCleaningUp = false;
         }
         public override void SendState(PacketWriter writer, PacketType type)
         {

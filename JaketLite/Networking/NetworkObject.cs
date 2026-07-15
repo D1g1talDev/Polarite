@@ -5,6 +5,7 @@ using Polarite.Networking;
 using UnityEngine.ProBuilder.MeshOperations;
 using Polarite.Debugging;
 using System.Collections;
+using TMPro;
 
 namespace Polarite
 {
@@ -158,6 +159,7 @@ namespace Polarite
             if (!alive)
                 return;
 
+            lastState = 3f;
             Vector3 pos = transform.position;
             Quaternion rot = transform.rotation;
 
@@ -192,7 +194,7 @@ namespace Polarite
         public virtual void State(Vector3 pos, Quaternion rot, BinaryPacketReader reader)
         {
             if (!alive) return;
-            lastState = 2f;
+            lastState = 3f;
 
             if (syncTransform)
             {
@@ -212,6 +214,7 @@ namespace Polarite
         {
             isCleaningUp = true;
             yield return new WaitForSeconds(0.5f);
+            isCleaningUp = false;
             Destroy(gameObject);
         }
         protected void LastState()
@@ -223,15 +226,13 @@ namespace Polarite
             lastState -= Time.deltaTime;
             if (lastState <= 0f)
             {
-                if (TryGetComponent<Enemy>(out var e))
-                {
-                    if (!e.eid.puppet && e.eid.enemyType == EnemyType.Providence)
-                    {
-                        e.anw.AddDeadEnemy();
-                    }
-                }
-                PrepDestroy();
+                Logs.Info("State timeout!", name: simpleId);
+                OnTimeout();
             }
+        }
+        public virtual void OnTimeout()
+        {
+            PrepDestroy();
         }
         public virtual void Update()
         {

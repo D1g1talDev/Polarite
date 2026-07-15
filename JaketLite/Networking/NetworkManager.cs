@@ -414,7 +414,6 @@ namespace Polarite.Multiplayer
                     Logs.Debug("Client state: " + ClientToHost.Connection.DetailedStatus(), this);
                     await Task.Delay(100);
                 }
-                LoadLevelAndDifficulty(lobby);
             }
             else
             {
@@ -872,15 +871,12 @@ namespace Polarite.Multiplayer
             SendPacket(type, payload, CurrentLobby.Owner.Id, sendtype: sendtype, broadcasting: broadcasting);
         }
 
-        public void LoadLevelAndDifficulty(Lobby? lobby)
+        public void LoadLevelAndDifficulty(Lobby lobby)
         {
-            if(lobby.HasValue)
-            {
-                SceneLoading = true;
-                ItePlugin.ignoreSpectate = true;
-                SceneHelper.LoadScene(lobby.Value.GetData("level"));
-                PrefsManager.Instance.SetInt("difficulty", int.Parse(lobby.Value.GetData("difficulty")));
-            }
+            SceneLoading = true;
+            ItePlugin.ignoreSpectate = true;
+            SceneHelper.LoadScene(lobby.GetData("level"));
+            PrefsManager.Instance.SetInt("difficulty", int.Parse(lobby.GetData("difficulty")));
         }
         public void SceneLoad()
         {
@@ -910,6 +906,7 @@ namespace Polarite.Multiplayer
         }
         public void JoinAnnounceClient()
         {
+            LoadLevelAndDifficulty(CurrentLobby);
             StartCoroutine(DelayJoinAnnounceClient());
         }
         private IEnumerator DelayJoinAnnounceClient()
