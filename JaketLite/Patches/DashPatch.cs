@@ -13,7 +13,7 @@ namespace Polarite.Patches
     [HarmonyPatch(typeof(NewMovement))]
     internal class DashPatch
     {
-        [HarmonyPatch("TryDash")]
+        [HarmonyPatch(nameof(NewMovement.TryDash))]
         [HarmonyPostfix]
         public static void Postfix(NewMovement __instance)
         {

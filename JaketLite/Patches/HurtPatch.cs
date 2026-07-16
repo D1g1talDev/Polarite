@@ -84,7 +84,7 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Jump, w.GetBytes());
             }
         }
-        [HarmonyPatch("WallJump")]
+        [HarmonyPatch(nameof(NewMovement.WallJump))]
         [HarmonyPostfix]
         static void WJPatch()
         {
@@ -161,6 +161,21 @@ namespace Polarite.Patches
             {
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.PunchParry, w.GetBytes());
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.LandingImpact))]
+        [HarmonyPostfix]
+        static void ImpactPostfix(NewMovement __instance)
+        {
+            if (NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                w.WriteVector3(__instance.gc.transform.position);
+                w.WriteVector3(__instance.transform.position);
+                w.WriteVector3(__instance.transform.forward);
+                w.WriteVector3(__instance.transform.up);
+                w.WriteFloat(__instance.fallSpeed);
+                NetworkManager.Instance.BroadcastPacket(PacketType.Slam, w.GetBytes());
             }
         }
     }

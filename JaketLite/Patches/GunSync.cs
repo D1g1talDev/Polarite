@@ -143,15 +143,13 @@ namespace Polarite
             }
         }
 
-        public static void Shockwave(Vector3 pos)
+        public static void Shockwave(Vector3 pos, Vector3 forward, Vector3 up, float force)
         {
-            GameObject shockwave = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/PhysicalShockwavePlayer.prefab").WaitForCompletion(), pos, Quaternion.identity);
+            GameObject shockwave = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/PhysicalShockwavePlayer.prefab").WaitForCompletion(), pos, Quaternion.LookRotation(forward, up));
             PhysicalShockwave ps = shockwave.GetComponent<PhysicalShockwave>();
-            ps.enemy = true;
-            ps.damage = 2;
-            ps.noDamageToEnemy = false;
+            ps.noDamageToEnemy = true;
             ps.hasHurtPlayer = false;
-            ps.force = 1000f;
+            ps.force *= force;
         }
         public static void Blast(Vector3 pos, ulong player)
         {

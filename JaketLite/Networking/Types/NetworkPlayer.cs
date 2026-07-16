@@ -2,6 +2,7 @@
 using Polarite.Networking.Skins;
 using Polarite.Patches;
 using Polarite.VoiceChat;
+using ScriptableObjects;
 using Steamworks;
 using System;
 using System.Collections;
@@ -19,6 +20,7 @@ using UnityEngine.Assertions.Must;
 using UnityEngine.Localization.Pseudo;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static ScriptableObjects.FootstepSet;
 using Random = UnityEngine.Random;
 
 namespace Polarite.Multiplayer
@@ -102,6 +104,11 @@ namespace Polarite.Multiplayer
         public Vector3 gravOffset;
         public Vector3 gravity = new Vector3(0, -40, 0);
 
+        private GameObject fallingPart;
+
+        // footsteps
+        private int lastStep = -1;
+
         public void SpawnNoise()
         {
             SpawnSound(spawnNoise.clip);
@@ -126,6 +133,21 @@ namespace Polarite.Multiplayer
             SpawnSound(jumpNoise.clip);
             JumpAnim();
         }
+        public void SetFalling(bool value)
+        {
+            if(value)
+            {
+                if(fallingPart != null)
+                {
+                    Destroy(fallingPart);
+                }
+                fallingPart = Instantiate(MonoSingleton<NewMovement>.Instance.fallParticle, transform);
+            }
+            else if(fallingPart != null)
+            {
+                Destroy(fallingPart);
+            }
+        }
 
         public void SetGhost(bool val)
         {
@@ -142,6 +164,30 @@ namespace Polarite.Multiplayer
                 return;
             }
             ItePlugin.SpawnSound(clip, 1f, head.transform, 1f);
+        }
+        public void Footsteps(Vector3 pos, float volume)
+        {
+            if(isGhost)
+            {
+                return;
+            }    
+            if(MonoSingleton<SceneHelper>.Instance.TryGetSurfaceData(pos, out var hit) && PlayerFootsteps.Instance.footstepSet.TryGetFootstepClips(hit.surfaceType, out var clips))
+            {
+                ActualFootsteps(clips, pos, volume);
+            }
+        }
+        public void ActualFootsteps(AudioClip[] clips, Vector3 pos, float volume)
+        {
+            if(clips != null && clips.Length > 0)
+            {
+                int i = Random.Range(0, clips.Length);
+                if(clips.Length > 1 && i == lastStep)
+                {
+                    i = (i + 1) % clips.Length;
+                }
+                lastStep = i;
+                ItePlugin.SpawnSound(clips[i], 1f, null, volume, pos);
+            }
         }
 
         public void Init(ulong steamId, string playerName)
@@ -221,6 +267,7 @@ namespace Polarite.Multiplayer
                     writer.WriteBool(walking);
                     writer.WriteBool(spin);
                     writer.WriteBool(shop);
+                    writer.WriteBool(MonoSingleton<NewMovement>.Instance.currentFallParticle != null);
 
                     writer.WriteInt(MonoSingleton<NewMovement>.Instance.hp);
                     writer.WriteBool(ChatUI.isActuallyTyping);

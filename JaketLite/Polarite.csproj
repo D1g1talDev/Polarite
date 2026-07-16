@@ -496,6 +496,7 @@
     <Compile Include="Networking\Extensions\TaskExtensions.cs" />
     <Compile Include="Networking\Skins\SkinManagerV2.cs" />
     <Compile Include="Patches\CamVisiblePatch.cs" />
+    <Compile Include="Patches\FootstepPatch.cs" />
     <Compile Include="Patches\GravVolumePatch.cs" />
     <Compile Include="Patches\GunSync.cs" />
     <Compile Include="MasterShaderizer.cs" />
@@ -529,6 +530,7 @@
     <Compile Include="Patches\LevelStartPatch.cs" />
     <Compile Include="Patches\RevolverPatch.cs" />
     <Compile Include="Patches\SaveFilePatches.cs" />
+    <Compile Include="Patches\ShockwavePatch.cs" />
     <Compile Include="Patches\SpecialHudCameraAddPatch.cs" />
     <Compile Include="Patches\StatsManagerPatch.cs" />
     <Compile Include="Ragdoll.cs" />

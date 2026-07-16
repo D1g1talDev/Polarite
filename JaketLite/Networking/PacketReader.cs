@@ -122,7 +122,11 @@ namespace Polarite.Multiplayer
         // level finish
         LevelFinished = 63,
         // gravity
-        GravVol = 64
+        GravVol = 64,
+        // player details
+        Slam = 65,
+        SlamShockwave = 66,
+        Footstep = 67
     }
 
     public static class PacketReader
@@ -166,7 +170,7 @@ namespace Polarite.Multiplayer
                         if (p != null)
                         {
                             p.HurtNoise();
-                            if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value)
+                            if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && !p.isGhost)
                             {
                                 SamPitch.Set(sam);
                                 TextReader.SayString(HurtPatch.HurtNoises[Random.Range(0, HurtPatch.HurtNoises.Length)], p.head.transform);
@@ -291,6 +295,7 @@ namespace Polarite.Multiplayer
                         bool walking = reader.ReadBool();
                         bool spin = reader.ReadBool();
                         bool shop = reader.ReadBool();
+                        bool fallPart = reader.ReadBool();
                         int hp = reader.ReadInt();
                         bool typing = reader.ReadBool();
 
@@ -302,6 +307,7 @@ namespace Polarite.Multiplayer
                             p.SetHP(hp);
                             p.typing = typing;
                             p.ShopMode(shop);
+                            p.SetFalling(fallPart);
                         }
                         // double check rig state to prevent weird edge cases where a player gets stuck invisible after dying
                         if (hp > 0 && !p.rigActive)
@@ -919,6 +925,34 @@ namespace Polarite.Multiplayer
                     {
                         Vector3 grav = reader.ReadVector3();
                         NetworkPlayer.Find(senderId)?.PortalRotate(grav);
+                        break;
+                    }
+                case PacketType.Slam:
+                    {
+                        Vector3 gcVec = reader.ReadVector3();
+                        Vector3 pos = reader.ReadVector3();
+                        Vector3 _for = reader.ReadVector3();
+                        Vector3 up = reader.ReadVector3();
+                        float fallSpeed = reader.ReadFloat();
+                        GameObject.Instantiate(MonoSingleton<NewMovement>.Instance.impactDust, gcVec, Quaternion.identity).transform.forward = up;
+                        MonoSingleton<SceneHelper>.Instance.CreateEnviroGibs(pos, up * -1f, 5f, Mathf.RoundToInt(Mathf.Lerp(3f, 5f, (Mathf.Abs(fallSpeed) - 50f) / 50f)));
+                        break;
+                    }
+                case PacketType.SlamShockwave:
+                    {
+                        Vector3 pos = reader.ReadVector3();
+                        Vector3 _for = reader.ReadVector3();
+                        Vector3 up = reader.ReadVector3();
+                        float force = reader.ReadFloat();
+                        GunSync.Shockwave(pos, _for, up, force);
+                        MonoSingleton<SceneHelper>.Instance.CreateEnviroGibs(pos, up * -1f, 5f, 10);
+                        break;
+                    }
+                case PacketType.Footstep:
+                    {
+                        Vector3 pos = reader.ReadVector3();
+                        float vol = reader.ReadFloat();
+                        NetworkPlayer.Find(senderId)?.Footsteps(pos, vol);
                         break;
                     }
             }
