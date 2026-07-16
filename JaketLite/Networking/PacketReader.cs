@@ -934,7 +934,12 @@ namespace Polarite.Multiplayer
                         Vector3 _for = reader.ReadVector3();
                         Vector3 up = reader.ReadVector3();
                         float fallSpeed = reader.ReadFloat();
-                        GameObject.Instantiate(MonoSingleton<NewMovement>.Instance.impactDust, gcVec, Quaternion.identity).transform.forward = up;
+                        GameObject dust = GameObject.Instantiate(MonoSingleton<NewMovement>.Instance.impactDust, gcVec, Quaternion.identity);
+                        dust.transform.forward = up;
+                        AudioSource src = dust.GetComponent<AudioSource>();
+                        src.spatialBlend = 1f;
+                        src.minDistance = 100f;
+                        src.maxDistance = 30f;
                         MonoSingleton<SceneHelper>.Instance.CreateEnviroGibs(pos, up * -1f, 5f, Mathf.RoundToInt(Mathf.Lerp(3f, 5f, (Mathf.Abs(fallSpeed) - 50f) / 50f)));
                         break;
                     }
