@@ -9,7 +9,6 @@ namespace Polarite
 {
     public class SpectatorCam : MonoBehaviour
     {
-        [Header("Follow Settings")]
         public Vector3 followOffset = new Vector3(0, 2f, -4f);
         public float distance = 5f;
         public float height = 2f;
@@ -21,8 +20,6 @@ namespace Polarite
         private float yaw = 0f;
         private float pitch = 15f;
 
-        private Camera spectatorCamera;
-
         // UI
         private Canvas spectatorCanvas;
         private TextMeshProUGUI spectatingText;
@@ -30,7 +27,6 @@ namespace Polarite
 
         private void Awake()
         {
-            spectatorCamera = GetComponent<Camera>();
             CreateSpectatorUI();
         }
 

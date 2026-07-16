@@ -172,7 +172,6 @@ namespace Polarite.Patches
                 PacketWriter w = new PacketWriter();
                 w.WriteVector3(__instance.gc.transform.position);
                 w.WriteVector3(__instance.transform.position);
-                w.WriteVector3(__instance.transform.forward);
                 w.WriteVector3(__instance.transform.up);
                 w.WriteFloat(__instance.fallSpeed);
                 NetworkManager.Instance.BroadcastPacket(PacketType.Slam, w.GetBytes());

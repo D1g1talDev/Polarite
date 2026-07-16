@@ -560,7 +560,7 @@ namespace Polarite.Multiplayer
                     imgGraph.color = Color.clear;
                     return;
                 }
-                if (PortalPhysicsV2.Raycast(gameCam.GetDefaultPos(), dir, Vector3.Distance(gameCam.GetDefaultPos(), showWhenHidden.transform.position), LayerMaskDefaults.Get(LMD.Environment)) && rigActive && !ItePlugin.disableHI.value)
+                if (PortalPhysicsV2.Raycast(gameCam.GetDefaultPos(), dir, Vector3.Distance(gameCam.GetDefaultPos(), showWhenHidden.transform.position), LayerMaskDefaults.Get(LMD.Environment)) && rigActive && !ItePlugin.disableHI.value && !SpectatorCam.isSpectating)
                 {
                     imgGraph.color = Color.Lerp(imgGraph.color, new Color(1f, 1f, 1f, 1f), 10f * Time.deltaTime);
                 }

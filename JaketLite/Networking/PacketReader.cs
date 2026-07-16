@@ -931,7 +931,6 @@ namespace Polarite.Multiplayer
                     {
                         Vector3 gcVec = reader.ReadVector3();
                         Vector3 pos = reader.ReadVector3();
-                        Vector3 _for = reader.ReadVector3();
                         Vector3 up = reader.ReadVector3();
                         float fallSpeed = reader.ReadFloat();
                         GameObject dust = GameObject.Instantiate(MonoSingleton<NewMovement>.Instance.impactDust, gcVec, Quaternion.identity);
