@@ -135,12 +135,8 @@ namespace Polarite.Multiplayer
         }
         public void SetFalling(bool value)
         {
-            if(value)
+            if(value && fallingPart == null)
             {
-                if(fallingPart != null)
-                {
-                    Destroy(fallingPart);
-                }
                 fallingPart = Instantiate(MonoSingleton<NewMovement>.Instance.fallParticle, transform);
             }
             else if(fallingPart != null)
