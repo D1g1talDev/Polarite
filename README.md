@@ -7,7 +7,7 @@ A simple multiplayer mod for **ULTRAKILL** inspired by **Jaket**.
 Works with **Steam**
 
 ## What Syncs
-- Player movement, animations, health, and bullets  
+- Player movement, animations, health, their custom skin, and bullets  
 - Weapons equipped
 - Respawning, and dying
 - Enemy spawns, Enemy positions and rotations, damage to enemies, radiance
