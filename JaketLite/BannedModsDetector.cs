@@ -51,7 +51,12 @@ namespace Polarite
         }
         public static void Check(Bullet[] list, bool shotgun, ulong culprit)
         {
-            if(list.Length > (shotgun ? 450 : 45))
+            List<Bullet> bulletsFromPerson = new List<Bullet>();
+            foreach(var bul in list)
+            {
+                if(bul.owner == culprit) bulletsFromPerson.Add(bul);
+            }
+            if(bulletsFromPerson.Count > (shotgun ? 450 : 45))
             {
                 NetworkManager.Instance.ForceKick(culprit, "Potentially using banned mod: FullestAuto/UltraCoins in public lobby");
             }

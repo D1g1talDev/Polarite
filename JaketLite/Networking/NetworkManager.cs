@@ -906,7 +906,6 @@ namespace Polarite.Multiplayer
         }
         public void JoinAnnounceClient()
         {
-            LoadLevelAndDifficulty(CurrentLobby);
             StartCoroutine(DelayJoinAnnounceClient());
         }
         private IEnumerator DelayJoinAnnounceClient()
@@ -915,6 +914,7 @@ namespace Polarite.Multiplayer
             PacketWriter w = new PacketWriter();
             w.WriteSkin(ItePlugin.currentSkin);
             BroadcastPacket(PacketType.Skin, w.GetBytes());
+            LoadLevelAndDifficulty(CurrentLobby);
         }
         public static ulong GetNearestPlayerID(Vector3 pos)
         {

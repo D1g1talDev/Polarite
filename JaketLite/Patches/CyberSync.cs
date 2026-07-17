@@ -75,7 +75,6 @@ namespace Polarite.Patches
                 GameObject.Find("Everything").transform.Find("Timer").gameObject.SetActive(true);
                 trigger.enabled = false;
                 starting = true;
-                return;
             }
             EndlessGrid.Instance.NextWave();
             EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);
@@ -103,7 +102,6 @@ namespace Polarite.Patches
             {
                 GameObject.Find("Everything").transform.Find("Timer").gameObject.SetActive(true);
                 trigger.enabled = false;
-                return;
             }
             EndlessGrid.Instance.NextWave();
             EndlessGrid.Instance.waveNumberText.transform.parent.parent.gameObject.SetActive(true);

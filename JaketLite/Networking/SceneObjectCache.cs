@@ -157,6 +157,8 @@ namespace Polarite.Multiplayer
                 t = t.parent;
             }
 
+            string final = $"{obj.scene.name}{sb}";
+            if (Paths.ContainsKey(final)) final.Insert(final.Length, $"(C)");
             return $"{obj.scene.name}{sb}";
         }
 
