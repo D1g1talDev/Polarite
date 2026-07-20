@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using static SceneHelper;
 using Random = UnityEngine.Random;
 
 namespace Polarite.Patches
@@ -76,21 +77,23 @@ namespace Polarite.Patches
 
         [HarmonyPatch(nameof(NewMovement.Jump))]
         [HarmonyPostfix]
-        static void JPatch()
+        static void JPatch(NewMovement __instance)
         {
             if(NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
+                w.WriteBool(__instance.quakeJump);
                 NetworkManager.Instance.BroadcastPacket(PacketType.Jump, w.GetBytes());
             }
         }
         [HarmonyPatch(nameof(NewMovement.WallJump))]
         [HarmonyPostfix]
-        static void WJPatch()
+        static void WJPatch(NewMovement __instance)
         {
             if (NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
+                w.WriteBool(__instance.quakeJump);
                 NetworkManager.Instance.BroadcastPacket(PacketType.Jump, w.GetBytes());
             }
         }
@@ -175,6 +178,117 @@ namespace Polarite.Patches
                 w.WriteVector3(__instance.transform.up);
                 w.WriteFloat(__instance.fallSpeed);
                 NetworkManager.Instance.BroadcastPacket(PacketType.Slam, w.GetBytes());
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.CreateSlideScrape))]
+        [HarmonyPrefix]
+        static void CSPrefix(NewMovement __instance, ref bool ignorePrevious)
+        {
+            if (NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                HitSurfaceData surf = new HitSurfaceData();
+                bool hit = false;
+                if(!__instance.gc.onGround && __instance.wcGroup.TryGetActiveInstance(out WallCheck wc))
+                {
+                    Vector3 normal = (wc.poc - wc.transform.position).normalized;
+                    if (MonoSingleton<SceneHelper>.Instance.TryGetSurfaceData(wc.transform.position, normal, 3f, out surf))
+                    {
+                        hit = true;
+                    }
+                }
+                else if(MonoSingleton<SceneHelper>.Instance.TryGetSurfaceData(__instance.transform.position, __instance.rb.GetGravityDirection(), 3f, out surf))
+                {
+                    hit = true;
+                }
+                if (hit)
+                {
+                    if (!MonoSingleton<DefaultReferenceManager>.Instance.footstepSet.TryGetSlideParticle(surf.surfaceType, out var particle))
+                    {
+                        surf.surfaceType = SurfaceType.Generic;
+                    }
+                    if (!ignorePrevious && surf.surfaceType == __instance.currentSlideSurfaceType)
+                    {
+                        return;
+                    }
+                    w.WriteEnum(surf.surfaceType);
+                    w.WriteVector3(__instance.dodgeDirection);
+                    w.WriteColor(surf.particleColor);
+                    NetworkManager.Instance.BroadcastPacket(PacketType.SlideScrape, w.GetBytes());
+                }
+                else
+                {
+                    if (ignorePrevious || __instance.currentSlideSurfaceType != SurfaceType.Generic)
+                    {
+                        return;
+                    }
+                    w.WriteEnum(SurfaceType.Generic);
+                    w.WriteVector3(__instance.dodgeDirection);
+                    w.WriteColor(surf.particleColor);
+                    NetworkManager.Instance.BroadcastPacket(PacketType.SlideScrape, w.GetBytes());
+                }
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.CreateWallScrape))]
+        [HarmonyPrefix]
+        static void WSPrefix(NewMovement __instance, ref Vector3 position, ref bool ignorePrevious)
+        {
+            if(NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                if(MonoSingleton<SceneHelper>.Instance.TryGetSurfaceData(__instance.transform.position, position - __instance.transform.position, 5f, out var surf))
+                {
+                    SurfaceType surfaceType = surf.surfaceType;
+                    if (!MonoSingleton<DefaultReferenceManager>.Instance.footstepSet.TryGetWallScrapeParticle(surfaceType, out var particle))
+                    {
+                        surfaceType = SurfaceType.Generic;
+                    }
+                    if (ignorePrevious || __instance.currentScrapeSurfaceType != surfaceType)
+                    {
+                        w.WriteEnum(surfaceType);
+                        w.WriteVector3(position);
+                        w.WriteBool(false);
+                    }
+                    else
+                    {
+                        w.WriteEnum(surfaceType);
+                        w.WriteVector3(position);
+                        w.WriteBool(true);
+                    }
+                }
+                else if (__instance.currentScrapeSurfaceType != SurfaceType.Generic || ignorePrevious)
+                {
+                    w.WriteEnum(SurfaceType.Generic);
+                    w.WriteVector3(position);
+                    w.WriteBool(false);
+                }
+                else
+                {
+                    w.WriteEnum(SurfaceType.Generic);
+                    w.WriteVector3(position);
+                    w.WriteBool(true);
+                }
+                NetworkManager.Instance.BroadcastPacket(PacketType.WallScrape, w.GetBytes());
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.DetachSlideScrape))]
+        [HarmonyPostfix]
+        static void DSSPostfix()
+        {
+            if (NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                NetworkManager.Instance.BroadcastPacket(PacketType.DetachSlideScrape, w.GetBytes());
+            }
+        }
+        [HarmonyPatch(nameof(NewMovement.DetachWallScrape))]
+        [HarmonyPostfix]
+        static void DWSPostfix()
+        {
+            if (NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                NetworkManager.Instance.BroadcastPacket(PacketType.DetachWallScrape, w.GetBytes());
             }
         }
     }

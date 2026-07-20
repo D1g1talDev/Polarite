@@ -157,7 +157,15 @@ namespace Polarite.Multiplayer
         void Update()
         {
             toggleKey = ItePlugin.buttonToChat.value;
-            placeholder.text = (!isTyping) ? "Press " + GetKeyName(toggleKey) + " to chat" : $"Pause to exit chat";
+            if(MonoSingleton<OptionsManager>.Instance.paused || ItePlugin.PolarMenuActive)
+            {
+                placeholder.text = "You can't chat while paused.";
+                return;
+            }
+            else
+            {
+                placeholder.text = (!isTyping) ? "Press " + GetKeyName(toggleKey) + " to chat" : $"Pause to exit chat";
+            }
             if (Input.GetKeyDown(toggleKey) && !isTyping)
             {
                 ToggleChat();

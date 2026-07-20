@@ -517,13 +517,16 @@ namespace Polarite.Multiplayer
         }
         public static void Flush()
         {
-            foreach(var e in allEnemies.Values)
+            foreach (var e in allEnemies.Values)
             {
-                Destroy(e.gameObject);
+                if(e != null)
+                {
+                    Destroy(e.gameObject);
+                }
             }
             allEnemies.Clear();
             Logs.Debug("Flushed all enemies (down the toilet?)", name: "NetworkEnemy");
-            if(CyberSync.Active)
+            if (CyberSync.Active)
             {
                 CyberSync.enemies.Clear();
             }

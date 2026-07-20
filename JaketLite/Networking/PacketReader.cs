@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using Unity.Burst.Intrinsics;
 using UnityEngine;
 using UnityEngine.AI;
+using static SceneHelper;
 using static Unity.Burst.Intrinsics.Arm;
 using Random = UnityEngine.Random;
 
@@ -126,7 +127,11 @@ namespace Polarite.Multiplayer
         // player details
         Slam = 65,
         SlamShockwave = 66,
-        Footstep = 67
+        Footstep = 67,
+        SlideScrape = 68,
+        WallScrape = 69,
+        DetachSlideScrape = 70,
+        DetachWallScrape = 71
     }
 
     public static class PacketReader
@@ -223,8 +228,13 @@ namespace Polarite.Multiplayer
                 case PacketType.Jump:
                     {
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        bool quake = reader.ReadBool();
                         if (p != null)
+                        {
                             p.JumpNoise();
+                            if (quake)
+                                p.SpawnSound(MonoSingleton<NewMovement>.Instance.quakeJumpSound.GetComponent<AudioSource>().clip);
+                        }
                         break;
                     }
 
@@ -298,6 +308,9 @@ namespace Polarite.Multiplayer
                         bool fallPart = reader.ReadBool();
                         int hp = reader.ReadInt();
                         bool typing = reader.ReadBool();
+                        Vector3 dodgeDir = reader.ReadVector3();
+                        Vector3 rbVel = reader.ReadVector3();
+                        bool wall = reader.ReadBool();
 
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
@@ -308,6 +321,10 @@ namespace Polarite.Multiplayer
                             p.typing = typing;
                             p.ShopMode(shop);
                             p.SetFalling(fallPart);
+                            p.SlidePart(sliding, dodgeDir);
+                            p.rbVel = rbVel;
+                            p.dodge = dodgeDir;
+                            p.wall = wall;
                         }
                         // double check rig state to prevent weird edge cases where a player gets stuck invisible after dying
                         if (hp > 0 && !p.rigActive)
@@ -957,6 +974,52 @@ namespace Polarite.Multiplayer
                         Vector3 pos = reader.ReadVector3();
                         float vol = reader.ReadFloat();
                         NetworkPlayer.Find(senderId)?.Footsteps(pos, vol);
+                        break;
+                    }
+                case PacketType.SlideScrape:
+                    {
+                        SurfaceType surf = reader.ReadEnum<SurfaceType>();
+                        Vector3 dodge = reader.ReadVector3();
+                        Color col = reader.ReadColor();
+                        MonoSingleton<DefaultReferenceManager>.Instance.footstepSet.TryGetSlideParticle(surf, out var part);
+                        NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        if (p == null)
+                        {
+                            break;
+                        }    
+                        p.SlideScrape(part, dodge);
+                        if(p.slideScrape != null) MonoSingleton<SceneHelper>.Instance.SetParticlesColors(p.slideScrape.GetComponentsInChildren<EnviroGibModifier>(), col);
+                        break;
+                    }
+                case PacketType.WallScrape:
+                    {
+                        SurfaceType surf = reader.ReadEnum<SurfaceType>();
+                        Vector3 pos = reader.ReadVector3();
+                        bool insteadSetPos = reader.ReadBool();
+                        NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        if(p == null)
+                        {
+                            break;
+                        }
+                        if(insteadSetPos && p.wallScrape != null)
+                        {
+                            p.wallScrape.transform.position = pos;
+                        }
+                        else
+                        {
+                            MonoSingleton<DefaultReferenceManager>.Instance.footstepSet.TryGetWallScrapeParticle(surf, out var part);
+                            p.WallScrape(part, pos);
+                        }
+                        break;
+                    }
+                case PacketType.DetachSlideScrape:
+                    {
+                        NetworkPlayer.Find(senderId)?.Detach(false);
+                        break;
+                    }
+                case PacketType.DetachWallScrape:
+                    {
+                        NetworkPlayer.Find(senderId)?.Detach(true);
                         break;
                     }
             }

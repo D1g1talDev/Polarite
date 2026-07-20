@@ -103,8 +103,12 @@ namespace Polarite.Multiplayer
         public bool shopping = false, currentlySpinning = false;
         public Vector3 gravOffset;
         public Vector3 gravity = new Vector3(0, -40, 0);
+        public Vector3 rbVel, dodge;
+        public bool wall, ground;
 
-        private GameObject fallingPart;
+        private GameObject fallingPart, slidingPart;
+        public GameObject slideScrape;
+        public GameObject wallScrape;
 
         // footsteps
         private int lastStep = -1;
@@ -122,7 +126,7 @@ namespace Polarite.Multiplayer
             blood.SetActive(true);
             ragdoll.AddComponent<Ragdoll>().SetValues(currentSkin, SteamId);
             ToggleRig(false);
-            ragdoll.GetComponentInChildren<Rigidbody>().AddForce((previousPosition - targetPosition), ForceMode.VelocityChange);
+            ragdoll.GetComponentInChildren<Rigidbody>().velocity = rbVel;
         }
         public void HurtNoise()
         {
@@ -247,6 +251,7 @@ namespace Polarite.Multiplayer
                 {
                     bool sliding = MonoSingleton<NewMovement>.Instance.sliding;
                     bool grounded = !MonoSingleton<NewMovement>.Instance.gc.onGround;
+                    bool onWall = MonoSingleton<NewMovement>.Instance.wcGroup.OnWall();
                     bool walking = MonoSingleton<NewMovement>.Instance.walking;
                     bool spin = TryGetSpinning();
                     bool shop = Shopping;
@@ -267,6 +272,9 @@ namespace Polarite.Multiplayer
 
                     writer.WriteInt(MonoSingleton<NewMovement>.Instance.hp);
                     writer.WriteBool(ChatUI.isActuallyTyping);
+                    writer.WriteVector3(MonoSingleton<NewMovement>.Instance.dodgeDirection);
+                    writer.WriteVector3(MonoSingleton<NewMovement>.Instance.rb.velocity);
+                    writer.WriteBool(onWall);
 
                     NetworkManager.Instance.BroadcastPacket(PacketType.Transform, writer.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
                 }
@@ -287,7 +295,13 @@ namespace Polarite.Multiplayer
         }
         public void SetAnimation(bool slide, bool air, bool walk, bool spin)
         {
+            if(!slide && sliding != slide && !isGhost)
+            {
+                AudioSource sound = MonoSingleton<NewMovement>.Instance.slideStopSound.GetComponent<AudioSource>();
+                ItePlugin.SpawnSound(sound.clip, sound.pitch, null, sound.volume, transform.position);
+            }
             sliding = slide;
+            ground = !air;
             if (spin && !currentlySpinning)
             {
                 weaponAnimator.SetTrigger("Spin");
@@ -319,6 +333,41 @@ namespace Polarite.Multiplayer
             {
                 animator.SetLayerWeight(1, 1f);
                 animator.SetLayerWeight(2, 0f);
+            }
+        }
+        public void SlideScrape(GameObject part, Vector3 dodgeDir)
+        {
+            if (slideScrape != null) Detach(false);
+            slideScrape = Instantiate(part, transform.position + dodgeDir * 2f, Quaternion.LookRotation(-dodgeDir));
+        }
+        public void SlidePart(bool sliding, Vector3 dodgeDir)
+        {
+            if(sliding)
+            {
+                if (slidingPart != null) Destroy(slidingPart);
+                slidingPart = Instantiate(MonoSingleton<NewMovement>.Instance.slideParticle, transform.position + dodgeDir * 10f, Quaternion.LookRotation(-dodgeDir));
+            }
+            else if(slidingPart != null)
+            {
+                Destroy(slidingPart);
+            }
+        }
+        public void WallScrape(GameObject part, Vector3 pos)
+        {
+            if (wallScrape != null) Detach(true);
+            wallScrape = Instantiate(part, pos, Quaternion.identity);
+        }
+        public void Detach(bool wall)
+        {
+            if (wall)
+            {
+                MonoSingleton<NewMovement>.Instance.DetachScrape(wallScrape);
+                wallScrape = null;
+            }
+            else
+            {
+                MonoSingleton<NewMovement>.Instance.DetachScrape(slideScrape);
+                slideScrape = null;
             }
         }
         public void JumpAnim()
@@ -388,6 +437,7 @@ namespace Polarite.Multiplayer
             parent.transform.GetChild(type).gameObject.SetActive(true);
             MasterShaderizer.MasterShaderize(parent.transform.GetChild(type).GetComponentInChildren<SkinnedMeshRenderer>());
             SelectAnim();
+            GunSync.Cutoff(SteamId);
         }
         public void CoinAnim()
         {
@@ -526,6 +576,7 @@ namespace Polarite.Multiplayer
             {
                 transform.position = Vector3.Lerp(transform.position, targetPosition, Time.unscaledDeltaTime * lerpSpeed);
             }
+            SlidePosStuff();
             Transform rig = transform.Find("v2_combined");
             Vector3 currentEuler = rig.localRotation.eulerAngles;
 
@@ -569,6 +620,35 @@ namespace Polarite.Multiplayer
             {
                 Logs.DebugError("[Hidden indicator] Error: " + e.Message, this);
                 imgGraph.color = Color.Lerp(imgGraph.color, new Color(1f, 1f, 1f, !rigActive ? 0.5f : 0f), 10f * Time.deltaTime);
+            }
+        }
+        private void SlidePosStuff()
+        {
+            if(!sliding)
+            {
+                if(slideScrape != null)
+                {
+                    Detach(false);
+                }
+                return;
+            }
+            Vector3 normal = Vector3.ProjectOnPlane(rbVel.normalized, transform.up).normalized;
+            if(slidingPart != null)
+            {
+                slidingPart.transform.position = transform.position + normal * 10f;
+                slidingPart.transform.forward = -dodge;
+            }
+            if (slideScrape != null)
+            {
+                if (ground || wall)
+                {
+                    slideScrape.transform.position = transform.position + normal;
+                    slideScrape.transform.forward = -normal;
+                }
+                else
+                {
+                    slideScrape.transform.position = Vector3.one * 5000f;
+                }
             }
         }
 

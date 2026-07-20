@@ -914,6 +914,7 @@ namespace Polarite.Multiplayer
             PacketWriter w = new PacketWriter();
             w.WriteSkin(ItePlugin.currentSkin);
             BroadcastPacket(PacketType.Skin, w.GetBytes());
+            yield return new WaitForSeconds(0.1f);
             LoadLevelAndDifficulty(CurrentLobby);
         }
         public static ulong GetNearestPlayerID(Vector3 pos)

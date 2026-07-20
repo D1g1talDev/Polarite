@@ -1,19 +1,17 @@
-﻿using System;
+﻿using Polarite.Debugging;
+using Polarite.Multiplayer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Channels;
 using System.Text;
 using System.Threading.Tasks;
-
-using Polarite.Multiplayer;
-
+using ULTRAKILL.Cheats;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-
+using Quaternion = UnityEngine.Quaternion;
 using Random = UnityEngine.Random;
 using Vector3 = UnityEngine.Vector3;
-using Quaternion = UnityEngine.Quaternion;
-using System.Runtime.Remoting.Channels;
-using Polarite.Debugging;
 
 public enum BulletType
 {
@@ -112,6 +110,7 @@ namespace Polarite
             { BulletType.Cannonball, "RocketFire" },
             { BulletType.JackCore, "JackAltFire" },
         };
+        public static Dictionary<ulong, List<AudioSource>> currentPlayed = new Dictionary<ulong, List<AudioSource>>();
         public static Vector3 Pos => MonoSingleton<CameraController>.Instance.transform.position + MonoSingleton<CameraController>.Instance.transform.forward;
         public static Quaternion Rot
         {
@@ -312,7 +311,7 @@ namespace Polarite
                             CleanProj(pellet, sender);
                             BannedModsDetector.AddBullet(pellet, sender, true);
                         }
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.ShotgunCore:
@@ -332,7 +331,7 @@ namespace Polarite
                             }
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.JackCore:
@@ -344,7 +343,7 @@ namespace Polarite
                             component.AddForce(dir * 3f + Vector3.up * 7.5f + vel, ForceMode.VelocityChange);
                         }
                         CleanProj(obj, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.NailSad:
@@ -372,7 +371,7 @@ namespace Polarite
                             }
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.SawHeated:
@@ -391,7 +390,7 @@ namespace Polarite
                             component2.damage = 0;
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.NailHeated:
@@ -413,7 +412,7 @@ namespace Polarite
                             }
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.Magnet:
@@ -426,7 +425,7 @@ namespace Polarite
                             rb.AddForce(rb.transform.forward * 100f, ForceMode.VelocityChange);
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.RailGreen:
@@ -439,7 +438,7 @@ namespace Polarite
                             rb.AddForce(rb.transform.forward * 250f, ForceMode.VelocityChange);
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         BannedModsDetector.AddBullet(projectile, sender);
                         return;
                     }
@@ -453,7 +452,7 @@ namespace Polarite
                             rb.velocity = rb.transform.forward * Mathf.Max(15f, pow * 150f);
                         }
                         CleanProj(projectile, sender);
-                        PlayNoise(type, pos);
+                        PlayNoise(type, pos, sender);
                         return;
                     }
                 case BulletType.Oil:
@@ -504,35 +503,68 @@ namespace Polarite
                     {
                         AnimShoot(sender);
                         GameObject light = GameObject.Instantiate(bulletPrefab, pos, rot);
+                        AudioSource source = light.GetComponent<AudioSource>();
+                        source.spatialBlend = 1f;
+                        source.minDistance = 100f;
+                        source.maxDistance = 30f;
                         return;
                     }
                 case BulletType.JackhammerMedium:
                     {
                         AnimShoot(sender);
                         GameObject medium = GameObject.Instantiate(bulletPrefab, pos, rot);
+                        AudioSource source = medium.GetComponent<AudioSource>();
+                        source.spatialBlend = 1f;
+                        source.minDistance = 100f;
+                        source.maxDistance = 30f;
                         return;
                     }
                 case BulletType.JackhammerHeavy:
                     {
                         AnimShoot(sender);
                         GameObject heavy = GameObject.Instantiate(bulletPrefab, pos, rot);
+                        AudioSource source = heavy.GetComponent<AudioSource>();
+                        source.spatialBlend = 1f;
+                        source.minDistance = 100f;
+                        source.maxDistance = 30f;
                         return;
                     }
             }
             GameObject bullet = GameObject.Instantiate(bulletPrefab, pos, rot);
             CleanProj(bullet, sender);
-            PlayNoise(type, pos);
+            PlayNoise(type, pos, sender);
             AnimShoot(sender);
             BannedModsDetector.AddBullet(bullet, sender);
         }
-        public static void PlayNoise(BulletType type, Vector3 pos)
+        public static void PlayNoise(BulletType type, Vector3 pos, ulong sender)
         {
+            if (!currentPlayed.ContainsKey(sender)) currentPlayed.Add(sender, new List<AudioSource>());
             AudioClip clip = ItePlugin.mainBundle.LoadAsset<AudioClip>(BulletNoises[type]);
             if(clip != null)
             {
                 float pitch = (type == BulletType.Cannonball) ? 0.75f : (ShouldUseNormPitch(type)) ? 1f : Random.Range(0.975f, 1.05f);
-                ItePlugin.SpawnSound(clip, pitch, null, 0.5f, pos);
+                AudioSource sound = ItePlugin.SpawnSound(clip, pitch, null, 0.5f, pos);
+                currentPlayed[sender].Add(sound);
             }
+        }
+        public static void Cutoff(ulong sender)
+        {
+            if(!currentPlayed.ContainsKey(sender))
+            {
+                return;
+            }
+            if (currentPlayed[sender].Count <= 0)
+            {
+                return;
+            }
+            foreach(var noise in currentPlayed[sender])
+            {
+                if(noise != null)
+                {
+                    GameObject.Destroy(noise.gameObject);
+                }
+            }
+            currentPlayed[sender].Clear();
         }
         public static bool ShouldUseNormPitch(BulletType type) => (type == BulletType.RailBlue || type == BulletType.RailGreen || type == BulletType.RailRed);
         public static void CleanProj(GameObject bullet, ulong sender)

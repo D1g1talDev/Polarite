@@ -1,15 +1,14 @@
-﻿using System;
+﻿using HarmonyLib;
+using Polarite.Multiplayer;
+using Polarite.Networking;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-using HarmonyLib;
-
-using Polarite.Multiplayer;
-using Polarite.Networking;
-
 using UnityEngine;
+using UnityEngine.Analytics;
+using UnityEngine.Localization.PropertyVariants.TrackedProperties;
 
 namespace Polarite.Patches
 {
@@ -58,6 +57,18 @@ namespace Polarite.Patches
                 NetworkManager.Instance.CurrentLobby.SetData("difficulty", PrefsManager.Instance.GetInt("difficulty").ToString());
                 return true;
             }
+            if(NetworkManager.ClientAndConnected && sceneName == "Endless" && CyberSync.Active)
+            {
+                ___loadingBlocker.SetActive(false);
+                ChatUI.Message($"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.GetHostID(), true)} hasn't finished looking at the results screen yet.</color>", 5f);
+                return false;
+            }
+            if(NetworkManager.ClientAndConnected && (sceneName == "uk_construct" || sceneName == "Endless") && !ItePlugin.ignoreSpectate)
+            {
+                ___loadingBlocker.SetActive(false);
+                ChatUI.Message($"<color=red>Only the host ({NetworkManager.GetNameOfId(NetworkManager.GetHostID(), true)}) can load into that level.</color>", 5f);
+                return false;
+            }
             if(NetworkManager.ClientAndConnected && sceneName != "Main Menu" && SceneHelper.CurrentScene != "Main Menu" && NetworkManager.players.Count > 1 && !ItePlugin.ignoreSpectate)
             {
                 ItePlugin.SpectatePlayers(true);
@@ -88,7 +99,7 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Restart, w.GetBytes());
                 return true;
             }
-            if (NetworkManager.ClientAndConnected && !ItePlugin.cameFromPacketRestart)
+            if (NetworkManager.ClientAndConnected && !ItePlugin.cameFromPacketRestart && !CyberSync.Active)
             {
                 return false;
             }

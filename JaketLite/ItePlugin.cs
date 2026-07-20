@@ -751,6 +751,22 @@ namespace Polarite
             }
             return false;
         }
+        public void FraudThreeRotators()
+        {
+            string[] rotators = new string[]
+            {
+                "Pre-Space/Rooms/Red Path (Clockwork)/R1 - Clockwork Tutorial/R1 Stuff/RotatorSwitch",
+                "Pre-Space/Rooms/Red Path (Clockwork)/R2 - Clockwork Arena/R2 Stuff/RotatorSwitch",
+                "Pre-Space/Rooms/Red Path (Clockwork)/R3 - Clockwork Crushers/R3 Stuff/RotatorSwitch",
+                "Pre-Space/Rooms/Red Path (Clockwork)/R4 - Clockwork Lava/R4 Stuff/Portal Stuff/RotatorSwitch (1)",
+                "Pre-Space/Rooms/Red Path (Clockwork)/R5 - Clockwork Climb/R5 Stuff/RotatorSwitch"
+            };
+            foreach(var ro in rotators)
+            {
+                GameObject actualObj = TryGetSceneObject(ro);
+                actualObj?.gameObject.SetActive(NetworkManager.HostAndConnected);
+            }
+        }
         private void InNet()
         {
             if (NetworkManager.InLobby && SceneHelper.CurrentScene != "Main Menu")
@@ -765,6 +781,10 @@ namespace Polarite
                 if (!timeStopDisable.value)
                 {
                     Time.timeScale = 1f;
+                }
+                if(SceneHelper.CurrentScene == "Level 8-3")
+                {
+                    FraudThreeRotators();
                 }
                 Application.runInBackground = true;
                 DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
