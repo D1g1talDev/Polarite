@@ -125,6 +125,10 @@ namespace Polarite.Multiplayer
                 }
             }
         }
+        public static void Hide(bool value)
+        {
+            Instance.chatPanel.SetActive(value);
+        }
         public void Toggle(bool value, bool instant = false)
         {
             scrollRect.gameObject.SetActive(value);
@@ -157,16 +161,21 @@ namespace Polarite.Multiplayer
         void Update()
         {
             toggleKey = ItePlugin.buttonToChat.value;
+            bool handleInputs = true;
+            if(!chatPanel.activeSelf)
+            {
+                handleInputs = false;
+            }
             if(MonoSingleton<OptionsManager>.Instance.paused || ItePlugin.PolarMenuActive)
             {
-                placeholder.text = "You can't chat while paused.";
-                return;
+                placeholder.text = "...";
+                handleInputs = false;
             }
             else
             {
                 placeholder.text = (!isTyping) ? "Press " + GetKeyName(toggleKey) + " to chat" : $"Pause to exit chat";
             }
-            if (Input.GetKeyDown(toggleKey) && !isTyping)
+            if (Input.GetKeyDown(toggleKey) && !isTyping && handleInputs)
             {
                 ToggleChat();
             }

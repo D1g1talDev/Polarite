@@ -638,6 +638,11 @@ namespace Polarite
                     showNetDebug = !showNetDebug;
                     LogDebug($"[DEBUG] Toggled networking debugging UI {showNetDebug}.");
                 }
+                if (Input.GetKeyDown(KeyCode.F11))
+                {
+                    ChatUI.Hide(!ChatUI.Instance.chatPanel.activeSelf);
+                    LogDebug($"[DEBUG] Toggled chat {ChatUI.Instance.chatPanel.activeSelf}.");
+                }
                 else if (Input.GetKeyDown(KeyCode.F2))
                 {
                     LogDebug($"[DEBUG] Teleported testing Dummy to your location! (Keep holding to make it follow)");
