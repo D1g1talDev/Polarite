@@ -150,6 +150,10 @@ namespace Polarite.Multiplayer
         }
         public override void OnTimeout()
         {
+            if(Enemy.blessed)
+            {
+                return;
+            }
             HandleDeath();
         }
         public void SetAgentVelocity(Vector3 vel)
