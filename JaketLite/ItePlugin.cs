@@ -322,6 +322,8 @@ namespace Polarite
 
         public static bool PolarMenuActive = false;
 
+        public static bool HasDisabledRotators = false;
+
 
         public void Awake()
         {
@@ -769,8 +771,9 @@ namespace Polarite
             foreach(var ro in rotators)
             {
                 GameObject actualObj = TryGetSceneObject(ro);
-                actualObj?.gameObject.SetActive(NetworkManager.HostAndConnected);
+                actualObj?.gameObject.SetActive(false);
             }
+            HasDisabledRotators = true;
         }
         private void InNet()
         {
@@ -787,7 +790,7 @@ namespace Polarite
                 {
                     Time.timeScale = 1f;
                 }
-                if(SceneHelper.CurrentScene == "Level 8-3")
+                if(SceneHelper.CurrentScene == "Level 8-3" && !HasDisabledRotators && NetworkManager.ClientAndConnected)
                 {
                     FraudThreeRotators();
                 }
@@ -1697,6 +1700,7 @@ namespace Polarite
                 }
             }
             NetworkPlayer.ToggleColsForAll(false);
+            HasDisabledRotators = false;
             Instance.StartCoroutine(DelayPsstCheck());
             NetworkManager.WasUsed = NetworkManager.InLobby;
             if (NetworkManager.InLobby)
