@@ -214,7 +214,7 @@ namespace Polarite.Patches
                     w.WriteEnum(surf.surfaceType);
                     w.WriteVector3(__instance.dodgeDirection);
                     w.WriteColor(surf.particleColor);
-                    NetworkManager.Instance.BroadcastPacket(PacketType.SlideScrape, w.GetBytes());
+                    NetworkManager.Instance.BroadcastPacket(PacketType.SlideScrape, w.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
                 }
                 else
                 {
@@ -268,7 +268,7 @@ namespace Polarite.Patches
                     w.WriteVector3(position);
                     w.WriteBool(true);
                 }
-                NetworkManager.Instance.BroadcastPacket(PacketType.WallScrape, w.GetBytes());
+                NetworkManager.Instance.BroadcastPacket(PacketType.WallScrape, w.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
             }
         }
         [HarmonyPatch(nameof(NewMovement.DetachSlideScrape))]
@@ -278,7 +278,7 @@ namespace Polarite.Patches
             if (NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
-                NetworkManager.Instance.BroadcastPacket(PacketType.DetachSlideScrape, w.GetBytes());
+                NetworkManager.Instance.BroadcastPacket(PacketType.DetachSlideScrape, w.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
             }
         }
         [HarmonyPatch(nameof(NewMovement.DetachWallScrape))]
@@ -288,7 +288,7 @@ namespace Polarite.Patches
             if (NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
-                NetworkManager.Instance.BroadcastPacket(PacketType.DetachWallScrape, w.GetBytes());
+                NetworkManager.Instance.BroadcastPacket(PacketType.DetachWallScrape, w.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
             }
         }
     }

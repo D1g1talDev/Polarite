@@ -626,10 +626,6 @@ namespace Polarite.Multiplayer
         {
             if(!sliding)
             {
-                if(slideScrape != null)
-                {
-                    Detach(false);
-                }
                 return;
             }
             Vector3 normal = Vector3.ProjectOnPlane(rbVel.normalized, transform.up).normalized;

@@ -1910,7 +1910,7 @@ namespace Polarite
         }
         public static IEnumerator DelayLoadServerPattern(int wav)
         {
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(1f);
             CyberSync.BasicLoad(CyberSync.LobbyPattern, wav);
         }
         public static IEnumerator UnpauseNet()
