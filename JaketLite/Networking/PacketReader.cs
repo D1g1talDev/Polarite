@@ -131,7 +131,8 @@ namespace Polarite.Multiplayer
         SlideScrape = 68,
         WallScrape = 69,
         DetachSlideScrape = 70,
-        DetachWallScrape = 71
+        DetachWallScrape = 71,
+        StopSlide = 72
     }
 
     public static class PacketReader
@@ -1020,6 +1021,17 @@ namespace Polarite.Multiplayer
                 case PacketType.DetachWallScrape:
                     {
                         NetworkPlayer.Find(senderId)?.Detach(true);
+                        break;
+                    }
+                case PacketType.StopSlide:
+                    {
+                        NetworkPlayer p = NetworkPlayer.Find(senderId);
+                        if(p == null)
+                        {
+                            break;
+                        }
+                        AudioSource sound = MonoSingleton<NewMovement>.Instance.slideStopSound.GetComponent<AudioSource>();
+                        ItePlugin.SpawnSound(sound.clip, sound.pitch, null, sound.volume, p.transform.position);
                         break;
                     }
             }

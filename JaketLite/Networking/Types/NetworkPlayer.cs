@@ -295,11 +295,6 @@ namespace Polarite.Multiplayer
         }
         public void SetAnimation(bool slide, bool air, bool walk, bool spin)
         {
-            if(!slide && sliding != slide && !isGhost)
-            {
-                AudioSource sound = MonoSingleton<NewMovement>.Instance.slideStopSound.GetComponent<AudioSource>();
-                ItePlugin.SpawnSound(sound.clip, sound.pitch, null, sound.volume, transform.position);
-            }
             sliding = slide;
             ground = !air;
             if (spin && !currentlySpinning)

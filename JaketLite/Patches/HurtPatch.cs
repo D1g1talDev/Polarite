@@ -291,5 +291,15 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.DetachWallScrape, w.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
             }
         }
+        [HarmonyPatch(nameof(NewMovement.StopSlide))]
+        [HarmonyPostfix]
+        static void StopSlideSound()
+        {
+            if (NetworkManager.InLobby)
+            {
+                PacketWriter w = new PacketWriter();
+                NetworkManager.Instance.BroadcastPacket(PacketType.StopSlide, w.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
+            }
+        }
     }
 }
