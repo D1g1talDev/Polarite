@@ -278,7 +278,8 @@ namespace Polarite
             "Main Section/Inside/8 - Elevator/8 Stuff/Hellgate 1/Door (1)",
             "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door/Door (1)",
             "Pre-Space/Rooms/7 - Heart Chamber/7 Nonstuff/Void/Backwall",
-            "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door"
+            "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door",
+            "First Section/Opening Halls Geometry/Opening Nonstuff/Stairway Down -> Walkway Arena"
         };
 
         // background fx
@@ -1493,7 +1494,7 @@ namespace Polarite
         }
         public void CleanLevel()
         {
-            Invoke(nameof(CleanLevelOfSoftlocks), 0.1f);
+            Invoke(nameof(CleanLevelOfSoftlocks), 0.5f);
         }
         public void CleanLevelOfSoftlocks()
         {
