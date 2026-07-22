@@ -299,8 +299,8 @@ namespace Polarite
         public static bool immuneToDeath = false;
         public static bool canBecomeGhost = false;
 
-        public static readonly bool ReleaseBuild = false;
-        public static readonly string Version = "v1.1.0-pre-release";
+        public static readonly bool ReleaseBuild = true;
+        public static readonly string Version = "v1.1.0";
         public static bool CanEnableDebug
         {
             get
