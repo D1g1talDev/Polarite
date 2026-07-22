@@ -22,7 +22,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(FleshPrison __instance)
         {
-            if(__instance.altVersion && __instance.GetComponent<CustomP2Event>() == null)
+            if(__instance.altVersion && __instance.GetComponent<CustomP2Event>() == null && NetworkManager.InLobby)
             {
                 CustomP2Event p2 = __instance.gameObject.AddComponent<CustomP2Event>();
                 p2.eid = __instance.eid;

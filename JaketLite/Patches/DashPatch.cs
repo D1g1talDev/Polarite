@@ -17,7 +17,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         public static void Postfix(NewMovement __instance)
         {
-            if(__instance.boostCharge > 100f)
+            if(__instance.boostCharge > 100f && NetworkManager.InLobby)
             {
                 PacketWriter w = new PacketWriter();
                 w.WriteVector3(__instance.inputDir);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
+using Polarite.Multiplayer;
 
 namespace Polarite.Patches
 {
@@ -14,7 +15,11 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(DeathZone __instance)
         {
-            if(__instance.deathType == "tram")
+            if (!NetworkManager.InLobby)
+            {
+                return;
+            }
+            if (__instance.deathType == "tram")
             {
                 DeadPatch.Death("was ran over by a tram");
             }

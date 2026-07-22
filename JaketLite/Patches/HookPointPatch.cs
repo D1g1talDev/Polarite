@@ -19,7 +19,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void PostfixStart(HookPoint __instance)
         {
-            if(!SceneObjectCache.Contains(__instance.gameObject))
+            if (!SceneObjectCache.Contains(__instance.gameObject))
             {
                 SceneObjectCache.Add(__instance.gameObject);
             }

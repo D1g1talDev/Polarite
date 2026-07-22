@@ -91,7 +91,7 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool NoGhostSlamAgain(GroundCheck __instance)
         {
-            if (NetworkPlayer.selfIsGhost)
+            if (NetworkPlayer.selfIsGhost && NetworkManager.InLobby)
             {
                 if (__instance.heavyFall)
                 {

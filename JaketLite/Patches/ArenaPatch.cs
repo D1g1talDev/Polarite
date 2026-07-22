@@ -31,7 +31,11 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool ActivatePrefixA(ActivateArena __instance, ref Collider other)
         {
-            if(other.GetComponent<NewMovement>() == null && NetworkManager.InLobby)
+            if (!NetworkManager.InLobby)
+            {
+                return true;
+            }
+            if (other.GetComponent<NewMovement>() == null && NetworkManager.InLobby)
             {
                 return false;
             }
@@ -52,6 +56,10 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool ActivatePrefixB(ActivateArena __instance)
         {
+            if(!NetworkManager.InLobby)
+            {
+                return true;
+            }
             if (!__instance.activateOnEnable && NetworkManager.InLobby)
             {
                 return false;

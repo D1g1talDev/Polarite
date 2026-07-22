@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using Polarite.Multiplayer;
 using HarmonyLib;
 
 namespace Polarite.Patches
@@ -15,6 +15,10 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(Explosion __instance)
         {
+            if (!NetworkManager.InLobby)
+            {
+                return;
+            }
             PlayerExplosionId expId = __instance.GetComponentInParent<PlayerExplosionId>();
             if (expId != null)
             {

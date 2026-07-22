@@ -34,7 +34,11 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Damage(EnemyIdentifier __instance, ref float multiplier, ref GameObject sourceWeapon, ref GameObject target, ref Vector3 hitPoint)
         {
-            if(__instance.hitter == "drill")
+            if (!NetworkManager.InLobby)
+            {
+                return;
+            }
+            if (__instance.hitter == "drill")
             {
                 return;
             }

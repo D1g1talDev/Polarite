@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
+using Polarite.Multiplayer;
 
 namespace Polarite.Patches
 {
@@ -14,7 +15,11 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void ExecuteHits(RevolverBeam __instance)
         {
-            if(__instance.beamType != BeamType.Enemy)
+            if (!NetworkManager.InLobby)
+            {
+                return;
+            }
+            if (__instance.beamType != BeamType.Enemy)
             {
                 return;
             }

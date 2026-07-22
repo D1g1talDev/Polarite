@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HarmonyLib;
+using Polarite.Multiplayer;
 
 namespace Polarite.Patches
 {
@@ -14,6 +15,10 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void TimeToDie(Projectile __instance)
         {
+            if (!NetworkManager.InLobby)
+            {
+                return;
+            }
             DeadPatch.Death("was shot by ", (ulong)__instance.safeEnemyType);
         }
     }
