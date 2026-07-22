@@ -180,7 +180,7 @@ namespace Polarite
         public static ConfigPanel savePanel = new ConfigPanel(skinsMenu, "Saving/loading skins", "save.skins", ConfigPanel.PanelFieldType.StandardWithIcon);
 
         // public static ConfigHeader tutorial = new ConfigHeader(savePanel, "<color=yellow>To load other peoples skin manually, add their .polarskin file into the saved skins folder and refresh.</color>");
-        // public static ButtonField openLocation = new ButtonField(savePanel, "Open saved skins folder", "skin.openloc");
+        public static ButtonField openLocation = new ButtonField(savePanel, "Open saved skins folder", "skin.openloc");
         public static ButtonField refresh = new ButtonField(savePanel, "Refresh loaded skins", "skin.refresh");
         // import menu
         public static ConfigPanel import = new ConfigPanel(savePanel, "Import .polarskin files", "import.skin", ConfigPanel.PanelFieldType.StandardWithIcon);
@@ -381,12 +381,10 @@ namespace Polarite
                         NetworkManager.Instance.CurrentLobby.SetData("bhm", v.ToString());
                     }
                 };
-                /*
                 openLocation.onClick += () =>
                 {
                     Application.OpenURL(SkinSaver.Path);
                 };
-                */
                 refresh.onClick += () =>
                 {
                     SkinSaver.Clear();
