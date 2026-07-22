@@ -2,7 +2,7 @@
 
 ## Soon..
 
-A simple multiplayer mod for **ULTRAKILL** inspired by **Jaket**.
+An ULTRAKILL multiplayer mod serving as an alternative to Jaket.
 
 Works with **Steam**
 
