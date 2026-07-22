@@ -1322,7 +1322,7 @@ namespace Polarite
                         PlayerList.ContentB = playerList.Find("List").Find("Content");
 
                         Typewriter(Version, 0.025f, ver);
-                        ver.color = (ReleaseBuild) ? Color.white : Color.yellow;
+                        ver.color = (ReleaseBuild) ? Color.gray : Color.yellow;
 
 
                         leaveButton = leave.gameObject;

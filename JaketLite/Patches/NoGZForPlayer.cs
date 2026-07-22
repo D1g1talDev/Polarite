@@ -30,10 +30,6 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static void Prefix2(GoreZone __instance)
         {
-            if (!NetworkManager.InLobby)
-            {
-                return;
-            }
             NetworkPlayer p = __instance.toDestroy.Select(o => o?.GetComponent<NetworkPlayer>()).FirstOrDefault(c => c != null);
             __instance.toDestroy.Remove(p.gameObject);
         }
