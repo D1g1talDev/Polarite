@@ -279,7 +279,12 @@ namespace Polarite
             "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door/Door (1)",
             "Pre-Space/Rooms/7 - Heart Chamber/7 Nonstuff/Void/Backwall",
             "Pre-Space/Rooms/7 - Heart Chamber/7 Stuff/Door",
-            "First Section/Opening Halls Geometry/Opening Nonstuff/Stairway Down -> Walkway Arena"
+            "First Section/Opening Halls Geometry/Opening Nonstuff/Stairway Down -> Walkway Arena",
+            "8 - Ship/Ship Stuff/Arena 1/Cube",
+            "8 - Ship/Ship Stuff/Arena 1/Cube (1)",
+            "8 - Ship/Ship Stuff/Arena 1/Cube (2)",
+            "8 - Ship/Ship Stuff/Arena 1/Cube (3)",
+            "8 - Ship/Ship Stuff/Arena 1/Cube (4)"
         };
 
         // background fx
