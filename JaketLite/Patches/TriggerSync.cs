@@ -30,15 +30,11 @@ namespace Polarite.Patches
         {
             return obj.GetComponentInChildren<GoreZone>(true) != null;
         }
-        public static bool CanTriggerSync()
+        public static bool CanDisableObjects()
         {
-            if (SceneHelper.CurrentScene == "Level 8-3") return false;
-            if (SceneHelper.CurrentScene == "Level 0-2") return false;
-            if (SceneHelper.CurrentScene == "Level 0-4") return false;
-            if (SceneHelper.CurrentScene == "Level P-1") return false;
-            if (SceneHelper.CurrentScene == "Level P-2") return false;
+            if (SceneHelper.CurrentScene == "Level 7-1") return false;
+            if (SceneHelper.CurrentScene == "Level 8-2") return false;
             return true;
-            // return SceneHelper.CurrentScene == "Level 0-5" || SceneHelper.CurrentScene == "Level 1-4" || SceneHelper.CurrentScene == "Level 2-4" || SceneHelper.CurrentScene == "Level 3-2" || SceneHelper.CurrentScene == "Level P-1" || SceneHelper.CurrentScene == "Level 4-4" || SceneHelper.CurrentScene == "Level 5-4" || SceneHelper.CurrentScene == "Level 6-2";
         }
     }
 }
