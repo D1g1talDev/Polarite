@@ -756,18 +756,25 @@ namespace Polarite.Multiplayer
                             act.activated = true;
                             if(act.canUseEvents)
                             {
-                                if (act.events.toActivateObjects != null)
+                                if(SceneHelper.CurrentScene == "Level 5-4")
                                 {
-                                    GameObject[] toActivateObjects = act.events.toActivateObjects;
-                                    foreach (GameObject obj in toActivateObjects)
+                                    act.events.Invoke();
+                                }
+                                else
+                                {
+                                    if (act.events.toActivateObjects != null)
                                     {
-                                        if (obj != null)
+                                        GameObject[] toActivateObjects = act.events.toActivateObjects;
+                                        foreach (GameObject obj in toActivateObjects)
                                         {
-                                            obj.SetActive(true);
+                                            if (obj != null)
+                                            {
+                                                obj.SetActive(true);
+                                            }
                                         }
                                     }
+                                    act.events.onActivate?.Invoke();
                                 }
-                                act.events.onActivate?.Invoke();
                             }
                         }
                         break;
