@@ -748,6 +748,11 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.Trigger:
                     {
+                        // you don't want to see minos with trigger sync enabled...
+                        if(SceneHelper.CurrentScene == "Level P-1")
+                        {
+                            break;
+                        }
                         GameObject trigger = SceneObjectCache.Find(reader.ReadString());
                         ObjectActivator act = trigger.GetComponent<ObjectActivator>();
                         if (act != null)
