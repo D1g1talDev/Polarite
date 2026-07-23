@@ -756,25 +756,18 @@ namespace Polarite.Multiplayer
                             act.activated = true;
                             if(act.canUseEvents)
                             {
-                                if (TriggerSync.CanDisableObjects())
+                                if (act.events.toActivateObjects != null)
                                 {
-                                    act.events.Invoke();
-                                }
-                                else
-                                {
-                                    if (act.events.toActivateObjects != null)
+                                    GameObject[] toActivateObjects = act.events.toActivateObjects;
+                                    foreach (GameObject obj in toActivateObjects)
                                     {
-                                        GameObject[] toActivateObjects = act.events.toActivateObjects;
-                                        foreach (GameObject obj in toActivateObjects)
+                                        if (obj != null)
                                         {
-                                            if (obj != null)
-                                            {
-                                                obj.SetActive(true);
-                                            }
+                                            obj.SetActive(true);
                                         }
                                     }
-                                    act.events.onActivate?.Invoke();
                                 }
+                                act.events.onActivate?.Invoke();
                             }
                         }
                         break;

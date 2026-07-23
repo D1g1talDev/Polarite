@@ -25,16 +25,5 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Trigger, w.GetBytes());
             }
         }
-
-        public static bool IsRoom(GameObject obj)
-        {
-            return obj.GetComponentInChildren<GoreZone>(true) != null;
-        }
-        public static bool CanDisableObjects()
-        {
-            if (SceneHelper.CurrentScene == "Level 7-1") return false;
-            if (SceneHelper.CurrentScene == "Level 8-2") return false;
-            return true;
-        }
     }
 }

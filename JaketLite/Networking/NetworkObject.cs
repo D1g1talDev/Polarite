@@ -119,6 +119,10 @@ namespace Polarite
         }
         public virtual void OnDestroy()
         {
+            if(!NetworkManager.InLobby)
+            {
+                return;
+            }
             alive = false;
             Net.List.AddBlacklist(id);
             HandDestroy();
