@@ -284,7 +284,13 @@ namespace Polarite
             "8 - Ship/Ship Stuff/Arena 1/Cube (1)",
             "8 - Ship/Ship Stuff/Arena 1/Cube (2)",
             "8 - Ship/Ship Stuff/Arena 1/Cube (3)",
-            "8 - Ship/Ship Stuff/Arena 1/Cube (4)"
+            "8 - Ship/Ship Stuff/Arena 1/Cube (4)",
+            "8 - Ship/Ship Stuff/Arena 2/Cube",
+            "8 - Ship/Ship Stuff/Arena 2/Cube (1)",
+            "8 - Ship/Ship Stuff/Arena 2/Cube (2)",
+            "8 - Ship/Ship Stuff/Arena 2/Cube (3)",
+            "8 - Ship/Ship Stuff/Arena 2/Cube (4)",
+            "8 - Ship/Ship Stuff/Arena 2/Cube (5)"
         };
 
         // background fx
