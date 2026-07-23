@@ -79,11 +79,11 @@ namespace Polarite.Patches
             return true;
         }
         [HarmonyPatch(nameof(SceneHelper.RestartSceneAsync))]
-        [HarmonyPostfix]
-        static void Postfix()
+        [HarmonyPrefix]
+        static bool Prefix()
         {
             // also run the restart level prefix
-            RestartLevelPatch.Prefix();
+            return RestartLevelPatch.Prefix();
         }
     }
     [HarmonyPatch(typeof(OptionsManager))]
@@ -98,6 +98,11 @@ namespace Polarite.Patches
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Restart, w.GetBytes());
                 return true;
+            }
+            if(CyberSync.Active && !ItePlugin.cameFromPacketRestart)
+            {
+                ChatUI.Message($"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.GetHostID(), true)} hasn't finished looking at the results screen yet.</color>", 10f);
+                return false;
             }
             if (NetworkManager.ClientAndConnected && !ItePlugin.cameFromPacketRestart && !CyberSync.Active)
             {

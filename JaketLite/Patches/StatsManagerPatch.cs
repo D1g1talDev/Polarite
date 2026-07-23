@@ -19,7 +19,14 @@ namespace Polarite.Patches
         static bool Prefix(StatsManager __instance)
         {
             if(!NetworkManager.InLobby) return true;
-            if(CyberSync.Active) return true;
+            if (CyberSync.Active)
+            {
+                if(!ItePlugin.cameFromPacketRestart)
+                {
+                    return false;
+                }
+                return true;
+            }
             MonoSingleton<MusicManager>.Instance.ArenaMusicEnd();
             if (!PreventTimerStart.Active)
             {
