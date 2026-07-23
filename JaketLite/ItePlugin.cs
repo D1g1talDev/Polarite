@@ -204,7 +204,8 @@ namespace Polarite
         public static ColorField metalColor = new ColorField(skinsMenu, "Metal color", "skin.metal", Color.gray);
         public static FloatSliderField shinyness = new FloatSliderField(skinsMenu, "Shininess", "skin.SHINY", new System.Tuple<float, float>(0f, 1f), 0.7f);
 
-        public static ConfigHeader namePlateHeader = new ConfigHeader(skinsMenu, "Max. 5 chracters", 12);
+        public static ConfigSpace skinSpace = new ConfigSpace(skinsMenu, 0.5f);
+        public static ConfigHeader namePlateHeader = new ConfigHeader(skinsMenu, "Max. 5 characters", 24);
         public static StringField namePlate = new StringField(skinsMenu, "V-Model nameplate", "name.plate", "V?");
         public static ColorField namePlateColor = new ColorField(skinsMenu, "V-Model nameplate color", "name.plate.color", Color.black);
 
