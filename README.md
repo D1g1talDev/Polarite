@@ -1,8 +1,8 @@
 # Polarite
 
-## Soon..
-
 An ULTRAKILL multiplayer mod serving as an alternative to Jaket.
+
+[![Watch the update trailer](https://img.youtube.com/vi/F0_OqDuN-k4/maxresdefault.jpg)](https://www.youtube.com/watch?v=F0_OqDuN-k4)
 
 Works with **Steam**
 
