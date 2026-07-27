@@ -217,6 +217,7 @@ namespace Polarite
         public static BoolField chatNoise = new BoolField(cosmeticRelated, "Chat noise", "chat.noise", true);
 
         public static ConfigPanel ttsPanel = new ConfigPanel(cosmeticRelated, "TTS Config", "cosmetic.ttssam");
+        public static BoolField showNameTags = new BoolField(cosmeticRelated, "Display name tags", "cosmetic.nametags", true);
 
         public static BoolField canTTS = new BoolField(ttsPanel, "Enable Sam TTS", "tts.enabled", true);
         public static BoolField ttsHurtAndDeath = new BoolField(ttsPanel, "Play TTS when getting hurt or while dying", "tts.hurtndyning", true);
@@ -461,6 +462,21 @@ namespace Polarite
                 useSkinInsteadOfPFP.onValueChange += (val) =>
                 {
                     VoiceUI.RefreshIcons(val.value);
+                };
+                showNameTags.onValueChange += (val) =>
+                {
+                    if (val.value)
+                    {
+                        NameTag.DisabledByDebug = false;
+                        foreach (var p in NetworkManager.players.Values)
+                        {
+                            p.NameTag.gameObject.SetActive(true);
+                        }
+                    }
+                    else
+                    {
+                        NameTag.DisabledByDebug = true;
+                    }
                 };
                 ttsSpeed.onValueChange += (val) => SamPitch.configSam.speed = val.value;
                 ttsPitch.onValueChange += (val) => SamPitch.configSam.pitch = val.value;
