@@ -562,6 +562,14 @@ namespace Polarite.Multiplayer
             {
                 ToggleRig(false);
             }
+            bool noContain = !NetworkManager.players.ContainsKey(SteamId);
+            if (noContain || NetworkManager.players[SteamId] == null)
+            {
+                if(noContain)
+                    NetworkManager.players.Add(SteamId, this);
+                else
+                    NetworkManager.players[SteamId] = this;
+            }
             NameTag.dummy = this == LocalPlayer;
             if (Vector3.Distance(transform.position, targetPosition) > 10f)
             {
