@@ -1,4 +1,5 @@
-﻿using Polarite.Networking.Extensions;
+﻿using Polarite.Multiplayer;
+using Polarite.Networking.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Polarite
 {
@@ -32,6 +34,56 @@ namespace Polarite
             vcHud = hud;
             vcAnchors = VC.transform.Find("AnchorPoints").gameObject;
             Refresh();
+        }
+
+        public static Vector2 GetPivotForAnchor(ChatAlign align)
+        {
+            switch (align)
+            {
+                case ChatAlign.TopLeft:
+                    return new Vector2(0, 1);
+                case ChatAlign.MiddleLeft:
+                    return new Vector2(0, 0.5f);
+                case ChatAlign.BottomLeft:
+                    return new Vector2(0, 0);
+                case ChatAlign.TopMiddle:
+                    return new Vector2(0.5f, 1);
+                case ChatAlign.BottomMiddle:
+                    return new Vector2(0.5f, 0);
+                case ChatAlign.TopRight:
+                    return new Vector2(1, 1);
+                case ChatAlign.MiddleRight:
+                    return new Vector2(1, 0.5f);
+                case ChatAlign.BottomRight:
+                    return new Vector2(1, 0);
+            }
+            return new Vector2(0, 0);
+        }
+        public static RectTransform GetAnchor(ChatAlign align)
+        {
+            if(Chat != null)
+            {
+                switch (align)
+                {
+                    case ChatAlign.TopLeft:
+                        return chatAnchors.FindWithComponent<RectTransform>("TopLeft");
+                    case ChatAlign.MiddleLeft:
+                        return chatAnchors.FindWithComponent<RectTransform>("CenterLeft");
+                    case ChatAlign.BottomLeft:
+                        return chatAnchors.FindWithComponent<RectTransform>("BottomLeft");
+                    case ChatAlign.TopMiddle:
+                        return chatAnchors.FindWithComponent<RectTransform>("Top");
+                    case ChatAlign.BottomMiddle:
+                        return chatAnchors.FindWithComponent<RectTransform>("Bottom");
+                    case ChatAlign.TopRight:
+                        return chatAnchors.FindWithComponent<RectTransform>("TopRight");
+                    case ChatAlign.MiddleRight:
+                        return chatAnchors.FindWithComponent<RectTransform>("CenterRight");
+                    case ChatAlign.BottomRight:
+                        return chatAnchors.FindWithComponent<RectTransform>("BottomRight");
+                }
+            }
+            return null;
         }
         public static void Refresh(ChatAlign chat)
         {
@@ -63,6 +115,19 @@ namespace Polarite
                     case ChatAlign.BottomRight:
                         chatPanel.position = chatAnchors.FindWithComponent<RectTransform>("BottomRight").position;
                         break;
+                }
+            }
+        }
+        public static void Refresh(float scale)
+        {
+            if(Chat != null)
+            {
+                RectTransform anchor = GetAnchor(ItePlugin.chatAlignment.value);
+                if(anchor != null)
+                {
+                    anchor.pivot = GetPivotForAnchor(ItePlugin.chatAlignment.value);
+                    anchor.localScale = new Vector3(scale, scale, scale);
+                    ChatUI.EditScale(scale);
                 }
             }
         }
@@ -167,6 +232,7 @@ namespace Polarite
                     }
                 }
             }
+            Refresh(ItePlugin.chatScale.value);
         }
     }
 }

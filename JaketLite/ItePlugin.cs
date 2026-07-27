@@ -173,6 +173,7 @@ namespace Polarite
         // skins
         public static ConfigPanel skinsMenu = new ConfigPanel(cosmeticRelated, "Skin Config", "skins");
 
+        public static BoolField changeArms = new BoolField(skinsMenu, "Override arm colors", "skin.arms", true);
         public static KeyCodeField previewSkin = new KeyCodeField(skinsMenu, "Preview skin key", "skin.preview", KeyCode.LeftAlt);
         public static KeyCodeField screenShotSkin = new KeyCodeField(skinsMenu, "Screenshot skin key", "skin.screenie", KeyCode.RightAlt);
 
@@ -229,6 +230,7 @@ namespace Polarite
 
         // ui
         public static EnumField<ChatAlign> chatAlignment = new EnumField<ChatAlign>(uiConfig, "Chat UI position", "ui.chat", ChatAlign.BottomLeft);
+        public static FloatSliderField chatScale = new FloatSliderField(uiConfig, "Chat UI scale", "ui.chatscale", new Tuple<float, float>(0.1f, 1f), 1f);
         public static ConfigPanel voiceUiConfig = new ConfigPanel(uiConfig, "Voice UI", "ui.voice");
         public static EnumField<VCAlign> vcAlignmentPos = new EnumField<VCAlign>(voiceUiConfig, "Voice chat UI position", "ui.vcpos", VCAlign.Right);
         public static EnumField<VCListAlign> vcAlignmentList = new EnumField<VCListAlign>(voiceUiConfig, "Voice chat UI list alignment", "ui.vclist", VCListAlign.BottomToTop);
@@ -478,6 +480,10 @@ namespace Polarite
                         NameTag.DisabledByDebug = true;
                     }
                 };
+                changeArms.onValueChange += (val) =>
+                {
+                    if (!val.value) ReverseArmCheck();
+                };
                 ttsSpeed.onValueChange += (val) => SamPitch.configSam.speed = val.value;
                 ttsPitch.onValueChange += (val) => SamPitch.configSam.pitch = val.value;
                 ttsMouth.onValueChange += (val) => SamPitch.configSam.mouth = val.value;
@@ -485,6 +491,7 @@ namespace Polarite
                 chatAlignment.onValueChange += (val) => UIAnchors.Refresh(val.value);
                 vcAlignmentPos.onValueChange += (val) => UIAnchors.Refresh(val.value);
                 vcAlignmentList.onValueChange += (val) => UIAnchors.Refresh(val.value);
+                chatScale.onValueChange += (val) => UIAnchors.Refresh(val.newValue);
                 mainBundle = AssetBundle.LoadFromFile(Path.Combine(Directory.GetParent(Info.Location).FullName, "polariteassets.bundle"));
                 TryRunDiscord();
                 playerData = new TargetData();
@@ -532,6 +539,11 @@ namespace Polarite
         }
         public static void ArmCheck(bool alt)
         {
+            if(!changeArms.value)
+            {
+                ReverseArmCheck();
+                return;
+            }
             try
             {
                 Transform arm = MonoSingleton<GunControl>.Instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");

@@ -1,18 +1,16 @@
-﻿using System.Collections;
-
+﻿using Newtonsoft.Json.Linq;
+using Polarite.Debugging;
+using Polarite.Networking;
+using Polarite.Networking.Extensions;
+using Polarite.SamTTS;
 using Steamworks;
+using System.Collections;
+using System.Collections.Generic;
 using System.Text;
-
 using TMPro;
-
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Polarite.Networking;
-using System.Collections.Generic;
-using Polarite.Debugging;
-using Polarite.SamTTS;
-using Polarite.Networking.Extensions;
 
 namespace Polarite.Multiplayer
 {
@@ -125,6 +123,14 @@ namespace Polarite.Multiplayer
                 }
             }
         }
+        public void OpenEffectDimensions(float scale)
+        {
+            HudOpenEffect[] effects = chatPanel.GetComponentsInChildren<HudOpenEffect>();
+            foreach (var effect in effects)
+            {
+                effect.targetDimensions = new Vector2(scale, scale);
+            }
+        }
         public static void Hide(bool value)
         {
             Instance.chatPanel.SetActive(value);
@@ -157,7 +163,11 @@ namespace Polarite.Multiplayer
             typeTimer = 0f;
             isActuallyTyping = false;
         }
-
+        public static void EditScale(float scale)
+        {
+            if (Instance.toggled) Instance.OpenEffectDimensions(scale);
+            if (Instance.chatPanel != null) Instance.chatPanel.GetComponent<RectTransform>().localScale = new Vector2(scale, scale);
+        }
         void Update()
         {
             toggleKey = ItePlugin.buttonToChat.value;

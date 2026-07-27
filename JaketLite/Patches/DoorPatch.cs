@@ -22,12 +22,15 @@ namespace Polarite.Patches
             if(NetworkManager.InLobby)
             {
                 bool found = false;
-                foreach (var p in NetworkManager.players.Values)
+                if(SceneHelper.CurrentScene != "Level 8-1")
                 {
-                    if (Vector3.SqrMagnitude(__instance.transform.position - p.transform.position) <= (SceneHelper.CurrentScene == "Level 8-1" ? 5f : 50f))
+                    foreach (var p in NetworkManager.players.Values)
                     {
-                        found = true;
-                        break;
+                        if (Vector3.SqrMagnitude(__instance.transform.position - p.transform.position) <= 50f)
+                        {
+                            found = true;
+                            break;
+                        }
                     }
                 }
                 __instance.enemyIn = found;
