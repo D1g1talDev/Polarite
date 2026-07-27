@@ -348,11 +348,26 @@ namespace Polarite.Multiplayer
             Lobby? lobby = await SteamMatchmaking.JoinLobbyAsync(lobbyId);
             if (lobby.HasValue)
             {
-                if (lobby.Value.GetData("ver") != ItePlugin.Version)
+                if(cMode.server_mode != "pirated")
                 {
-                    DisplayError("This lobby is running a different version of the mod.");
-                    lobby.Value.Leave();
-                    return;
+                    if (lobby.Value.GetData("ver") != ItePlugin.Version)
+                    {
+                        DisplayError("This lobby is running a different version of the mod.");
+                        lobby.Value.Leave();
+                        return;
+                    }
+                    if (string.IsNullOrEmpty(lobby.Value.GetData("LobbyName")))
+                    {
+                        DisplayError("This lobby is invalid and it seems the original host disconnected from it.");
+                        lobby.Value.Leave();
+                        return;
+                    }
+                    if (lobby.Value.MemberCount <= 0)
+                    {
+                        DisplayError("There are zero people in this lobby.");
+                        lobby.Value.Leave();
+                        return;
+                    }
                 }
                 if (lobby.Value.GetData("banned_" + Id.ToString()) == "1")
                 {
@@ -363,18 +378,6 @@ namespace Polarite.Multiplayer
                 if (lobby.Value.MemberCount > lobby.Value.MaxMembers)
                 {
                     DisplayError("This lobby is full.");
-                    lobby.Value.Leave();
-                    return;
-                }
-                if (string.IsNullOrEmpty(lobby.Value.GetData("LobbyName")))
-                {
-                    DisplayError("This lobby is invalid and it seems the original host disconnected from it.");
-                    lobby.Value.Leave();
-                    return;
-                }
-                if (lobby.Value.MemberCount <= 0)
-                {
-                    DisplayError("There are zero people in this lobby.");
                     lobby.Value.Leave();
                     return;
                 }
