@@ -119,6 +119,7 @@ namespace Polarite.Multiplayer
             {
                 allEnemies = new Dictionary<string, NetworkEnemy>();
             }
+            if (Enemy.target == null) UpdateTarget();
             alive = IsAlive;
             if (Enemy.health <= 0 && IsAlive)
             {
