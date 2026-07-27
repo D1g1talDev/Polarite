@@ -99,7 +99,7 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Restart, w.GetBytes());
                 return true;
             }
-            if(CyberSync.Active && !ItePlugin.cameFromPacketRestart)
+            if(CyberSync.Active && !ItePlugin.cameFromPacketRestart && NetworkManager.ClientAndConnected)
             {
                 ChatUI.Message($"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.GetHostID(), true)} hasn't finished looking at the results screen yet.</color>", 10f);
                 return false;

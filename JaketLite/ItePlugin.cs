@@ -111,7 +111,7 @@ namespace Polarite
         public string buildName;
     }
 
-    [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.1.0")]
+    [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.1.2")]
     public class ItePlugin : BaseUnityPlugin
     {
         public static readonly PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
@@ -313,7 +313,7 @@ namespace Polarite
         public static bool canBecomeGhost = false;
 
         public static readonly bool ReleaseBuild = true;
-        public static readonly string Version = "v1.1.0";
+        public static readonly string Version = "v1.1.2";
         public static bool CanEnableDebug
         {
             get
