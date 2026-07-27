@@ -679,7 +679,7 @@ namespace Polarite.Multiplayer
             {
                 return;
             }
-            DisplayJoin("green", $"{GetNameOfId(id, true)} has connected this server");
+            DisplayJoin("green", $"{GetNameOfId(id, true)} has connected to this server");
             // share skin aswell
             PacketWriter write = new PacketWriter();
             write.WriteSkin(ItePlugin.currentSkin);

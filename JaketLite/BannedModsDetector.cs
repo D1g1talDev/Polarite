@@ -15,13 +15,15 @@ namespace Polarite
     }
     public static class BannedModsDetector
     {
-        public static float rate = 0.1f;
+        public static float rate = 0f;
         public static List<Bullet> bullets = new List<Bullet>();
         public static List<Bullet> shotgunBullets = new List<Bullet>();
         public static List<ulong> culprits = new List<ulong>();
 
         public static void AddBullet(GameObject bulletObj, ulong owner, bool shotgun = false)
         {
+            // have to disable for until bigger hotfix
+            return;
             rate = 0.1f;
             Bullet bullet = new Bullet { bullet = bulletObj, owner = owner };
             if(shotgun)
@@ -32,6 +34,8 @@ namespace Polarite
         }
         public static void Tick()
         {
+            // have to disable for until bigger hotfix
+            return;
             rate -= Time.deltaTime;
             if (rate <= 0f)
             {
@@ -51,6 +55,8 @@ namespace Polarite
         }
         public static void Check(Bullet[] list, bool shotgun, ulong culprit)
         {
+            // have to disable for until bigger hotfix
+            return;
             List<Bullet> bulletsFromPerson = new List<Bullet>();
             foreach(var bul in list)
             {

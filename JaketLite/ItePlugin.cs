@@ -809,7 +809,7 @@ namespace Polarite
                 Application.runInBackground = true;
                 DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
                 DeadPatch.TickTimer();
-                BannedModsDetector.Tick();
+                // BannedModsDetector.Tick();
                 if (CheatsController.Instance.cheatsEnabled && NetworkManager.Instance.CurrentLobby.GetData("cheat") == "0" && NetworkManager.ClientAndConnected)
                 {
                     foreach(var cheats in CheatsManager.Instance.allRegisteredCheats)
