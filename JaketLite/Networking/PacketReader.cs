@@ -327,6 +327,7 @@ namespace Polarite.Multiplayer
                         Vector3 dodgeDir = reader.ReadVector3();
                         Vector3 rbVel = reader.ReadVector3();
                         bool wall = reader.ReadBool();
+                        bool nickname = reader.ReadBool();
 
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
@@ -341,6 +342,7 @@ namespace Polarite.Multiplayer
                             p.rbVel = rbVel;
                             p.dodge = dodgeDir;
                             p.wall = wall;
+                            p.UpdNickname(nickname);
                         }
                         // double check rig state to prevent weird edge cases where a player gets stuck invisible after dying
                         if (hp > 0 && !p.rigActive)
@@ -363,7 +365,7 @@ namespace Polarite.Multiplayer
                         bool tts;
 
                         string format;
-                        if (Net.Dev(senderId))
+                        if (Net.Dev(senderId) && !p.nicknamed)
                         {
                             format = $"<color=green>[DEV] {name}</color>: {text}";
                             tts = true;

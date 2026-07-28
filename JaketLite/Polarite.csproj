@@ -492,6 +492,7 @@
     <Compile Include="Debugging\LineTargetTool.cs" />
     <Compile Include="Debugging\Logs.cs" />
     <Compile Include="Debugging\ShaderPropGrabber.cs" />
+    <Compile Include="DevNickname.cs" />
     <Compile Include="Networking\Extensions\StringExtensions.cs" />
     <Compile Include="Networking\Extensions\TaskExtensions.cs" />
     <Compile Include="Networking\Skins\SkinManagerV2.cs" />

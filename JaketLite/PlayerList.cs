@@ -36,9 +36,12 @@ namespace Polarite
         }
         public static Transform Add(string name, ulong id)
         {
+            NetworkPlayer plr = NetworkPlayer.Find(id);
+            bool nicknamed = false;
+            if (plr != null) nicknamed = plr.nicknamed;
             Transform newList = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("PlayerListing"), ContentB).transform;
             newList.Find("Name").GetComponent<TextMeshProUGUI>().text = name;
-            FetchAvatar(newList.Find("PFP").GetComponent<Image>(), new Friend(id));
+            FetchAvatar(newList.Find("PFP").GetComponent<Image>(), new Friend(id), !nicknamed, nicknamed);
             if(SkinManagerV2.Previews.TryGetValue(id, out var icon)) newList.Find("Skin").GetComponent<Image>().sprite = icon;
             Button kick = newList.Find("Kick").GetComponent<Button>();
             Button ban = newList.Find("Ban").GetComponent<Button>();
@@ -99,7 +102,7 @@ namespace Polarite
             }
             return newList;
         }
-        public static async void FetchAvatar(Image target, Friend user, bool setSize = true)
+        public static async void FetchAvatar(Image target, Friend user, bool setSize = true, bool fake = false)
         {
             Steamworks.Data.Image? image = await user.GetMediumAvatarAsync();
             if (image.HasValue)
@@ -120,7 +123,7 @@ namespace Polarite
                 texture2D.SetPixels(flipped);
                 texture2D.Apply();
 
-                target.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
+                target.sprite = fake ? ItePlugin.mainBundle.LoadAsset<Sprite>("steamdefault") : Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
                 target.preserveAspect = true;
                 if (setSize) target.SetNativeSize();
             }

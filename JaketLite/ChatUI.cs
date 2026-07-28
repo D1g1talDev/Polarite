@@ -77,7 +77,6 @@ namespace Polarite.Multiplayer
             }
             UIAnchors.SetChat(canvas.GetComponent<RectTransform>(), chatPanel.GetComponent<RectTransform>());
             Toggle(false, true);
-            EditScale(ItePlugin.chatScale.value);
 
             if (inputField != null)
             {
@@ -85,7 +84,7 @@ namespace Polarite.Multiplayer
                 {
                     // prioritise DEV tag if this user is a developer
                     string author;
-                    if (Net.Dev(NetworkManager.Id))
+                    if (Net.Dev(NetworkManager.Id) && !NetworkPlayer.LocalPlayer.nicknamed)
                         author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
                     else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
                         author = $"<color=#00F2FF>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
@@ -129,7 +128,7 @@ namespace Polarite.Multiplayer
             HudOpenEffect[] effects = chatPanel.GetComponentsInChildren<HudOpenEffect>();
             foreach (var effect in effects)
             {
-                effect.targetDimensions = new Vector2(scale, scale);
+                effect.originalDimensions = new Vector2(scale, scale);
             }
         }
         public static void Hide(bool value)
@@ -166,7 +165,7 @@ namespace Polarite.Multiplayer
         }
         public static void EditScale(float scale)
         {
-            if (Instance.toggled) Instance.OpenEffectDimensions(scale);
+            Instance.OpenEffectDimensions(scale);
             if (Instance.chatPanel != null) Instance.chatPanel.GetComponent<RectTransform>().localScale = new Vector2(scale, scale);
         }
         void Update()

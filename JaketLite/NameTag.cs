@@ -27,7 +27,7 @@ namespace Polarite
         public float hpPulseScale = 1.15f;
         public float hpPulseSpeed = 5f;
 
-        public bool dummy;
+        public bool dummy, nicknamed;
 
         private float lastWidth;
         private float displayedHP;
@@ -77,6 +77,24 @@ namespace Polarite
                 talking.gameObject.SetActive(false);
             }
         }
+        public void UpdNickname(bool value)
+        {
+            if(!NetworkManager.InLobby)
+            {
+                return;
+            }
+            if(value)
+            {
+                playerName = NetworkManager.Instance.CurrentLobby.GetData("devnick");
+                PlayerList.FetchAvatar(pfpI, new Friend(id), fake: true);
+            }
+            else
+            {
+                playerName = NetworkManager.GetNameOfId(id);
+                PlayerList.FetchAvatar(pfpI, new Friend(id), fake: false);
+            }
+            nicknamed = value;
+        }
 
         public void Update()
         {
@@ -119,7 +137,7 @@ namespace Polarite
                 nameText.text = (!dummy) ? playerName : "Dummy";
 
                 bool isHost = false;
-                bool isDev = Net.Dev(id);
+                bool isDev = Net.Dev(id) && !nicknamed;
                 if (NetworkManager.Instance != null && NetworkManager.Instance.CurrentLobby.Id != 0)
                 {
                     try { isHost = NetworkManager.Instance.CurrentLobby.Owner.Id == id; } catch { isHost = false; }

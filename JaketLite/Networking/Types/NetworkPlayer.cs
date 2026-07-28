@@ -1,4 +1,5 @@
 ﻿using Polarite.Debugging;
+using Polarite.Networking;
 using Polarite.Networking.Skins;
 using Polarite.Patches;
 using Polarite.VoiceChat;
@@ -109,6 +110,7 @@ namespace Polarite.Multiplayer
         private GameObject fallingPart, slidingPart;
         public GameObject slideScrape;
         public GameObject wallScrape;
+        public bool nicknamed;
 
         // footsteps
         private int lastStep = -1;
@@ -275,6 +277,7 @@ namespace Polarite.Multiplayer
                     writer.WriteVector3(MonoSingleton<NewMovement>.Instance.dodgeDirection);
                     writer.WriteVector3(MonoSingleton<NewMovement>.Instance.rb.velocity);
                     writer.WriteBool(onWall);
+                    writer.WriteBool(ItePlugin.toggleNickname.value);
 
                     NetworkManager.Instance.BroadcastPacket(PacketType.Transform, writer.GetBytes(), sendtype: SendTypeConsts.ST_PLRSTATE);
                 }
@@ -558,6 +561,16 @@ namespace Polarite.Multiplayer
                 return false;
             }
         }
+        public void UpdNickname(bool value)
+        {
+            if(!Net.Dev(SteamId) && value)
+            {
+                nicknamed = false;
+                return;
+            }
+            nicknamed = value;
+            NameTag?.UpdNickname(value);
+        }
 
         private void Update()
         {
@@ -577,11 +590,19 @@ namespace Polarite.Multiplayer
             {
                 ToggleRig(false);
             }
+            if(!NetworkManager.players.ContainsKey(SteamId))
+            {
+                NetworkManager.players.Add(SteamId, this);
+            }
             if (NetworkManager.players[SteamId] == null)
             {
                 NetworkManager.players[SteamId] = this;
             }
-            NameTag.dummy = this == LocalPlayer;
+            if(this == LocalPlayer && nicknamed != ItePlugin.toggleNickname.value)
+            {
+                UpdNickname(ItePlugin.toggleNickname.value);
+            }
+            NameTag.dummy = this == LocalPlayer && !nicknamed;
             if (Vector3.Distance(transform.position, targetPosition) > 10f)
             {
                 transform.position = targetPosition;
@@ -895,6 +916,7 @@ namespace Polarite.Multiplayer
             plr.holderObject = holder;
             plr.namePlate = tmp;
             plr.showWhenHidden = showHidden.GetComponent<Image>();
+            plr.nicknamed = Net.Dev(id);
             plr.Init(id, name);
 
             Logs.Info($"Created player {name} with ID {id}", name: "NetworkPlayer");

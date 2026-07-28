@@ -253,9 +253,17 @@ namespace Polarite.Multiplayer
 
         public static string GetNameOfId(ulong id, bool colorName = false)
         {
-            string colorHex = Net.Dev(id) ? "color=green" : id == GetHostID() ? "color=#00F2FF" : "";
-            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"<{colorHex}>{new Friend(id).Name.WithoutTMP()}</color>";
-            return new Friend(id).Name.WithoutTMP();
+            bool useNickname = false;
+            if(InLobby)
+            {
+                if (players.ContainsKey(id))
+                    useNickname = players[id].nicknamed;
+                else
+                    useNickname = Net.Dev(id);
+            }
+            string colorHex = Net.Dev(id) && !useNickname ? "color=green" : id == GetHostID() ? "color=#00F2FF" : "";
+            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"<{colorHex}>{(useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP())}</color>";
+            return useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP();
         }
         public async Task CreateLobby(int maxPlayers = 10, LobbyType lobbyType = LobbyType.Public, string lobbyName = "My Lobby", Action<string> onJoin = null, bool canCheat = false)
         {
@@ -304,6 +312,7 @@ namespace Polarite.Multiplayer
                 CurrentLobby.SetData("bhm", ItePlugin.bossHpMult.value.ToString());
                 CurrentLobby.SetData("priv", lobbyType == LobbyType.Private ? "1" : "0");
                 CurrentLobby.SetData("ver", ItePlugin.Version);
+                CurrentLobby.SetData("devnick", Nickname.Get());
                 PrivateLobby = lobbyType == LobbyType.Private;
                 onJoin?.Invoke(LobbyCodeUtil.ToBase36(CurrentLobby.Id));
                 SetRichPresenceForLobby(CurrentLobby);
@@ -324,6 +333,7 @@ namespace Polarite.Multiplayer
                 {
                     SceneHelper.LoadScene("Level 8-1");
                 }
+                if (ItePlugin.toggleNickname.value) ChatUI.Message($"<color=orange>You're currently being displayed as <color=blue>{lobby.Value.GetData("devnick")}</color></color>", 10f);
                 currentType = lobbyType;
                 currentTypeRaw = ItePlugin.Instance.LobbyTypeToRaw(lobbyType);
                 currentLobbyName = lobbyName;
@@ -405,6 +415,7 @@ namespace Polarite.Multiplayer
                 UIAnchors.Refresh();
                 PrivateLobby = lobby.Value.GetData("priv") == "1";
                 ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+                if(ItePlugin.toggleNickname.value) ChatUI.Message($"<color=orange>You're currently being displayed as <color=blue>{lobby.Value.GetData("devnick")}</color></color>", 10f);
 
                 // small delay
                 await Task.Delay(1000);

@@ -252,6 +252,7 @@ namespace Polarite
         public static BoolField logPacketParsing = new BoolField(debugRelated, "Log when parsing packets", "log.packets", false);
         public static BoolField logDebugLogs = new BoolField(debugRelated, "Allow debug logs", "log.allowdebug", false);
         public static BoolField logDebugErrorLogs = new BoolField(debugRelated, "Allow debug error logs", "log.allowerrordebug", false);
+        public static BoolField toggleNickname = new BoolField(debugRelated, "Use nickname", "nickname", false);
 
         internal readonly Harmony harm = new Harmony("com.d1g1tal.polarite");
 
