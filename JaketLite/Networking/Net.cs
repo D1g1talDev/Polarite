@@ -55,7 +55,7 @@ namespace Polarite.Networking
             }
             catch (Exception e)
             {
-                Logs.Error("TryGet: " + e.Message + " path: " + path, name: "Net");
+                Logs.DebugError("TryGet: " + e.Message + " path: " + path, name: "Net");
                 net = null;
                 return false;
             }
