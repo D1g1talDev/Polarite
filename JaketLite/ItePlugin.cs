@@ -124,6 +124,8 @@ namespace Polarite
 
         public static ConfigPanel uiConfig = new ConfigPanel(config.rootPanel, "UI Config", "ui");
 
+        public static ConfigPanel perfConfig = new ConfigPanel(config.rootPanel, "Performance Options", "perf");
+
         public static ConfigPanel debugRelated = new ConfigPanel(config.rootPanel, "Debug zone", "debugzone");
 
         public static BoolField canBeFriendlyFired = new BoolField(mainGameRelated, "Can be friendly fired", "gameplay.client.friendlyfire", true);
@@ -235,6 +237,12 @@ namespace Polarite
         public static EnumField<VCAlign> vcAlignmentPos = new EnumField<VCAlign>(voiceUiConfig, "Voice chat UI position", "ui.vcpos", VCAlign.Right);
         public static EnumField<VCListAlign> vcAlignmentList = new EnumField<VCListAlign>(voiceUiConfig, "Voice chat UI list alignment", "ui.vclist", VCListAlign.BottomToTop);
         public static BoolField useSkinInsteadOfPFP = new BoolField(voiceUiConfig, "Show players custom skin instead of PFP", "ui.showskin", false);
+
+        // perf options
+        public static BoolField playerParts = new BoolField(perfConfig, "Player particles", "player.parts", true);
+        public static BoolField playerProjs = new BoolField(perfConfig, "Player projectiles", "player.projs", true);
+        public static BoolField playerSounds = new BoolField(perfConfig, "Player sounds", "player.sfx", true);
+        public static BoolField playerRagdolls = new BoolField(perfConfig, "Player ragdolls", "player.ragdolls", true);
 
         // hidden options
         public static BoolField hasHadRandomSkin = new BoolField(debugRelated, "Had random skin", "skin.randomized", false);

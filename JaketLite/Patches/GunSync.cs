@@ -227,6 +227,12 @@ namespace Polarite
             int var = reader.ReadInt();
             Vector3 grav = reader.ReadVector3();
             Vector3 physGrav = reader.ReadVector3();
+            if (!ItePlugin.playerProjs.value)
+            {
+                AnimShoot(sender);
+                if (ItePlugin.playerSounds.value) PlayNoise(type, pos, sender);
+                return;
+            }
             if (Bullets.TryGetValue(type, out string path))
             {
                 bulletPrefab = Addressables.LoadAssetAsync<GameObject>(path).WaitForCompletion();
@@ -538,8 +544,12 @@ namespace Polarite
         }
         public static void PlayNoise(BulletType type, Vector3 pos, ulong sender)
         {
+            if(!BulletNoises.TryGetValue(type, out string s))
+            {
+                return;
+            }
             if (!currentPlayed.ContainsKey(sender)) currentPlayed.Add(sender, new List<AudioSource>());
-            AudioClip clip = ItePlugin.mainBundle.LoadAsset<AudioClip>(BulletNoises[type]);
+            AudioClip clip = ItePlugin.mainBundle.LoadAsset<AudioClip>(s);
             if(clip != null)
             {
                 float pitch = (type == BulletType.Cannonball) ? 0.75f : (ShouldUseNormPitch(type)) ? 1f : Random.Range(0.975f, 1.05f);

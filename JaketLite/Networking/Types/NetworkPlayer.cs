@@ -332,11 +332,21 @@ namespace Polarite.Multiplayer
         }
         public void SlideScrape(GameObject part, Vector3 dodgeDir)
         {
+            if (!ItePlugin.playerParts.value)
+            {
+                if (slideScrape != null) Detach(false);
+                return;
+            }
             if (slideScrape != null) Detach(false);
             slideScrape = Instantiate(part, transform.position + dodgeDir * 2f, Quaternion.LookRotation(-dodgeDir));
         }
         public void SlidePart(bool sliding, Vector3 dodgeDir)
         {
+            if(!ItePlugin.playerParts.value)
+            {
+                if(slidingPart != null) Destroy(slidingPart);
+                return;
+            }
             if(sliding)
             {
                 if (slidingPart != null) Destroy(slidingPart);
@@ -349,6 +359,11 @@ namespace Polarite.Multiplayer
         }
         public void WallScrape(GameObject part, Vector3 pos)
         {
+            if (!ItePlugin.playerParts.value)
+            {
+                if (wallScrape != null) Detach(true);
+                return;
+            }
             if (wallScrape != null) Detach(true);
             wallScrape = Instantiate(part, pos, Quaternion.identity);
         }
@@ -562,13 +577,9 @@ namespace Polarite.Multiplayer
             {
                 ToggleRig(false);
             }
-            bool noContain = !NetworkManager.players.ContainsKey(SteamId);
-            if (noContain || NetworkManager.players[SteamId] == null)
+            if (NetworkManager.players[SteamId] == null)
             {
-                if(noContain)
-                    NetworkManager.players.Add(SteamId, this);
-                else
-                    NetworkManager.players[SteamId] = this;
+                NetworkManager.players[SteamId] = this;
             }
             NameTag.dummy = this == LocalPlayer;
             if (Vector3.Distance(transform.position, targetPosition) > 10f)
@@ -627,7 +638,7 @@ namespace Polarite.Multiplayer
         }
         private void SlidePosStuff()
         {
-            if(!sliding)
+            if(!sliding || !ItePlugin.playerParts.value)
             {
                 return;
             }

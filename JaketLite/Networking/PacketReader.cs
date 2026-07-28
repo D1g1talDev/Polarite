@@ -175,7 +175,7 @@ namespace Polarite.Multiplayer
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
                         {
-                            p.HurtNoise();
+                            if(ItePlugin.playerSounds.value) p.HurtNoise();
                             if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && !p.isGhost)
                             {
                                 SamPitch.Set(sam);
@@ -188,6 +188,10 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Die:
                     {
+                        if(!ItePlugin.playerRagdolls.value)
+                        {
+                            break;
+                        }
                         byte msgB = reader.ReadByte();
                         byte wMsgB = reader.ReadByte();
                         ulong arg = reader.ReadULong();
@@ -220,6 +224,10 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Respawn:
                     {
+                        if (!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
                             p.SpawnNoise();
@@ -228,6 +236,10 @@ namespace Polarite.Multiplayer
 
                 case PacketType.Jump:
                     {
+                        if(!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         bool quake = reader.ReadBool();
                         if (p != null)
@@ -246,9 +258,12 @@ namespace Polarite.Multiplayer
                         Vector3 pos = reader.ReadVector3();
                         if (p != null)
                         {
-                            ItePlugin.SpawnSound(p.dashNoise.clip, 1f, null, 1f, pos);
-                            Vector3 dir = ((inputDir == Vector3.zero) ? p.transform.forward : inputDir);
-                            GameObject.Instantiate(MonoSingleton<NewMovement>.Instance.dodgeParticle, pos + dir * 10f, Quaternion.LookRotation(dir * -1f));
+                            if(ItePlugin.playerSounds.value)ItePlugin.SpawnSound(p.dashNoise.clip, 1f, null, 1f, pos);
+                            if(ItePlugin.playerParts.value)
+                            {
+                                Vector3 dir = ((inputDir == Vector3.zero) ? p.transform.forward : inputDir);
+                                GameObject.Instantiate(MonoSingleton<NewMovement>.Instance.dodgeParticle, pos + dir * 10f, Quaternion.LookRotation(dir * -1f));
+                            }
                         }
                         break;
                     }
@@ -831,6 +846,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.PunchNormal:
                     {
+                        if (!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         NetworkPlayer plr = NetworkPlayer.Find(senderId);
                         if(plr != null)
                         {
@@ -840,6 +859,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.PunchHeavy:
                     {
+                        if (!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         NetworkPlayer plr = NetworkPlayer.Find(senderId);
                         if (plr != null)
                         {
@@ -849,6 +872,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.PunchParry:
                     {
+                        if (!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         NetworkPlayer plr = NetworkPlayer.Find(senderId);
                         if (plr != null)
                         {
@@ -970,6 +997,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.Slam:
                     {
+                        if(!ItePlugin.playerParts.value)
+                        {
+                            break;
+                        }
                         Vector3 gcVec = reader.ReadVector3();
                         Vector3 pos = reader.ReadVector3();
                         Vector3 up = reader.ReadVector3();
@@ -990,11 +1021,15 @@ namespace Polarite.Multiplayer
                         Vector3 up = reader.ReadVector3();
                         float force = reader.ReadFloat();
                         GunSync.Shockwave(pos, _for, up, force);
-                        MonoSingleton<SceneHelper>.Instance.CreateEnviroGibs(pos, up * -1f, 5f, 10);
+                        if(ItePlugin.playerParts.value) MonoSingleton<SceneHelper>.Instance.CreateEnviroGibs(pos, up * -1f, 5f, 10);
                         break;
                     }
                 case PacketType.Footstep:
                     {
+                        if(!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         Vector3 pos = reader.ReadVector3();
                         float vol = reader.ReadFloat();
                         NetworkPlayer.Find(senderId)?.Footsteps(pos, vol);
@@ -1002,6 +1037,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.SlideScrape:
                     {
+                        if(!ItePlugin.playerParts.value)
+                        {
+                            break;
+                        }
                         SurfaceType surf = reader.ReadEnum<SurfaceType>();
                         Vector3 dodge = reader.ReadVector3();
                         Color col = reader.ReadColor();
@@ -1017,6 +1056,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.WallScrape:
                     {
+                        if (!ItePlugin.playerParts.value)
+                        {
+                            break;
+                        }
                         SurfaceType surf = reader.ReadEnum<SurfaceType>();
                         Vector3 pos = reader.ReadVector3();
                         bool insteadSetPos = reader.ReadBool();
@@ -1048,6 +1091,10 @@ namespace Polarite.Multiplayer
                     }
                 case PacketType.StopSlide:
                     {
+                        if (!ItePlugin.playerSounds.value)
+                        {
+                            break;
+                        }
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if(p == null)
                         {
