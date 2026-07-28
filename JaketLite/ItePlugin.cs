@@ -1549,7 +1549,7 @@ namespace Polarite
         }
         public void CleanLevel()
         {
-            Invoke(nameof(CleanLevelOfSoftlocks), 0.5f);
+            Invoke(nameof(CleanLevelOfSoftlocks), 3f);
         }
         public void CleanLevelOfSoftlocks()
         {
