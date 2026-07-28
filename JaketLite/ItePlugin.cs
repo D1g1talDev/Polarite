@@ -368,10 +368,13 @@ namespace Polarite
                 }
                 log = Logger;
                 harm.PatchAll();
-                NetworkManager netManager = gameObject.GetComponent<NetworkManager>();
-                if (netManager == null)
+                if(!NetworkManager.Success(gameObject))
                 {
-                    netManager = gameObject.AddComponent<NetworkManager>();
+                    Logger.LogWarning("Polarite failed to connect with Steam!");
+                    harm.UnpatchSelf();
+                    Instance = null;
+                    Destroy(this);
+                    return;
                 }
                 SceneManager.sceneLoaded += OnSceneLoaded;
                 config.SetIconWithURL("file://" + Path.Combine(Directory.GetParent(Info.Location).FullName, "icon.png"));

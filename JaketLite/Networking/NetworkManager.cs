@@ -122,6 +122,8 @@ namespace Polarite.Multiplayer
         public Server Server = new Server();
         public Client Client = new Client();
 
+        public bool valid;
+
         public static Dictionary<ulong, Connection> connections = new Dictionary<ulong, Connection>();
 
         // we should handle a packet only if we're connected to the socket
@@ -131,6 +133,19 @@ namespace Polarite.Multiplayer
             {
                 return (HostAndConnected && ServerInstance != null) ||
                        (ClientAndConnected && ClientToHost != null && ClientToHost.Connected);
+            }
+        }
+
+        public static bool Success(GameObject plugin)
+        {
+            if(!plugin.TryGetComponent<NetworkManager>(out var nm))
+            {
+                nm = plugin.AddComponent<NetworkManager>();
+                return nm.valid;
+            }
+            else
+            {
+                return false;
             }
         }
 
@@ -221,6 +236,7 @@ namespace Polarite.Multiplayer
                 Logs.Error("[Net] SteamClient is not initialized.", this);
                 return;
             }
+            valid = true;
 
             SteamMatchmaking.OnLobbyMemberJoined += HandleMemberJoined;
             SteamMatchmaking.OnLobbyMemberLeave += HandleMemberLeft;
