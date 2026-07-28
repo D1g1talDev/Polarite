@@ -121,12 +121,15 @@ namespace Polarite.Patches
             {
                 NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(NetworkManager.Id, true) + " " + msg.Translate(Arg));
             }
-            GameObject blood = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), CameraController.Instance.transform.position, Quaternion.identity);
-            GameObject ragdoll = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), CameraController.Instance.transform.position, CameraController.Instance.transform.rotation);
-            blood.SetActive(true);
-            ragdoll.AddComponent<Ragdoll>().SetValues(ItePlugin.currentSkin, NetworkManager.Id);
-            ragdoll.GetComponentInChildren<Rigidbody>().AddForce(MonoSingleton<NewMovement>.Instance.rb.velocity, ForceMode.VelocityChange);
-            if(ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value)
+            if(ItePlugin.playerRagdolls.value)
+            {
+                GameObject blood = GameObject.Instantiate(Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Blood/BS Head.prefab").WaitForCompletion(), CameraController.Instance.transform.position, Quaternion.identity);
+                GameObject ragdoll = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), CameraController.Instance.transform.position, CameraController.Instance.transform.rotation);
+                blood.SetActive(true);
+                ragdoll.AddComponent<Ragdoll>().SetValues(ItePlugin.currentSkin, NetworkManager.Id);
+                ragdoll.GetComponentInChildren<Rigidbody>().velocity = MonoSingleton<NewMovement>.Instance.rb.velocity;
+            }
+            if(ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && ItePlugin.playerSounds.value)
             {
                 ItePlugin.DeathScream(SamPitch.configSam);
             }

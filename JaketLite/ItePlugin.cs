@@ -490,7 +490,14 @@ namespace Polarite
                 };
                 changeArms.onValueChange += (val) =>
                 {
-                    if (!val.value) ReverseArmCheck();
+                    if (!val.value)
+                    {
+                        ReverseArmCheck();
+                    }
+                    else if(NetworkManager.InLobby && MonoSingleton<GunControl>.Instance != null)
+                    {
+                        ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
+                    }
                 };
                 ttsSpeed.onValueChange += (val) => SamPitch.configSam.speed = val.value;
                 ttsPitch.onValueChange += (val) => SamPitch.configSam.pitch = val.value;

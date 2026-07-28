@@ -17,7 +17,7 @@ namespace Polarite.Patches
         [HarmonyPostfix]
         static void Postfix(Revolver __instance)
         {
-            if(NetworkManager.InLobby)
+            if(NetworkManager.InLobby && ItePlugin.changeArms.value)
             {
                 Transform arm = __instance.transform.Find(__instance.altVersion ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
                 if (arm != null)

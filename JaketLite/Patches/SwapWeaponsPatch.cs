@@ -36,7 +36,7 @@ namespace Polarite.Patches
                     NetworkPlayer.LocalPlayer.SetWeapon(alt, index);
                 }
 
-                if(index == 0)
+                if(index == 0 && ItePlugin.changeArms.value)
                 {
                     Transform arm = __instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
                     if (arm != null)
@@ -68,7 +68,7 @@ namespace Polarite.Patches
                     NetworkPlayer.LocalPlayer.SetWeapon(alt, index);
                 }
 
-                if (index == 0)
+                if (index == 0 && ItePlugin.changeArms.value)
                 {
                     Transform arm = __instance.currentWeapon.transform.Find(alt ? "Revolver_Rerigged_Alternate/RightArm" : "Revolver_Rerigged_Standard/RightArm");
                     if (arm != null)

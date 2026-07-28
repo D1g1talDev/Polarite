@@ -336,6 +336,7 @@ namespace Polarite.Multiplayer
                 Logs.Info("Started host socket", this);
                 IsHostSocket = true;
                 LocPlayerCheck();
+                UIAnchors.Refresh();
             }
         }
 
@@ -401,6 +402,7 @@ namespace Polarite.Multiplayer
                 PauseMenuPatch.DisablePauseEffects();
                 Net.Setup();
                 Net.Pause();
+                UIAnchors.Refresh();
                 PrivateLobby = lobby.Value.GetData("priv") == "1";
                 ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
 
