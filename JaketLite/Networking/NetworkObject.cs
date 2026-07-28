@@ -82,7 +82,7 @@ namespace Polarite
 
         protected float interpolationTime = 0.1f;
         protected float interpTimer = 0f;
-        protected float lastState = 3f;
+        protected float lastState = 6f;
         protected bool allowLastState = true;
 
         private bool justSpawned = false;
@@ -163,7 +163,7 @@ namespace Polarite
             if (!alive)
                 return;
 
-            lastState = 3f;
+            lastState = 6f;
             Vector3 pos = transform.position;
             Quaternion rot = transform.rotation;
 
@@ -198,7 +198,7 @@ namespace Polarite
         public virtual void State(Vector3 pos, Quaternion rot, BinaryPacketReader reader)
         {
             if (!alive) return;
-            lastState = 3f;
+            lastState = 6f;
 
             if (syncTransform)
             {
