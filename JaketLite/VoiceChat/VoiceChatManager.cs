@@ -293,7 +293,7 @@ namespace Polarite.Multiplayer
             float[] buffer = new float[chunkSamples];
             short[] pcm = new short[chunkSamples];
 
-            while (isTalking && !inSetup)
+            while (isTalking && !inSetup && !ItePlugin.didNeverShowUp.value)
             {
                 int pos = Microphone.GetPosition(micDevice);
                 int samplesAvailable = pos < micPosition ? micClip.samples - micPosition + pos : pos - micPosition;

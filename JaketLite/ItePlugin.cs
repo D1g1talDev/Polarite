@@ -249,6 +249,7 @@ namespace Polarite
         public static BoolField openedPolariteMenu = new BoolField(debugRelated, "Pressed globe", "pressed.globe", false);
         public static BoolField hasHadRandomPitch = new BoolField(debugRelated, "Had random voice", "random.voice", false);
         public static BoolField didSetup = new BoolField(debugRelated, "Setup voice chat", "did.setup", false);
+        public static BoolField didNeverShowUp = new BoolField(debugRelated, "Clicked never show up", "did.nevershowup", false);
         public static BoolField logPacketParsing = new BoolField(debugRelated, "Log when parsing packets", "log.packets", false);
         public static BoolField logDebugLogs = new BoolField(debugRelated, "Allow debug logs", "log.allowdebug", false);
         public static BoolField logDebugErrorLogs = new BoolField(debugRelated, "Allow debug error logs", "log.allowerrordebug", false);

@@ -32,7 +32,7 @@ namespace Polarite.VoiceChat
         public static VCUserHud preview;
         public static TMP_Dropdown micDrop, vcModeDrop;
         public static TMP_InputField vat;
-        public static Button pttBind, done, cancel;
+        public static Button pttBind, done, cancel, neverShowUp;
         public static int currentMic = 0;
         public static int currentVAT = 10;
         public static int currentVCMode = 1;
@@ -60,6 +60,7 @@ namespace Polarite.VoiceChat
             pttBind = ptt.FindWithComponent<Button>("KeyButton");
             done = setupScreen.FindWithComponent<Button>("Done");
             cancel = setupScreen.FindWithComponent<Button>("Cancel");
+            neverShowUp = setupScreen.FindWithComponent<Button>("PleaseStop");
             preview = SetupTUser(setupScreen.transform.Find("TalkingUserSmaller").gameObject, NetworkManager.Id);
 
             micDrop.onValueChanged.AddListener((val) =>
@@ -104,6 +105,15 @@ namespace Polarite.VoiceChat
                 ItePlugin.CustomTogglePlayer(true);
                 Cursor.visible = false;
                 Cursor.lockState = CursorLockMode.Locked;
+            });
+            neverShowUp.onClick.AddListener(() =>
+            {
+                setupScreen.SetActive(false);
+                ItePlugin.CustomTogglePlayer(true);
+                Cursor.visible = false;
+                Cursor.lockState = CursorLockMode.Locked;
+                ItePlugin.didNeverShowUp.value = true;
+                MonoSingleton<HudMessageReceiver>.Instance.SendHudMessage("The tutorial shall never appear again...");
             });
 
             setupBar.SetActive(false);
@@ -169,7 +179,7 @@ namespace Polarite.VoiceChat
                     plr.hud.SetActive(false);
                 }
             }
-            if(!ItePlugin.didSetup.value && NetworkManager.InLobby && VoiceChatManager.Instance != null && Microphone.devices.Length > 0)
+            if(!ItePlugin.didSetup.value && NetworkManager.InLobby && VoiceChatManager.Instance != null && Microphone.devices.Length > 0 && !ItePlugin.didNeverShowUp.value)
             {
                 setupBar.SetActive(true);
                 if(Input.GetKeyDown(KeyCode.V) && !ChatUI.isTyping && !ItePlugin.PolarMenuActive)
@@ -223,10 +233,13 @@ namespace Polarite.VoiceChat
             vc.pfp = ui.transform.Find("PFP").GetComponent<Image>();
             vc.bar = ui.GetComponentInChildren<Slider>();
             vc.name = ui.transform.Find("Name").GetComponent<TextMeshProUGUI>();
+            bool nicknamed = false;
+            NetworkPlayer netPlr = NetworkPlayer.Find(plr);
+            if (netPlr != null) nicknamed = netPlr.nicknamed;
 
             if (!ItePlugin.useSkinInsteadOfPFP.value)
             {
-                PlayerList.FetchAvatar(vc.pfp, new Friend(plr), false);
+                PlayerList.FetchAvatar(vc.pfp, new Friend(plr), false, nicknamed);
             }
             else if (SkinManagerV2.Previews.TryGetValue(plr, out var icon))
             {
@@ -245,10 +258,13 @@ namespace Polarite.VoiceChat
             vc.bar = ui.GetComponentInChildren<Slider>();
             vc.vaBar = ui.FindWithComponent<Slider>("PreviewVASlider");
             vc.name = ui.transform.Find("Name").GetComponent<TextMeshProUGUI>();
+            bool nicknamed = false;
+            NetworkPlayer netPlr = NetworkPlayer.Find(plr);
+            if (netPlr != null) nicknamed = netPlr.nicknamed;
 
             if (!ItePlugin.useSkinInsteadOfPFP.value)
             {
-                PlayerList.FetchAvatar(vc.pfp, new Friend(plr), false);
+                PlayerList.FetchAvatar(vc.pfp, new Friend(plr), false, nicknamed);
             }
             else if(SkinManagerV2.Previews.TryGetValue(plr, out var icon))
             {

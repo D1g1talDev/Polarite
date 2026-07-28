@@ -89,6 +89,7 @@ namespace Polarite
         {
             if (Chat != null)
             {
+                Refresh(ItePlugin.chatScale.value, chat);
                 switch (chat)
                 {
                     case ChatAlign.TopLeft:
@@ -126,6 +127,19 @@ namespace Polarite
                 if(anchor != null)
                 {
                     anchor.pivot = GetPivotForAnchor(ItePlugin.chatAlignment.value);
+                    anchor.localScale = new Vector3(scale, scale, scale);
+                    ChatUI.EditScale(scale);
+                }
+            }
+        }
+        public static void Refresh(float scale, ChatAlign chat)
+        {
+            if (Chat != null)
+            {
+                RectTransform anchor = GetAnchor(chat);
+                if (anchor != null)
+                {
+                    anchor.pivot = GetPivotForAnchor(chat);
                     anchor.localScale = new Vector3(scale, scale, scale);
                     ChatUI.EditScale(scale);
                 }
@@ -174,6 +188,7 @@ namespace Polarite
         {
             if(Chat != null)
             {
+                Refresh(ItePlugin.chatScale.value);
                 switch (ItePlugin.chatAlignment.value)
                 {
                     case ChatAlign.TopLeft:
@@ -232,7 +247,6 @@ namespace Polarite
                     }
                 }
             }
-            Refresh(ItePlugin.chatScale.value);
         }
     }
 }
