@@ -77,6 +77,7 @@ namespace Polarite.Multiplayer
             }
             UIAnchors.SetChat(canvas.GetComponent<RectTransform>(), chatPanel.GetComponent<RectTransform>());
             Toggle(false, true);
+            EditScale(ItePlugin.chatScale.value);
 
             if (inputField != null)
             {

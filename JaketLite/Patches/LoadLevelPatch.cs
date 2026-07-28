@@ -55,6 +55,7 @@ namespace Polarite.Patches
                 NetworkManager.Instance.BroadcastPacket(PacketType.Level, w.GetBytes());
                 NetworkManager.Instance.CurrentLobby.SetData("level", sceneName);
                 NetworkManager.Instance.CurrentLobby.SetData("difficulty", PrefsManager.Instance.GetInt("difficulty").ToString());
+                NetworkManager.Instance.CurrentLobby.SetData("levelStarted", "0");
                 return true;
             }
             if(NetworkManager.ClientAndConnected && sceneName == "Endless" && CyberSync.Active)
