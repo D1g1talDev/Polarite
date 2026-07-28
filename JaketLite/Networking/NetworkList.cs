@@ -10,7 +10,7 @@ namespace Polarite
     public class NetworkList
     {
         const float NetTick = 0.1f;
-        const float BlacklistTick = 0.3f;
+        const float BlacklistTick = 1f;
         public float netTimer { get; private set; }
         public float blackTimer { get; private set; }
 
