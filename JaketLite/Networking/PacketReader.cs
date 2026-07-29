@@ -778,7 +778,7 @@ namespace Polarite.Multiplayer
                             act.activated = true;
                             if(act.canUseEvents)
                             {
-                                if(SceneHelper.CurrentScene == "Level 5-4")
+                                if(SceneHelper.CurrentScene == "Level 5-4" || NetworkManager.Sandbox)
                                 {
                                     act.events.Invoke();
                                 }
