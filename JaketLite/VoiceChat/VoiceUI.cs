@@ -196,6 +196,7 @@ namespace Polarite.VoiceChat
                         ItePlugin.CustomTogglePlayer(true);
                         Cursor.visible = false;
                         Cursor.lockState = CursorLockMode.Locked;
+                        MonoSingleton<OptionsManager>.Instance.UnPause();
                     }
                     ItePlugin.CustomTogglePlayer(false);
                     Cursor.visible = true;
