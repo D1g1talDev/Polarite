@@ -190,6 +190,13 @@ namespace Polarite.VoiceChat
                 }
                 if(setupScreen.activeSelf)
                 {
+                    if(Input.GetKeyDown(KeyCode.Escape) && !bind.listening)
+                    {
+                        setupScreen.SetActive(false);
+                        ItePlugin.CustomTogglePlayer(true);
+                        Cursor.visible = false;
+                        Cursor.lockState = CursorLockMode.Locked;
+                    }
                     ItePlugin.CustomTogglePlayer(false);
                     Cursor.visible = true;
                     Cursor.lockState = CursorLockMode.None;
