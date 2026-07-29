@@ -9,6 +9,8 @@ using Steamworks;
 using Steamworks.Data;
 using TMPro;
 using UnityEngine.UI;
+using Polarite.Networking.Extensions;
+using Color = UnityEngine.Color;
 
 namespace Polarite
 {
@@ -40,11 +42,16 @@ namespace Polarite
                         return;
                     }
                     Transform lobbyObj = SpawnLobbyObject().transform;
+                    TextMeshProUGUI verText = lobbyObj.Find("Ver").GetComponent<TextMeshProUGUI>();
+                    verText.color = lobby.Value.GetData("ver") == ItePlugin.Version ? Color.green : Color.red;
                     ItePlugin.Typewriter(lobby.Value.GetData("LobbyName"), 0.025f, lobbyObj.Find("Name").GetComponent<TextMeshProUGUI>());
+                    ItePlugin.Typewriter(lobby.Value.GetData("ver"), 0.03f, verText);
                     ItePlugin.Typewriter(TranslateDifficulty(lobby.Value.GetData("difficulty")), 0.01f, lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>());
                     ItePlugin.Typewriter(lobby.Value.GetData("levelName"), 0.01f, lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>());
                     Button button = lobbyObj.Find("UsefulButton").GetComponent<Button>();
                     TextMeshProUGUI buttonText = button.GetComponentInChildren<TextMeshProUGUI>();
+                    TextMeshProUGUI cheats = lobbyObj.gameObject.FindWithComponent<TextMeshProUGUI>("Cheats");
+                    cheats.gameObject.SetActive(lobby.Value.GetData("cheat") == "1");
                     float ogFSize = buttonText.fontSize;
                     button.onClick.AddListener(async () =>
                     {

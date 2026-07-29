@@ -113,7 +113,7 @@ namespace Polarite.VoiceChat
                 Cursor.visible = false;
                 Cursor.lockState = CursorLockMode.Locked;
                 ItePlugin.didNeverShowUp.value = true;
-                MonoSingleton<HudMessageReceiver>.Instance.SendHudMessage("The tutorial shall never appear again...");
+                MonoSingleton<HudMessageReceiver>.Instance.SendHudMessage("The setup screen shall never appear again...");
             });
 
             setupBar.SetActive(false);
