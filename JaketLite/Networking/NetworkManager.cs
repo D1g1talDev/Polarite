@@ -145,7 +145,7 @@ namespace Polarite.Multiplayer
             }
             else
             {
-                return false;
+                return nm.valid;
             }
         }
 
