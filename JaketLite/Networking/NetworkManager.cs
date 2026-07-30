@@ -981,13 +981,10 @@ namespace Polarite.Multiplayer
                 ClientAndConnected = false;
             }
             SteamClient.RunCallbacks();
-            if (ServerInstance != null)
+            if(!SceneLoading)
             {
-                ServerInstance.Receive();
-            }
-            if(ClientToHost != null)
-            {
-                ClientToHost.Receive();
+                ServerInstance?.Receive();
+                ClientToHost?.Receive();
             }
         }
         public bool IsBanned(NetIdentity id)

@@ -1,6 +1,7 @@
 ﻿using System;
 
 using Polarite.Multiplayer;
+using UnityEngine.AddressableAssets;
 
 namespace Polarite
 {
