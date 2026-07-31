@@ -17,6 +17,10 @@ namespace Polarite
     {
         public static EnemyIdentifier Spawn(EnemyType type, Vector3 pos, Quaternion rot, ulong sender, string id)
         {
+            if(type == EnemyType.Centaur)
+            {
+                return null;
+            }
             GameObject enemy = null;
             // check for missing prefabs because some prefabs are missing from default reference manager, thanks ultrakill dev team
             if(type == EnemyType.MirrorReaper)

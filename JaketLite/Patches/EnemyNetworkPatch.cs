@@ -23,6 +23,11 @@ namespace Polarite.Patches
         {
             if (__instance.GetComponent<INetworkObject>() == null && NetworkManager.InLobby)
             {
+                if(__instance.enemyType == EnemyType.Centaur)
+                {
+                    GameObject.Destroy(__instance.gameObject);
+                    return;
+                }
                 NetworkEnemy e = NetworkEnemy.Create(__instance, NetworkManager.GetNearestPlayerID(__instance.transform.position));
                 if (CyberSync.Active && !CyberSync.enemies.Contains(e))
                 {

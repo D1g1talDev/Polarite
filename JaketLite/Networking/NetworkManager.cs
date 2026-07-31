@@ -449,18 +449,9 @@ namespace Polarite.Multiplayer
                 Logs.Info("Connecting to host socket... Id: " + lobby.Value.Owner.Id, this);
                 IsClientSocket = true;
 
+                ToggleBehaviours(false);
                 while(!ClientToHost.Connected)
                 {
-                    MonoBehaviour[] b = FindObjectsOfType<MonoBehaviour>();
-                    foreach (MonoBehaviour mono in b)
-                    {
-                        if (mono != null && mono.gameObject.scene.name != "DontDestroyOnLoad")
-                        {
-                            mono.CancelInvoke();
-                            mono.enabled = false;
-                        }
-                    }
-
                     Logs.Debug("Client state: " + ClientToHost.Connection.DetailedStatus(), this);
                     LoadingBlocker("<color=yellow>Connecting...</color>");
                     await Task.Delay(100);
@@ -469,15 +460,19 @@ namespace Polarite.Multiplayer
             else
             {
                 DisplayError("Failed to join lobby.");
-                SceneHelper.Instance.loadingBlocker?.SetActive(false);
-
-                MonoBehaviour[] b = FindObjectsOfType<MonoBehaviour>();
-                foreach (MonoBehaviour mono in b)
+                SceneHelper.DismissBlockers();
+                ToggleBehaviours(true);
+            }
+        }
+        public static void ToggleBehaviours(bool val)
+        {
+            MonoBehaviour[] b = FindObjectsOfType<MonoBehaviour>();
+            foreach (MonoBehaviour mono in b)
+            {
+                if (mono != null && mono.gameObject.scene.name != "DontDestroyOnLoad")
                 {
-                    if (mono != null && mono.gameObject.scene.name != "DontDestroyOnLoad")
-                    {
-                        mono.enabled = true;
-                    }
+                    if (!val) mono.CancelInvoke();
+                    mono.enabled = val;
                 }
             }
         }
