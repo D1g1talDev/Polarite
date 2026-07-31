@@ -702,11 +702,6 @@ namespace Polarite.Multiplayer
                     if (member1.Id != NetworkManager.Id && member1.Id != member.Id)
                         SendPacket(PacketType.Join, w.GetBytes(), member1.Id);
                 }
-                // from raw id to Net.Dev
-                if (Net.Dev(member.Id))
-                {
-                    ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("DevJoin"), Random.Range(0.95f, 1.15f), CameraController.Instance.transform, 1f);
-                }
                 PlayerList.UpdatePList();
             }
         }
