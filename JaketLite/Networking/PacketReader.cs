@@ -766,7 +766,7 @@ namespace Polarite.Multiplayer
                 case PacketType.Trigger:
                     {
                         // you don't want to see minos with trigger sync enabled...
-                        if(SceneHelper.CurrentScene == "Level P-1" || SceneHelper.CurrentScene == "Level P-2")
+                        if(SceneHelper.CurrentScene == "Level P-1" || SceneHelper.CurrentScene == "Level P-2" || SceneHelper.CurrentScene == "Level 1-E" || SceneHelper.CurrentScene == "CreditsMuseum2")
                         {
                             break;
                         }

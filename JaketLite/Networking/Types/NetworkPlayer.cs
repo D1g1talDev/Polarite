@@ -504,6 +504,7 @@ namespace Polarite.Multiplayer
             transform.rotation = Quaternion.identity;
             gravity = new Vector3(0, -40, 0);
             UpdGravOff();
+            UpdateSkin(currentSkin, true);
         }
         public void GoBackToIdleShop()
         {
@@ -687,7 +688,7 @@ namespace Polarite.Multiplayer
         {
             NameTag.SetHP(hp);
         }
-        public void UpdateSkin(Skin skin)
+        public void UpdateSkin(Skin skin, bool silent = false)
         {
             currentSkin = skin;
             SkinManagerV2.CustomColor(mainRenderer, skin.Base, skin.Light, skin.Metal, skin.Shinyness, MaskConsts.V1_BASE_MASK, "Base" + SteamId, 0);
@@ -700,7 +701,10 @@ namespace Polarite.Multiplayer
                 namePlate.color = skin.NameplateColor;
             }
 
-            ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("SkinChange"), 1f, MonoSingleton<CameraController>.Instance.transform, 1f);
+            if(!silent)
+            {
+                ItePlugin.SpawnSound(ItePlugin.mainBundle.LoadAsset<AudioClip>("SkinChange"), 1f, MonoSingleton<CameraController>.Instance.transform, 1f);
+            }
             SkinnedMeshRenderer[] allMats = head.gameObject.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             foreach (var a in allMats)
             {

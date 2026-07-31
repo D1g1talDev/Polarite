@@ -365,6 +365,14 @@ namespace Polarite.Multiplayer
                 UIAnchors.Refresh();
             }
         }
+        public static void LoadingBlocker(string sub)
+        {
+            if(SceneHelper.Instance != null)
+            {
+                SceneHelper.Instance.loadingBlocker.SetActive(true);
+                SceneHelper.SetLoadingSubtext(sub);
+            }
+        }
 
         public async Task JoinLobby(ulong lobbyId)
         {
@@ -443,13 +451,34 @@ namespace Polarite.Multiplayer
 
                 while(!ClientToHost.Connected)
                 {
+                    MonoBehaviour[] b = FindObjectsOfType<MonoBehaviour>();
+                    foreach (MonoBehaviour mono in b)
+                    {
+                        if (mono != null && mono.gameObject.scene.name != "DontDestroyOnLoad")
+                        {
+                            mono.CancelInvoke();
+                            mono.enabled = false;
+                        }
+                    }
+
                     Logs.Debug("Client state: " + ClientToHost.Connection.DetailedStatus(), this);
+                    LoadingBlocker("<color=yellow>Connecting...</color>");
                     await Task.Delay(100);
                 }
             }
             else
             {
                 DisplayError("Failed to join lobby.");
+                SceneHelper.Instance.loadingBlocker?.SetActive(false);
+
+                MonoBehaviour[] b = FindObjectsOfType<MonoBehaviour>();
+                foreach (MonoBehaviour mono in b)
+                {
+                    if (mono != null && mono.gameObject.scene.name != "DontDestroyOnLoad")
+                    {
+                        mono.enabled = true;
+                    }
+                }
             }
         }
 
@@ -942,11 +971,14 @@ namespace Polarite.Multiplayer
         }
         private IEnumerator DelayJoinAnnounceClient()
         {
+            LoadingBlocker("<color=green>Connected! <color=orange>Sending over skin data...</color></color>");
             yield return new WaitForSeconds(0.45f);
             PacketWriter w = new PacketWriter();
             w.WriteSkin(ItePlugin.currentSkin);
             BroadcastPacket(PacketType.Skin, w.GetBytes());
+            LoadingBlocker($"<color=green>Skin data sent! Preparing to load into <color=orange>{CurrentLobby.GetData("levelName")}...</color></color>");
             yield return new WaitForSeconds(0.1f);
+            ItePlugin.CustomTogglePlayer(true);
             LoadLevelAndDifficulty(CurrentLobby);
         }
         public static ulong GetNearestPlayerID(Vector3 pos)
