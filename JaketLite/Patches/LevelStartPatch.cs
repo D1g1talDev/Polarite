@@ -33,6 +33,19 @@ namespace Polarite.Patches
                 {
                     NetworkManager.Instance.CurrentLobby.SetData("levelStarted", "1");
                 }
+                if (NetworkManager.ClientAndConnected)
+                {
+                    if(NetworkManager.Instance.CurrentLobby.GetData("checkpoint") != "0")
+                    {
+                        CheckPoint p = SceneObjectCache.Find(NetworkManager.Instance.CurrentLobby.GetData("checkpoint")).GetComponent<CheckPoint>();
+                        if(p != null)
+                        {
+                            p.ActivateCheckPoint();
+                            p.OnRespawn();
+                            ItePlugin.Flash(true, false);
+                        }
+                    }
+                }
                 if(CyberSync.Active)
                 {
                     if (CyberSync.current == null && EndlessGrid.Instance.gameObject.activeSelf && CyberSync.LobbyHasPattern && int.TryParse(NetworkManager.Instance.CurrentLobby.GetData("cyberWave"), out int wav) && NetworkManager.ClientAndConnected)

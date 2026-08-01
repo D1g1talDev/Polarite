@@ -850,10 +850,6 @@ namespace Polarite
                 {
                     Time.timeScale = 1f;
                 }
-                if(SceneHelper.CurrentScene == "Level 8-3" && !HasDisabledRotators && NetworkManager.ClientAndConnected)
-                {
-                    FraudThreeRotators();
-                }
                 Application.runInBackground = true;
                 DeadPatch.SpectateOnDeath = NetworkManager.Instance.CurrentLobby.MemberCount > 1 || !NetworkManager.Sandbox;
                 DeadPatch.TickTimer();
@@ -1557,6 +1553,10 @@ namespace Polarite
         }
         public void CleanLevelOfSoftlocks()
         {
+            if(SceneHelper.CurrentScene == "Level 8-3" && NetworkManager.ClientAndConnected)
+            {
+                FraudThreeRotators();
+            }
             foreach (string softlock in PathsToSoftlocks)
             {
                 bool v2Patch = softlock == "V2 - Arena/V2 Stuff(Clone)/Door";

@@ -56,6 +56,7 @@ namespace Polarite.Patches
                 NetworkManager.Instance.CurrentLobby.SetData("level", sceneName);
                 NetworkManager.Instance.CurrentLobby.SetData("difficulty", PrefsManager.Instance.GetInt("difficulty").ToString());
                 NetworkManager.Instance.CurrentLobby.SetData("levelStarted", "0");
+                NetworkManager.Instance.CurrentLobby.SetData("checkpoint", "0");
                 return true;
             }
             if(NetworkManager.ClientAndConnected && sceneName == "Endless" && CyberSync.Active)
@@ -98,6 +99,7 @@ namespace Polarite.Patches
             {
                 PacketWriter w = new PacketWriter();
                 NetworkManager.Instance.BroadcastPacket(PacketType.Restart, w.GetBytes());
+                NetworkManager.Instance.CurrentLobby.SetData("checkpoint", "0");
                 return true;
             }
             if(CyberSync.Active && !ItePlugin.cameFromPacketRestart && NetworkManager.ClientAndConnected)

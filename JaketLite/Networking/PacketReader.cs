@@ -591,6 +591,10 @@ namespace Polarite.Multiplayer
                             checkpoint.activated = true;
                             checkpoint.ActivateCheckPoint();
                             NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(senderId, true));
+                            if(NetworkManager.HostAndConnected)
+                            {
+                                NetworkManager.Instance.CurrentLobby.SetData("checkpoint", path);
+                            }
                             if (NetworkPlayer.selfIsGhost)
                             {
                                 ItePlugin.Ghost(false);

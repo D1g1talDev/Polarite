@@ -1,15 +1,12 @@
-﻿using System;
+﻿using HarmonyLib;
+using Polarite.Multiplayer;
+using Steamworks;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-using HarmonyLib;
-
-using Polarite.Multiplayer;
-
-using Steamworks;
-
 using UnityEngine;
 
 namespace Polarite.Patches
@@ -132,6 +129,10 @@ namespace Polarite.Patches
                 w.WriteString(SceneObjectCache.GetScenePath(__instance.gameObject));
                 NetworkManager.Instance.BroadcastPacket(PacketType.Checkpoint, w.GetBytes());
                 NetworkManager.ShoutCheckpoint(NetworkManager.GetNameOfId(NetworkManager.Id, true));
+                if (NetworkManager.HostAndConnected)
+                {
+                    NetworkManager.Instance.CurrentLobby.SetData("checkpoint", SceneObjectCache.GetScenePath(__instance.gameObject));
+                }
             }
         }
     }

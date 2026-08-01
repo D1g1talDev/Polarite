@@ -329,6 +329,7 @@ namespace Polarite.Multiplayer
                 CurrentLobby.SetData("priv", lobbyType == LobbyType.Private ? "1" : "0");
                 CurrentLobby.SetData("ver", ItePlugin.Version);
                 CurrentLobby.SetData("devnick", Nickname.Get());
+                CurrentLobby.SetData("checkpoint", StatsManager.Instance.currentCheckPoint != null ? SceneObjectCache.GetScenePath(StatsManager.Instance.currentCheckPoint.gameObject) : "0");
                 PrivateLobby = lobbyType == LobbyType.Private;
                 onJoin?.Invoke(LobbyCodeUtil.ToBase36(CurrentLobby.Id));
                 SetRichPresenceForLobby(CurrentLobby);
