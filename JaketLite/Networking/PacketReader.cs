@@ -1,5 +1,6 @@
 ﻿using Polarite.Debugging;
 using Polarite.Networking;
+using Polarite.Networking.Extensions;
 using Polarite.Networking.Skins;
 using Polarite.Patches;
 using Polarite.SamTTS;
@@ -363,6 +364,9 @@ namespace Polarite.Multiplayer
                         var p = NetworkPlayer.Find(senderId);
                         string name = NetworkManager.GetNameOfId(senderId, true);
                         bool tts;
+
+                        // i now have to do this because of the Polarite TMP mod
+                        text = text.WithoutTMP();
 
                         string format;
                         if (Net.Dev(senderId) && !p.nicknamed)
