@@ -548,6 +548,7 @@ namespace Polarite.Multiplayer
             PrivateLobby = false;
             ItePlugin.ReverseArmCheck();
             ItePlugin.ReverseAnimationCheck();
+            ChatUI.Instance.ShowUIForBit(1f);
             if(bootToMenu)
             {
                 SceneHelper.LoadScene("Main Menu");
