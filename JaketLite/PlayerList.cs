@@ -104,8 +104,19 @@ namespace Polarite
         }
         public static async void FetchAvatar(Image target, Friend user, bool setSize = true, bool fake = false)
         {
-            Steamworks.Data.Image? image = await user.GetMediumAvatarAsync();
-            if (image.HasValue)
+            Steamworks.Data.Image? image;
+            bool hasSteamPfp = true;
+            // sometimes steam fails to load a pfp because of steam not being updated to the latest version
+            try
+            {
+                image = await user.GetMediumAvatarAsync();
+            }
+            catch (Exception)
+            {
+                image = null;
+                hasSteamPfp = false;
+            }
+            if (image.HasValue && hasSteamPfp)
             {
                 Texture2D texture2D = new Texture2D((int)image.Value.Width, (int)image.Value.Height, TextureFormat.RGBA32, false);
                 texture2D.LoadRawTextureData(image.Value.Data);
@@ -126,6 +137,12 @@ namespace Polarite
                 target.sprite = fake ? ItePlugin.mainBundle.LoadAsset<Sprite>("steamdefault") : Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
                 target.preserveAspect = true;
                 if (setSize) target.SetNativeSize();
+            }
+            else
+            {
+                target.sprite = ItePlugin.mainBundle.LoadAsset<Sprite>("steamdefault");
+                target.preserveAspect = true;
+                if(setSize) target.SetNativeSize();
             }
         }
 

@@ -123,6 +123,7 @@ namespace Polarite.Multiplayer
         public Client Client = new Client();
 
         public bool valid;
+        public string errorLog;
 
         public static Dictionary<ulong, Connection> connections = new Dictionary<ulong, Connection>();
 
@@ -136,15 +137,17 @@ namespace Polarite.Multiplayer
             }
         }
 
-        public static bool Success(GameObject plugin)
+        public static bool Success(GameObject plugin, out string errorLog)
         {
             if(!plugin.TryGetComponent<NetworkManager>(out var nm))
             {
                 nm = plugin.AddComponent<NetworkManager>();
+                errorLog = nm.errorLog;
                 return nm.valid;
             }
             else
             {
+                errorLog = nm.errorLog;
                 return nm.valid;
             }
         }
@@ -228,15 +231,18 @@ namespace Polarite.Multiplayer
             catch (Exception e)
             {
                 Logs.Error("[Net] Failed to init SteamClient: " + e, this);
+                errorLog = "[Net] Failed to init SteamClient: " + e;
                 return;
             }
 
             if (!SteamClient.IsValid)
             {
                 Logs.Error("[Net] SteamClient is not initialized.", this);
+                errorLog = "[Net] SteamClient is not initialized.";
                 return;
             }
             valid = true;
+            errorLog = "NO ERRORS!";
 
             SteamMatchmaking.OnLobbyMemberJoined += HandleMemberJoined;
             SteamMatchmaking.OnLobbyMemberLeave += HandleMemberLeft;

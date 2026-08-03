@@ -369,9 +369,9 @@ namespace Polarite
                 }
                 log = Logger;
                 harm.PatchAll();
-                if(!NetworkManager.Success(gameObject))
+                if(!NetworkManager.Success(gameObject, out string e))
                 {
-                    Logger.LogWarning("Polarite failed to connect with Steam!");
+                    Logger.LogWarning("Polarite failed to connect with Steam! Reason: " + e);
                     harm.UnpatchSelf();
                     Instance = null;
                     Destroy(this);
