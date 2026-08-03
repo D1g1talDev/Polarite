@@ -945,6 +945,7 @@ namespace Polarite
             }
             SkinManagerV2.SetIcon(NetworkManager.Id);
             VoiceUI.RefreshIcons(useSkinInsteadOfPFP.value);
+            BestiaryEntryManager.UpdateSOAndPreview();
         }
 
         public void Update()
@@ -1797,6 +1798,7 @@ namespace Polarite
             NetworkPlayer.Shopping = false;
             NetworkManager.LocPlayerCheck();
             Net.List?.Clear();
+            BestiaryEntryManager.UpdateSOAndPreview();
         }
         public void ForceHideNotif()
         {

@@ -493,6 +493,7 @@
     <Compile Include="Debugging\Logs.cs" />
     <Compile Include="Debugging\ShaderPropGrabber.cs" />
     <Compile Include="DevNickname.cs" />
+    <Compile Include="BestiaryEntryManager.cs" />
     <Compile Include="Networking\Extensions\StringExtensions.cs" />
     <Compile Include="Networking\Extensions\TaskExtensions.cs" />
     <Compile Include="Networking\Skins\SkinManagerV2.cs" />
@@ -532,6 +533,7 @@
     <Compile Include="Patches\RevolverPatch.cs" />
     <Compile Include="Patches\SaveFilePatches.cs" />
     <Compile Include="Patches\ShockwavePatch.cs" />
+    <Compile Include="Patches\SpawnableDatabasePatches.cs" />
     <Compile Include="Patches\SpecialHudCameraAddPatch.cs" />
     <Compile Include="Patches\StatsManagerPatch.cs" />
     <Compile Include="Ragdoll.cs" />

@@ -500,6 +500,7 @@ namespace Polarite.Multiplayer
                 writer.WriteULong(owner);
                 // for running animations to work
                 writer.WriteVector3(EE.nma != null ? EE.nma.velocity : Vector3.zero);
+                writer.WriteBool(GetComponent<BestiaryEntryManager.IsPolarV2>() != null);
                 base.SendState(writer, PacketType.EnemyState);
             }
         }

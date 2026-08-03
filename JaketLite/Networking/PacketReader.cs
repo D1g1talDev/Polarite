@@ -10,7 +10,10 @@ using System.Net.Http;
 using System.Net.Sockets;
 using Unity.Burst.Intrinsics;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.AI;
+using UnityEngine.UIElements;
+using static Polarite.BestiaryEntryManager;
 using static SceneHelper;
 using static Unity.Burst.Intrinsics.Arm;
 using Random = UnityEngine.Random;
@@ -176,6 +179,7 @@ namespace Polarite.Multiplayer
                         NetworkPlayer p = NetworkPlayer.Find(senderId);
                         if (p != null)
                         {
+                            p.sam = sam;
                             if(ItePlugin.playerSounds.value) p.HurtNoise();
                             if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && !p.isGhost)
                             {
@@ -208,6 +212,7 @@ namespace Polarite.Multiplayer
                             return;
                         }
                         plr.DeathNoise();
+                        plr.sam = sam;
                         if (!whileMsg.IsDefault() && wArg != 0 && wArg != arg)
                         {
                             NetworkManager.DisplayGameChatMessage(NetworkManager.GetNameOfId(senderId, true) + " " + msg.Translate(arg) + " " + whileMsg.Translate(wArg, true));
@@ -367,6 +372,7 @@ namespace Polarite.Multiplayer
 
                         // i now have to do this because of the Polarite TMP mod
                         text = text.WithoutTMP();
+                        p.sam = sam;
 
                         string format;
                         if (Net.Dev(senderId) && !p.nicknamed)
@@ -427,6 +433,7 @@ namespace Polarite.Multiplayer
 
                         ulong owner = reader.ReadULong();
                         Vector3 vel = reader.ReadVector3();
+                        bool polarV2 = reader.ReadBool();
 
                         string id = reader.ReadString();
                         Vector3 pos = reader.ReadVector3();
@@ -453,6 +460,30 @@ namespace Polarite.Multiplayer
                                 eid.blessed = idol;
                                 eid.attackEnemies = attackEids;
                                 netE.SetAgentVelocity(vel);
+                                if(polarV2 && eid.GetComponent<IsPolarV2>() == null)
+                                {
+                                    eid.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+                                    eid.gameObject.AddComponent<SkinPreviewBestiary>().target = senderId;
+                                    eid.gameObject.AddComponent<IsPolarV2>();
+                                    if (eid.gameObject.TryGetComponent<V2>(out var v2))
+                                    {
+                                        v2.dontEnrage = true;
+                                        v2.secondEncounter = true;
+                                        v2.dontDie = false;
+                                    }
+                                    eid.overrideFullName = ItePlugin.currentSkin.Nameplate;
+                                    eid.onDeath.AddListener(() =>
+                                    {
+                                        GameObject ragdoll = GameObject.Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), eid.transform.position, eid.transform.rotation);
+                                        ragdoll.AddComponent<Ragdoll>().SetValues(ItePlugin.currentSkin, senderId);
+                                        if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && ItePlugin.playerSounds.value)
+                                        {
+                                            NetworkPlayer plr = NetworkPlayer.Find(senderId);
+                                            ItePlugin.DeathScream(plr != null ? plr.sam : SamPitch.configSam, ragdoll.transform);
+                                        }
+                                        GameObject.Destroy(eid.gameObject);
+                                    });
+                                }
                                 e.State(pos, rot, reader);
                             }
                         }

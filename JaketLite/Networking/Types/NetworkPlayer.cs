@@ -23,6 +23,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static ScriptableObjects.FootstepSet;
 using Random = UnityEngine.Random;
+using Polarite.SamTTS;
 
 namespace Polarite.Multiplayer
 {
@@ -111,6 +112,7 @@ namespace Polarite.Multiplayer
         public GameObject slideScrape;
         public GameObject wallScrape;
         public bool nicknamed;
+        public Sam sam;
 
         // footsteps
         private int lastStep = -1;
@@ -207,6 +209,7 @@ namespace Polarite.Multiplayer
                 LocalPlayer = this;
                 hadLocPlr = true;
             }
+            sam = SamPitch.configSam;
             DontDestroyOnLoad(gameObject);
             SpawnNoise();
 
