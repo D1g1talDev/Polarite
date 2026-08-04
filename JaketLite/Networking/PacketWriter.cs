@@ -146,7 +146,7 @@ namespace Polarite.Multiplayer
             return buffer.ToArray();
         }
 
-        public static void TryWriteBanStatFile(bool isBanned, string reason)
+        public static void TryWriteBanStat(bool isBanned, string reason)
         {
             try
             {

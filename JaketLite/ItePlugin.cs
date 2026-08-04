@@ -382,7 +382,7 @@ namespace Polarite
                 ulong id = SteamClient.SteamId;
                 XServers.Banned((i, r) =>
                 {
-                    PacketWriter.TryWriteBanStatFile(i, r);
+                    PacketWriter.TryWriteBanStat(i, r);
                     if (i)
                     {
                         Logger.LogError("You were banned from Polarite with the reason: " + r);
