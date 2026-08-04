@@ -389,6 +389,7 @@ namespace Polarite
                         harm.UnpatchSelf();
                         Instance = null;
                         Destroy(this);
+                        Destroy(NetworkManager.Instance);
                         return;
                     }
                 }, id);
@@ -399,6 +400,7 @@ namespace Polarite
                     harm.UnpatchSelf();
                     Instance = null;
                     Destroy(this);
+                    Destroy(NetworkManager.Instance);
                     return;
                 }
                 SceneManager.sceneLoaded += OnSceneLoaded;
