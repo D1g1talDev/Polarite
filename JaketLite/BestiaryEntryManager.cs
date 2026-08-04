@@ -40,9 +40,16 @@ namespace Polarite
                         {
                             GameObject ragdoll = Instantiate(ItePlugin.mainBundle.LoadAsset<GameObject>("DeathRagdoll"), eid.transform.position, eid.transform.rotation);
                             ragdoll.AddComponent<Ragdoll>().SetValues(ItePlugin.currentSkin, NetworkManager.Id);
-                            if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && ItePlugin.playerSounds.value)
+                            try
                             {
-                                ItePlugin.DeathScream(SamPitch.configSam, ragdoll.transform);
+                                if (ItePlugin.ttsHurtAndDeath.value && ItePlugin.canTTS.value && ItePlugin.playerSounds.value)
+                                {
+                                    ItePlugin.DeathScream(SamPitch.configSam, ragdoll.transform);
+                                }
+                            }
+                            catch
+                            {
+                                // added this incase you were banned
                             }
                             Destroy(eid.gameObject);
                         });
@@ -108,7 +115,7 @@ namespace Polarite
             if(data == null) data = SpawnableObject.CreateInstance("SpawnableObject") as SpawnableObject;
             data.name = "Player";
             data.description = "Up to your interpretation.";
-            data.backgroundColor = Color.gray;
+            data.backgroundColor = new Color(0.4784f, 0.6196f, 0.851f);
             if (skinModel == null) MakePreview();
             data.preview = skinModel.gameObject;
             data.identifier = "polar.player";

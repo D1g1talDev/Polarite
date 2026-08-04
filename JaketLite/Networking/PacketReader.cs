@@ -4,6 +4,7 @@ using Polarite.Networking.Extensions;
 using Polarite.Networking.Skins;
 using Polarite.Patches;
 using Polarite.SamTTS;
+using Polarite.Web;
 using Steamworks;
 using System;
 using System.Net.Http;
@@ -375,16 +376,24 @@ namespace Polarite.Multiplayer
                         p.sam = sam;
 
                         string format;
-                        if (Net.Dev(senderId) && !p.nicknamed)
+                        if(!XServers.Servers || p.nicknamed || ChatRoles.Get(senderId).Count <= 0)
                         {
-                            format = $"<color=green>[DEV] {name}</color>: {text}";
-                            tts = true;
+                            if (Net.Dev(senderId) && !p.nicknamed)
+                            {
+                                format = $"<color=green>[DEV] {name}</color>: {text}";
+                                tts = true;
+                            }
+                            else
+                            {
+                                format = (NetworkManager.Instance.CurrentLobby.Owner.Id == senderId)
+                                    ? $"<color=#00F2FF>{name}</color>: {text}"
+                                    : $"<color=grey>{name}</color>: {text}";
+                                tts = true;
+                            }
                         }
                         else
                         {
-                            format = (NetworkManager.Instance.CurrentLobby.Owner.Id == senderId)
-                                ? $"<color=#00F2FF>{name}</color>: {text}"
-                                : $"<color=grey>{name}</color>: {text}";
+                            format = $"{ChatRoles.Tags(senderId, false)} {name}{ChatRoles.Finisher(senderId)}: {text}";
                             tts = true;
                         }
                         /* disabling for now

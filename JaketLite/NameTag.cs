@@ -90,7 +90,7 @@ namespace Polarite
             }
             else
             {
-                playerName = NetworkManager.GetNameOfId(id);
+                playerName = NetworkManager.GetNameOfId(id, dontIncludeTags: true);
                 PlayerList.FetchAvatar(pfpI, new Friend(id), fake: false);
             }
             nicknamed = value;

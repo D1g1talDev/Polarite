@@ -2,6 +2,7 @@
 using Polarite.SamTTS;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 using UnityEngine;
@@ -143,6 +144,39 @@ namespace Polarite.Multiplayer
         public byte[] GetBytes()
         {
             return buffer.ToArray();
+        }
+
+        public static void TryWriteBanStatFile(bool isBanned, string reason)
+        {
+            try
+            {
+                if(!Directory.Exists(Path.Combine(Application.persistentDataPath, "Debug"))) Directory.CreateDirectory(Path.Combine(Application.persistentDataPath, "Debug"));
+                PacketWriter file = new PacketWriter();
+                file.WriteColor(isBanned ? Color.red : Color.green);
+                file.WriteString(reason);
+                File.WriteAllBytes(Path.Combine(Application.persistentDataPath, "Debug", "s.pstat"), file.GetBytes());
+            }
+            catch
+            {
+                return;
+            }
+        }
+        public static void TryReadBanStat(out bool isBanned, out string reason)
+        {
+            try
+            {
+                byte[] data = File.ReadAllBytes(Path.Combine(Application.persistentDataPath, "Debug", "s.pstat"));
+                BinaryPacketReader reader = new BinaryPacketReader(data, data.Length);
+                Color col = reader.ReadColor();
+                isBanned = col == Color.red;
+                reason = reader.ReadString();
+            }
+            catch
+            {
+                isBanned = false;
+                reason = null;
+                return;
+            }
         }
     }
 }

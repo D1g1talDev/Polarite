@@ -3,6 +3,7 @@ using Polarite.Debugging;
 using Polarite.Networking;
 using Polarite.Networking.Extensions;
 using Polarite.SamTTS;
+using Polarite.Web;
 using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
@@ -84,13 +85,19 @@ namespace Polarite.Multiplayer
                 {
                     // prioritise DEV tag if this user is a developer
                     string author;
-                    if (Net.Dev(NetworkManager.Id) && !NetworkPlayer.LocalPlayer.nicknamed)
-                        author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
-                    else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
-                        author = $"<color=#00F2FF>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
+                    if(!XServers.Servers || NetworkPlayer.LocalPlayer.nicknamed || ChatRoles.Get().Count <= 0)
+                    {
+                        if (Net.Dev(NetworkManager.Id) && !NetworkPlayer.LocalPlayer.nicknamed)
+                            author = $"<color=green>[DEV] {NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
+                        else if (NetworkManager.Instance.CurrentLobby.Owner.Id == NetworkManager.Id)
+                            author = $"<color=#00F2FF>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
+                        else
+                            author = $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
+                    }
                     else
-                        author = $"<color=grey>{NetworkManager.GetNameOfId(NetworkManager.Id)}</color>: {s.WithoutTMP()}";
-
+                    {
+                        author = $"{ChatRoles.Tags(NetworkManager.Id, false)} {NetworkManager.GetNameOfId(NetworkManager.Id)}{ChatRoles.Finisher(NetworkManager.Id)}: {s.WithoutTMP()}";
+                    }
                     OnSubmitMessage(author, true, s.WithoutTMP(), sam: SamPitch.configSam);
                     StopTyping();
                 });

@@ -1,5 +1,6 @@
 ﻿using Polarite.Debugging;
 using Polarite.Multiplayer;
+using Polarite.Web;
 using Steamworks;
 using Steamworks.Data;
 using System;
@@ -30,6 +31,18 @@ namespace Polarite.Networking.Sockets
                 NetworkManager.DisplayJoin("red", $"Rejected connection {NetworkManager.GetNameOfId(info.Identity.SteamId, true)} (banned)");
                 connection.Close();
                 return;
+            }
+            if(XServers.Servers)
+            {
+                XServers.Banned((i, r) =>
+                {
+                    if (i)
+                    {
+                        NetworkManager.DisplayJoin("red", $"Rejected connection {NetworkManager.GetNameOfId(info.Identity.SteamId, true)} (user was banned off the servers with reason: {r})");
+                        connection.Close();
+                        return;
+                    }
+                }, info.Identity.SteamId);
             }
             if (NetworkManager.Instance.currentType == LobbyType.FriendsOnly && !new Friend(info.Identity.SteamId).IsFriend)
             {

@@ -1,4 +1,13 @@
-﻿using System;
+﻿using Discord;
+using Mono.Cecil.Cil;
+using Polarite.Debugging;
+using Polarite.Networking;
+using Polarite.Networking.Extensions;
+using Polarite.Networking.Sockets;
+using Polarite.Patches;
+using Steamworks;
+using Steamworks.Data;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -8,28 +17,14 @@ using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
-using Discord;
-
-using Mono.Cecil.Cil;
-using Polarite.Debugging;
-using Polarite.Networking;
-using Polarite.Networking.Extensions;
-using Polarite.Networking.Sockets;
-using Polarite.Patches;
-
-using Steamworks;
-using Steamworks.Data;
-
 using UnityEngine;
 using UnityEngine.Analytics;
 using UnityEngine.SocialPlatforms;
-
 using static Polarite.Multiplayer.PacketReader;
 using static UnityEngine.GraphicsBuffer;
-
 using Lobby = Steamworks.Data.Lobby;
 using Random = UnityEngine.Random;
+using Polarite.Web;
 
 namespace Polarite.Multiplayer
 {
@@ -273,7 +268,7 @@ namespace Polarite.Multiplayer
             SteamClient.Shutdown();
         }
 
-        public static string GetNameOfId(ulong id, bool colorName = false)
+        public static string GetNameOfId(ulong id, bool colorName = false, bool dontIncludeTags = false)
         {
             bool useNickname = false;
             if(InLobby)
@@ -283,8 +278,13 @@ namespace Polarite.Multiplayer
                 else
                     useNickname = Net.Dev(id);
             }
-            string colorHex = Net.Dev(id) && !useNickname ? "color=green" : id == GetHostID() ? "color=#00F2FF" : "";
-            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"<{colorHex}>{(useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP())}</color>";
+            string colorHex;
+            if (!XServers.Servers || useNickname || ChatRoles.Get(id).Count <= 0)
+                colorHex = Net.Dev(id) && !useNickname ? "<color=green>" : id == GetHostID() ? "<color=#00F2FF>" : "";
+            else
+                colorHex = $"{ChatRoles.Tags(id, dontIncludeTags)} ";
+
+            if (colorName && !string.IsNullOrEmpty(colorHex)) return $"{colorHex}{(useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP())}{(ChatRoles.Get(id).Count <= 0 || players[id].nicknamed || !XServers.Servers ? "</color>" : ChatRoles.Finisher(id))}";
             return useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP();
         }
         public async Task CreateLobby(int maxPlayers = 10, LobbyType lobbyType = LobbyType.Public, string lobbyName = "My Lobby", Action<string> onJoin = null, bool canCheat = false)

@@ -3,6 +3,8 @@ using BepInEx.Logging;
 using Discord;
 using HarmonyLib;
 using Logic;
+using Newtonsoft.Json.Linq;
+using plog;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
@@ -10,14 +12,20 @@ using PluginConfig.API.Functionals;
 using Polarite.Debugging;
 using Polarite.Multiplayer;
 using Polarite.Networking;
+using Polarite.Networking.Extensions;
+using Polarite.Networking.Skins;
 using Polarite.Patches;
+using Polarite.SamTTS;
+using Polarite.VoiceChat;
 using Polarite.Web;
 using Steamworks;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -25,23 +33,17 @@ using TMPro;
 using ULTRAKILL.Cheats;
 using ULTRAKILL.Enemy;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.Analytics;
 using UnityEngine.Localization.SmartFormat.Core.Output;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using plog;
 using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.UIElements.UxmlAttributeDescription;
 using LobbyType = Polarite.Multiplayer.LobbyType;
 using NetworkManager = Polarite.Multiplayer.NetworkManager;
-using Polarite.Networking.Skins;
-using Polarite.SamTTS;
-using UnityEngine.AddressableAssets;
-using Polarite.VoiceChat;
-using System;
 using Random = UnityEngine.Random;
-using System.Runtime.InteropServices;
-using Polarite.Networking.Extensions;
 
 namespace Polarite
 {
@@ -377,6 +379,28 @@ namespace Polarite
                     Destroy(this);
                     return;
                 }
+                ulong id = SteamClient.SteamId;
+                XServers.Banned((i, r) =>
+                {
+                    PacketWriter.TryWriteBanStatFile(i, r);
+                    if (i)
+                    {
+                        Logger.LogError("You were banned from Polarite with the reason: " + r);
+                        harm.UnpatchSelf();
+                        Instance = null;
+                        Destroy(this);
+                        return;
+                    }
+                }, id);
+                PacketWriter.TryReadBanStat(out bool i1, out string r1);
+                if (i1)
+                {
+                    Logger.LogError("You were banned from Polarite with the reason: " + r1);
+                    harm.UnpatchSelf();
+                    Instance = null;
+                    Destroy(this);
+                    return;
+                }
                 SceneManager.sceneLoaded += OnSceneLoaded;
                 config.SetIconWithURL("file://" + Path.Combine(Directory.GetParent(Info.Location).FullName, "icon.png"));
                 apply.onClick += () =>
@@ -531,6 +555,11 @@ namespace Polarite
                 Logger.LogError("Polarite failed to load! Error message: " + ex.Message);
                 harm.UnpatchSelf();
             }
+        }
+        public void Goodbye()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            harm.UnpatchSelf();
         }
 
         public Skin DefaultSkin()
@@ -2033,6 +2062,7 @@ namespace Polarite
                 {
                     Logs.Error(www.error + " " + www.downloadHandler.text, this);
                     onFail?.Invoke(mainBundle.LoadAsset<Sprite>("unknown"), "???", $"Failed to retrieve MOTD. ({www.error})");
+                    XServers.Servers = false;
                     yield break;
                 }
                 else
@@ -2055,6 +2085,7 @@ namespace Polarite
                         {
                             Logs.Info(img.error + " " + img.downloadHandler.text, name: "X-Point");
                             onFail?.Invoke(mainBundle.LoadAsset<Sprite>("unknown"), "???", $"Failed to retrieve MOTD. ({img.error})");
+                            XServers.Servers = false;
                             yield break;
                         }
                         else
@@ -2085,6 +2116,7 @@ namespace Polarite
                                 Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector3.zero);
                                 sprite.texture.filterMode = FilterMode.Point;
 
+                                XServers.Servers = true;
                                 onComplete?.Invoke(sprite, username, message);
                             }
                         }
@@ -2134,6 +2166,40 @@ namespace Polarite
                 yield return new WaitForSecondsRealtime(typeRate / 2);
             }
             typewriters.Remove(new Typewriter(str, typeRate, text));
+        }
+        public static IEnumerator GetRolesFromServer(Action<List<ServerRole>> onRoles)
+        {
+            using (UnityWebRequest www = UnityWebRequest.Get("https://polaritemod.com/roles.json"))
+            {
+                yield return www.SendWebRequest();
+                if(www.result == UnityWebRequest.Result.Success)
+                {
+                    List<ServerRole> grabbed = new List<ServerRole>();
+                    JObject obj = JObject.Parse(www.downloadHandler.text);
+                    foreach(var prop in obj.Properties())
+                    {
+                        grabbed.Add(new ServerRole(prop.Name, (string)prop.Children().ToArray()[0].Children().ToArray()[0].Children().ToArray()[0], (JArray)prop.Children().ToArray()[0].Children().ToArray()[1].Children().ToArray()[0]));
+                    }
+                    onRoles.Invoke(grabbed);
+                    yield break;
+                }
+                Logs.DebugError("GetRolesFromServer failed: " + www.error);
+                XServers.Servers = false;
+            }
+        }
+        public static IEnumerator GetIsBanned(Action<bool, string> onBanned, ulong user)
+        {
+            using (UnityWebRequest www = UnityWebRequest.Get($"https://polaritemod.com/banned.json?query={user}"))
+            {
+                yield return www.SendWebRequest();
+                if (www.result == UnityWebRequest.Result.Success)
+                {
+                    JObject obj = JObject.Parse(www.downloadHandler.text);
+                    onBanned.Invoke((bool)obj["isbanned"], (string)obj["reason"]);
+                    yield break;
+                }
+                XServers.Servers = false;
+            }
         }
         public static void Typewriter(string str, float typeRate, TextMeshProUGUI text)
         {

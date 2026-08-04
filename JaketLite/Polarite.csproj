@@ -608,6 +608,7 @@
     <Compile Include="VoiceChat\VoiceChatManager.cs" />
     <Compile Include="VoiceChat\VoicePTTBind.cs" />
     <Compile Include="VoiceChat\VoiceUI.cs" />
+    <Compile Include="Web\ChatRoles.cs" />
     <Compile Include="Web\XServers.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using Polarite.Debugging;
 using Polarite.Multiplayer;
+using Polarite.VoiceChat;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Analytics;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Polarite.Web
@@ -22,6 +24,7 @@ namespace Polarite.Web
     {
         public static bool internet;
         public static bool canShowNotif = true;
+        public static bool Servers = true;
         public static void HasInternet(Action<bool> onComplete)
         {
             ItePlugin.Instance.StartCoroutine(ItePlugin.Instance.GooglePing(onComplete));
@@ -33,6 +36,10 @@ namespace Polarite.Web
         public static void GetMOTD(Action<Sprite, string, string> onComplete, Action<Sprite, string, string> onFail)
         {
             ItePlugin.Instance.StartCoroutine(ItePlugin.Instance.MOTDGet(onComplete, onFail));
+        }
+        public static void Banned(Action<bool, string> values, ulong target)
+        {
+            ItePlugin.Instance.StartCoroutine(ItePlugin.GetIsBanned(values, target));
         }
 
         public static void ExtractPFP(string url, Image img)
@@ -55,6 +62,10 @@ namespace Polarite.Web
             notif.userreference = "0";
             notif.user = "Polarite";
             ItePlugin.Instance.ShowNotif(notif, showForever);
+        }
+        public static void Roles(Action<List<ServerRole>> onRole)
+        {
+            ItePlugin.Instance.StartCoroutine(ItePlugin.GetRolesFromServer(onRole));
         }
     }
     public class GlobalNotificationListener : MonoBehaviour
@@ -109,11 +120,49 @@ namespace Polarite.Web
             {
                 while (notifications.TryDequeue(out GlobalNotification notif))
                 {
+                    if(notif.type == "usergotbanned")
+                    {
+                        UserJustGotBanned(notif.userreference);
+                        return;
+                    }
+                    if(notif.type == "usergotrole" || notif.type == "userungotrole")
+                    {
+                        ChatRoles.OnChatRoleUpdate(notif.role, notif.userreference);
+                        HandleNotif(notif);
+                        return;
+                    }
                     if(ShouldFlag(notif))
                     {
                         HandleNotif(notif);
                     }
                 }
+            }
+        }
+        public void UserJustGotBanned(string user)
+        {
+            ulong actual = ulong.Parse(user);
+            if(actual == NetworkManager.Id)
+            {
+                XServers.Banned((i, r) =>
+                {
+                    if(i)
+                    {
+                        if (NetworkManager.InLobby) NetworkManager.Instance.LeaveLobby();
+                        Logs.Error($"You have been banned from the Polarite servers with the reason: {r}");
+                        ItePlugin.Instance.Goodbye();
+                        Destroy(ItePlugin.currentUi.gameObject);
+                        Destroy(ItePlugin.Instance);
+                        if (NetworkPlayer.LocalPlayer != null) Destroy(NetworkPlayer.LocalPlayer);
+                        Destroy(NetworkManager.Instance);
+                        Destroy(VoiceChatManager.Instance);
+                        Destroy(ChatUI.Instance.chatPanel);
+                        Destroy(ChatUI.Instance);
+                        Destroy(VoiceUI.currentCanvas);
+                        Destroy(VoiceUI.Instance);
+                        Destroy(this);
+                        SceneHelper.RestartSceneAsync();
+                    }
+                }, actual);
             }
         }
         public void HandleNotif(GlobalNotification notif)
@@ -148,5 +197,6 @@ namespace Polarite.Web
         public string user;
         public string message;
         public string userreference;
+        public string role;
     }
 }

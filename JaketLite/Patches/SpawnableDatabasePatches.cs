@@ -19,7 +19,7 @@ namespace Polarite.Patches
             {
                 List<SpawnableObject> add = new List<SpawnableObject>();
                 add.AddRange(__instance.objects.enemies);
-                add.Add(BestiaryEntryManager.data);
+                add.Insert(14, BestiaryEntryManager.data);
                 __instance.objects.enemies = add.ToArray();
             }    
         }
@@ -35,7 +35,7 @@ namespace Polarite.Patches
             {
                 List<SpawnableObject> add = new List<SpawnableObject>();
                 add.AddRange(__instance.objects.enemies);
-                add.Add(BestiaryEntryManager.data);
+                add.Insert(14, BestiaryEntryManager.data);
                 __instance.objects.enemies = add.ToArray();
             }
         }
