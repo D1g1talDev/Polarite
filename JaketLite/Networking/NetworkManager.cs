@@ -282,7 +282,7 @@ namespace Polarite.Multiplayer
             if (!XServers.Servers || useNickname || ChatRoles.Get(id).Count <= 0)
                 colorHex = Net.Dev(id) && !useNickname ? "<color=green>" : id == GetHostID() ? "<color=#00F2FF>" : "";
             else
-                colorHex = $"{ChatRoles.Tags(id, dontIncludeTags)} ";
+                colorHex = dontIncludeTags ? $"{ChatRoles.Tags(id, true)}" : $"{ChatRoles.Tags(id, false)} ";
 
             if (colorName && !string.IsNullOrEmpty(colorHex)) return $"{colorHex}{(useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP())}{(ChatRoles.Get(id).Count <= 0 || players[id].nicknamed || !XServers.Servers ? "</color>" : ChatRoles.Finisher(id))}";
             return useNickname ? Instance.CurrentLobby.GetData("devnick") : new Friend(id).Name.WithoutTMP();

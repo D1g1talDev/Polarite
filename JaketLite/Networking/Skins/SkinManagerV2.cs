@@ -28,8 +28,10 @@ namespace Polarite.Networking.Skins
         public const string FEEDBACKER_MASK = "T_FeedbackerMask4";
         public const string KNUCKLEBLASTER_MASK = "v2_armtexmask4";
         public const string WHIPLASH_MASK = "T_GreenArmMask7";
-        public const string V1_BASE_MASK = "v1_mask32_nameless";
-        public const string V1_WING_MASK = "v1_wingmask2_tex";
+        // v1_mask32_nameless
+        public const string V1_BASE_MASK = "v1_fullmask_namelesstest2";
+        // v1_wingmask2_tex
+        public const string V1_WING_MASK = "v1_wingmask_updnew";
     }
     public struct CustomColorObject
     {

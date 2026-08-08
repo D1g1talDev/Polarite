@@ -2187,6 +2187,7 @@ namespace Polarite
                 }
                 Logs.DebugError("GetRolesFromServer failed: " + www.error);
                 XServers.Servers = false;
+                yield break;
             }
         }
         public static IEnumerator GetIsBanned(Action<bool, string> onBanned, ulong user)
@@ -2201,6 +2202,7 @@ namespace Polarite
                     yield break;
                 }
                 XServers.Servers = false;
+                yield break;
             }
         }
         public static void Typewriter(string str, float typeRate, TextMeshProUGUI text)
