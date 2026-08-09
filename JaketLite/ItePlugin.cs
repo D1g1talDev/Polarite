@@ -117,7 +117,7 @@ namespace Polarite
         public const string MOD_VERSION = "v1.1.2";
         public const string MOD_VERSION_RAW = "1.1.2";
         public const bool MOD_RELEASE = true;
-        public const bool BYPASS_LOBBYVERSION_CHECK = true;
+        public const bool BYPASS_LOBBYVERSION_CHECK = false;
     }
 
     [BepInPlugin("com.d1g1tal.polarite", "Polarite", Importances.MOD_VERSION_RAW)]

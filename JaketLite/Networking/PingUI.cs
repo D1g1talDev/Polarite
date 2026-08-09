@@ -43,7 +43,7 @@ namespace Polarite.Networking
         }
         public void Update()
         {
-            if(NetworkManager.ClientAndConnected && NetworkManager.IsConnectedSocket && ItePlugin.showPing.value)
+            if(NetworkManager.ClientAndConnected && NetworkManager.IsConnectedSocket && ItePlugin.showPing.value && !NetworkManager.SceneLoading)
             {
                 tick += Time.deltaTime;
                 if (tick < 0.2f) return;
