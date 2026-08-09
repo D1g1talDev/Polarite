@@ -39,7 +39,7 @@ namespace Polarite.Networking
         }
         private float Loss()
         {
-            return ((32f - NetworkManager.ClientToHost.Connection.QuickStatus().InPacketsPerSec) / 32f) * 100f;
+            return ((10f - NetworkManager.ClientToHost.Connection.QuickStatus().InPacketsPerSec) / 10f) * 100f;
         }
         public void Update()
         {
