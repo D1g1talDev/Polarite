@@ -43,9 +43,10 @@ namespace Polarite
                     }
                     Transform lobbyObj = SpawnLobbyObject().transform;
                     TextMeshProUGUI verText = lobbyObj.Find("Ver").GetComponent<TextMeshProUGUI>();
-                    verText.color = lobby.Value.GetData("ver") == ItePlugin.Version ? Color.green : Color.red;
+                    verText.color = lobby.Value.GetData("ver") == Importances.MOD_VERSION ? Color.green : Color.red;
                     ItePlugin.Typewriter(lobby.Value.GetData("LobbyName"), 0.025f, lobbyObj.Find("Name").GetComponent<TextMeshProUGUI>());
                     ItePlugin.Typewriter(lobby.Value.GetData("ver"), 0.03f, verText);
+                    ItePlugin.Typewriter(lobby.Value.GetData("region") ?? "XX", 0.03f, lobbyObj.gameObject.FindWithComponent<TextMeshProUGUI>("Region"));
                     ItePlugin.Typewriter(TranslateDifficulty(lobby.Value.GetData("difficulty")), 0.01f, lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>());
                     ItePlugin.Typewriter(lobby.Value.GetData("levelName"), 0.01f, lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>());
                     Button button = lobbyObj.Find("UsefulButton").GetComponent<Button>();
@@ -78,7 +79,65 @@ namespace Polarite
                     lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>().text = $"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}";
                     ItePlugin.Typewriter($"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}", 0.05f, lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>());
                 }
-            });
+            }, (SearchFilter)ItePlugin.Instance.polrMM.searchFilter.value);
+        }
+        public static void RefreshLobbies(int search)
+        {
+            foreach (Transform t in Content)
+            {
+                GameObject.Destroy(t.gameObject);
+            }
+            NetworkManager.Instance.FetchPublicLobbies((Lobby? lobby) =>
+            {
+                if (lobby.HasValue)
+                {
+                    if (string.IsNullOrEmpty(lobby.Value.GetData("LobbyName")))
+                    {
+                        return;
+                    }
+                    if (string.IsNullOrEmpty(lobby.Value.GetData("levelName")))
+                    {
+                        return;
+                    }
+                    Transform lobbyObj = SpawnLobbyObject().transform;
+                    TextMeshProUGUI verText = lobbyObj.Find("Ver").GetComponent<TextMeshProUGUI>();
+                    verText.color = lobby.Value.GetData("ver") == Importances.MOD_VERSION ? Color.green : Color.red;
+                    ItePlugin.Typewriter(lobby.Value.GetData("LobbyName"), 0.025f, lobbyObj.Find("Name").GetComponent<TextMeshProUGUI>());
+                    ItePlugin.Typewriter(lobby.Value.GetData("ver"), 0.03f, verText);
+                    ItePlugin.Typewriter(lobby.Value.GetData("region") ?? "XX", 0.03f, lobbyObj.gameObject.FindWithComponent<TextMeshProUGUI>("Region"));
+                    ItePlugin.Typewriter(TranslateDifficulty(lobby.Value.GetData("difficulty")), 0.01f, lobbyObj.Find("Difficulty").GetComponent<TextMeshProUGUI>());
+                    ItePlugin.Typewriter(lobby.Value.GetData("levelName"), 0.01f, lobbyObj.Find("LevelName").GetComponent<TextMeshProUGUI>());
+                    Button button = lobbyObj.Find("UsefulButton").GetComponent<Button>();
+                    TextMeshProUGUI buttonText = button.GetComponentInChildren<TextMeshProUGUI>();
+                    TextMeshProUGUI cheats = lobbyObj.gameObject.FindWithComponent<TextMeshProUGUI>("Cheats");
+                    cheats.gameObject.SetActive(lobby.Value.GetData("cheat") == "1");
+                    float ogFSize = buttonText.fontSize;
+                    button.onClick.AddListener(async () =>
+                    {
+                        buttonText.text = "JOINING...";
+                        buttonText.fontSize = 13;
+                        button.interactable = false;
+                        await NetworkManager.Instance.JoinLobby(lobby.Value.Id);
+                    });
+                    bool canJoin = lobby.Value.MemberCount < lobby.Value.MaxMembers && !NetworkManager.InLobby;
+                    button.interactable = canJoin;
+                    if (!canJoin)
+                    {
+                        if (NetworkManager.InLobby)
+                        {
+                            buttonText.text = "LEAVE FIRST";
+                            buttonText.fontSize = 20.3f;
+                        }
+                        else
+                        {
+                            buttonText.text = "FULL";
+                            buttonText.fontSize = ogFSize;
+                        }
+                    }
+                    lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>().text = $"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}";
+                    ItePlugin.Typewriter($"{lobby.Value.MemberCount}/{lobby.Value.MaxMembers}", 0.05f, lobbyObj.Find("Players").GetComponent<TextMeshProUGUI>());
+                }
+            }, (SearchFilter)search);
         }
         public static string TranslateDifficulty(string diff)
         {

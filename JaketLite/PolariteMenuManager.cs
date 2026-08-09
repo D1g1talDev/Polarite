@@ -15,13 +15,14 @@ namespace Polarite
         public UnityEvent host, leave, invite, join;
         public GameObject mainPanel;
         public TMP_InputField maxP, lobbyName, code;
-        public TMP_Dropdown lobbyType, canCheat;
+        public TMP_Dropdown lobbyType, canCheat, searchFilter;
 
         public TextMeshProUGUI statusHost, statusJoin, lowerMaxPWarn;
         public string codeHost;
 
         public GameObject notifBox;
         public GameObject redFlash, blueFlash, ghostFlash;
+        public GameObject noLobbiesFound;
 
         public void ToggleMainPanel()
         {

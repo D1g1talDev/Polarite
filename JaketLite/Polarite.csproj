@@ -496,6 +496,7 @@
     <Compile Include="BestiaryEntryManager.cs" />
     <Compile Include="Networking\Extensions\StringExtensions.cs" />
     <Compile Include="Networking\Extensions\TaskExtensions.cs" />
+    <Compile Include="Networking\PingUI.cs" />
     <Compile Include="Networking\Skins\SkinManagerV2.cs" />
     <Compile Include="Patches\CamVisiblePatch.cs" />
     <Compile Include="Patches\FootstepPatch.cs" />

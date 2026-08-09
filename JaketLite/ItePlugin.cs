@@ -112,8 +112,15 @@ namespace Polarite
         public bool debug;
         public string buildName;
     }
+    public static class Importances
+    {
+        public const string MOD_VERSION = "v1.1.2";
+        public const string MOD_VERSION_RAW = "1.1.2";
+        public const bool MOD_RELEASE = true;
+        public const bool BYPASS_LOBBYVERSION_CHECK = true;
+    }
 
-    [BepInPlugin("com.d1g1tal.polarite", "Polarite", "1.1.2")]
+    [BepInPlugin("com.d1g1tal.polarite", "Polarite", Importances.MOD_VERSION_RAW)]
     public class ItePlugin : BaseUnityPlugin
     {
         public static readonly PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
@@ -235,6 +242,7 @@ namespace Polarite
         // ui
         public static EnumField<ChatAlign> chatAlignment = new EnumField<ChatAlign>(uiConfig, "Chat UI position", "ui.chat", ChatAlign.BottomLeft);
         public static FloatSliderField chatScale = new FloatSliderField(uiConfig, "Chat UI scale", "ui.chatscale", new Tuple<float, float>(0.1f, 1f), 1f);
+        public static BoolField showPing = new BoolField(uiConfig, "Display ping", "ui.ping", true);
         public static ConfigPanel voiceUiConfig = new ConfigPanel(uiConfig, "Voice UI", "ui.voice");
         public static EnumField<VCAlign> vcAlignmentPos = new EnumField<VCAlign>(voiceUiConfig, "Voice chat UI position", "ui.vcpos", VCAlign.Right);
         public static EnumField<VCListAlign> vcAlignmentList = new EnumField<VCListAlign>(voiceUiConfig, "Voice chat UI list alignment", "ui.vclist", VCListAlign.BottomToTop);
@@ -327,13 +335,15 @@ namespace Polarite
         public static bool immuneToDeath = false;
         public static bool canBecomeGhost = false;
 
-        public static readonly bool ReleaseBuild = true;
-        public static readonly string Version = "v1.1.2";
+        [Obsolete]
+        public static readonly bool ReleaseBuild = Importances.MOD_RELEASE;
+        [Obsolete]
+        public static readonly string Version = Importances.MOD_VERSION;
         public static bool CanEnableDebug
         {
             get
             {
-                return !ReleaseBuild || Net.Dev(NetworkManager.Id);
+                return !Importances.MOD_RELEASE || Net.Dev(NetworkManager.Id);
             }
         }
 
@@ -1406,12 +1416,19 @@ namespace Polarite
                         });
                         pMM.saveLobSettings = saveChanges;
                         pMM.lowerMaxPWarn = warnText;
+                        pMM.noLobbiesFound = publicLobbies.Find("NoLobbies").gameObject;
+                        TMP_Dropdown search = publicLobbies.Find("SearchFilter").GetComponentInChildren<TMP_Dropdown>();
+                        pMM.searchFilter = search;
 
                         PublicLobbyManager.Content = publicLobbies.Find("LobbyList").Find("Content");
                         PlayerList.ContentB = playerList.Find("List").Find("Content");
+                        search.onValueChanged.AddListener((v) =>
+                        {
+                            PublicLobbyManager.RefreshLobbies(v);
+                        });
 
-                        Typewriter(Version, 0.025f, ver);
-                        ver.color = (ReleaseBuild) ? Color.gray : Color.yellow;
+                        Typewriter(Importances.MOD_VERSION, 0.025f, ver);
+                        ver.color = (Importances.MOD_RELEASE) ? Color.gray : Color.yellow;
 
 
                         leaveButton = leave.gameObject;
@@ -1440,6 +1457,7 @@ namespace Polarite
                         pMM.redFlash = notifUi.transform.Find("RedFlash").gameObject;
                         pMM.blueFlash = notifUi.transform.Find("BlueFlash").gameObject;
                         pMM.ghostFlash = notifUi.transform.Find("GhostFlash").gameObject;
+                        notifUi.transform.Find("PingUI").gameObject.AddComponent<PingUI>();
 
                         pMM.redFlash.SetActive(false);
                         pMM.blueFlash.SetActive(false);

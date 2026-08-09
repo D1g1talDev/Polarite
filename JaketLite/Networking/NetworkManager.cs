@@ -47,6 +47,12 @@ namespace Polarite.Multiplayer
         FriendsOnly,
         Public
     }
+    public enum SearchFilter
+    {
+        NearMe,
+        FarFromMe,
+        Worldwide,
+    }
 
     public static class LobbyCodeUtil
     {
@@ -101,6 +107,7 @@ namespace Polarite.Multiplayer
 
         // this will be the steam id from now on
         public static ulong Id { get; private set; }
+        public static string Region { get; private set; }
 
         public bool autoUpdate = true;
 
@@ -251,6 +258,7 @@ namespace Polarite.Multiplayer
                 DontDestroyOnLoad(vc);
             }
             Id = SteamClient.SteamId.Value;
+            Region = SteamUtils.IpCountry;
         }
 
         void OnApplicationQuit()
@@ -291,7 +299,7 @@ namespace Polarite.Multiplayer
         {
             if (!SteamClient.IsValid) return;
             if (InLobby) LeaveLobby();
-            if (!ItePlugin.ReleaseBuild && lobbyType == LobbyType.Public)
+            if (!Importances.MOD_RELEASE && lobbyType == LobbyType.Public)
             {
                 DisplayError("You cannot make public lobbies on beta builds.");
                 return;
@@ -333,9 +341,10 @@ namespace Polarite.Multiplayer
                 CurrentLobby.SetData("bh", (ItePlugin.bossHpIncrease.value) ? "1" : "0");
                 CurrentLobby.SetData("bhm", ItePlugin.bossHpMult.value.ToString());
                 CurrentLobby.SetData("priv", lobbyType == LobbyType.Private ? "1" : "0");
-                CurrentLobby.SetData("ver", ItePlugin.Version);
+                CurrentLobby.SetData("ver", Importances.MOD_VERSION);
                 CurrentLobby.SetData("devnick", Nickname.Get());
                 CurrentLobby.SetData("checkpoint", StatsManager.Instance.currentCheckPoint != null ? SceneObjectCache.GetScenePath(StatsManager.Instance.currentCheckPoint.gameObject) : "0");
+                CurrentLobby.SetData("region", Region);
                 PrivateLobby = lobbyType == LobbyType.Private;
                 onJoin?.Invoke(LobbyCodeUtil.ToBase36(CurrentLobby.Id));
                 SetRichPresenceForLobby(CurrentLobby);
@@ -392,7 +401,7 @@ namespace Polarite.Multiplayer
             {
                 if(cMode.server_mode != "pirated")
                 {
-                    if (lobby.Value.GetData("ver") != ItePlugin.Version)
+                    if (lobby.Value.GetData("ver") != Importances.MOD_VERSION && !Importances.BYPASS_LOBBYVERSION_CHECK)
                     {
                         DisplayError("This lobby is running a different version of the mod.");
                         lobby.Value.Leave();
@@ -501,14 +510,30 @@ namespace Polarite.Multiplayer
             await JoinLobby(lobbyId);
         }
 
-        public async void FetchPublicLobbies(Action<Lobby?> onFound)
+        public async void FetchPublicLobbies(Action<Lobby?> onFound, SearchFilter filter)
         {
-            var list = await SteamMatchmaking.LobbyList.RequestAsync();
-
+            Lobby[] list;
+            switch(filter)
+            {
+                case SearchFilter.NearMe:
+                    list = await SteamMatchmaking.LobbyList.RequestAsync();
+                    break;
+                case SearchFilter.FarFromMe:
+                    list = await SteamMatchmaking.LobbyList.FilterDistanceFar().RequestAsync();
+                    break;
+                case SearchFilter.Worldwide:
+                    list = await SteamMatchmaking.LobbyList.FilterDistanceWorldwide().RequestAsync();
+                    break;
+                default:
+                    list = await SteamMatchmaking.LobbyList.RequestAsync();
+                    break;
+            }
             if (list == null || list.Length == 0)
             {
+                ItePlugin.Instance.polrMM.noLobbiesFound?.SetActive(true);
                 return;
             }
+            ItePlugin.Instance.polrMM.noLobbiesFound?.SetActive(false);
             foreach (var lobby in list)
             {
                 onFound.Invoke(lobby);
@@ -1109,7 +1134,7 @@ namespace Polarite.Multiplayer
         }
         public void SetLobbyType(LobbyType newT)
         {
-            if(newT == LobbyType.Public && !ItePlugin.ReleaseBuild)
+            if(newT == LobbyType.Public && !Importances.MOD_RELEASE)
             {
                 DisplayError("You can't set this lobby to Public due to being on a beta build.");
                 return;
