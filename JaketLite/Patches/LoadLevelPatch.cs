@@ -19,9 +19,9 @@ namespace Polarite.Patches
         [HarmonyPrefix]
         static bool Prefix(ref string sceneName, ref GameObject ___loadingBlocker)
         {
-            if(NetworkManager.InLobby)
+            ChatUI.Instance.ForceOff();
+            if (NetworkManager.InLobby)
             {
-                ChatUI.Instance.ForceOff();
                 Net.Pause();
                 NetworkSkull.ClearHolders();
                 NetworkManager.SceneLoading = true;

@@ -274,10 +274,6 @@ namespace Polarite.Multiplayer
         }
         public void ForceOff()
         {
-            if(!NetworkManager.InLobby)
-            {
-                return;
-            }
             Toggle(false);
             ItePlugin.CustomTogglePlayer(true);
             Cursor.lockState = CursorLockMode.Locked;
