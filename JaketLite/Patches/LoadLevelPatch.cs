@@ -17,9 +17,9 @@ namespace Polarite.Patches
     {
         [HarmonyPatch(nameof(SceneHelper.LoadScene))]
         [HarmonyPrefix]
-        static bool Prefix(ref string sceneName, ref GameObject ___loadingBlocker)
+        static bool Prefix(ref string sceneName)
         {
-            ChatUI.Instance.ForceOff();
+            ChatUI.Instance?.ForceOff();
             if (NetworkManager.InLobby)
             {
                 Net.Pause();
@@ -61,20 +61,20 @@ namespace Polarite.Patches
             }
             if(NetworkManager.ClientAndConnected && sceneName == "Endless" && CyberSync.Active)
             {
-                ___loadingBlocker.SetActive(false);
+                SceneHelper.DismissBlockers();
                 ChatUI.Message($"<color=orange>{NetworkManager.GetNameOfId(NetworkManager.GetHostID(), true)} hasn't finished looking at the results screen yet.</color>", 5f);
                 return false;
             }
             if(NetworkManager.ClientAndConnected && (sceneName == "uk_construct" || sceneName == "Endless") && !ItePlugin.ignoreSpectate)
             {
-                ___loadingBlocker.SetActive(false);
+                SceneHelper.DismissBlockers();
                 ChatUI.Message($"<color=red>Only the host ({NetworkManager.GetNameOfId(NetworkManager.GetHostID(), true)}) can load into that level.</color>", 5f);
                 return false;
             }
             if(NetworkManager.ClientAndConnected && sceneName != "Main Menu" && SceneHelper.CurrentScene != "Main Menu" && NetworkManager.players.Count > 1 && !ItePlugin.ignoreSpectate)
             {
                 ItePlugin.SpectatePlayers(true);
-                ___loadingBlocker.SetActive(false);
+                SceneHelper.DismissBlockers();
                 ItePlugin.ignoreSpectate = true;
                 return false;
             }

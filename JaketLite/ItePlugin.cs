@@ -368,7 +368,7 @@ namespace Polarite
         {
             try
             {
-                var asm = Assembly.GetExecutingAssembly();
+                var asm = Assembly.GetAssembly(GetType());
                 var stream = asm.GetManifestResourceStream("Polarite.Concentus.dll");
                 var ms = new MemoryStream();
                 stream.CopyTo(ms);
