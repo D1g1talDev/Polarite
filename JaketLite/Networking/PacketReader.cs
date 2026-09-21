@@ -645,6 +645,11 @@ namespace Polarite.Multiplayer
                                 NetworkPlayer sender = NetworkPlayer.Find(senderId);
                                 DeadPatch.Respawn(sender.transform.position + Vector3.up * 1.25f, sender.transform.rotation, true);
                             }
+                            if(SceneHelper.CurrentScene == "Level 7-4")
+                            {
+                                checkpoint.OnRespawn();
+                                ItePlugin.Flash(true, false);
+                            }
                         }
                         break;
                     }
@@ -826,7 +831,7 @@ namespace Polarite.Multiplayer
                             act.activated = true;
                             if(act.canUseEvents)
                             {
-                                if(SceneHelper.CurrentScene == "Level 5-4" || NetworkManager.Sandbox)
+                                if(SceneHelper.CurrentScene == "Level 5-4" || NetworkManager.Sandbox || SceneHelper.CurrentScene == "Level 7-4")
                                 {
                                     act.events.Invoke();
                                 }

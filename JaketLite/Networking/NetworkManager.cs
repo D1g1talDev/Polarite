@@ -361,10 +361,6 @@ namespace Polarite.Multiplayer
                 Net.Setup();
                 ItePlugin.ArmCheck(SwapWeaponsPatch.AltWeapon(MonoSingleton<GunControl>.Instance.currentWeapon));
                 ItePlugin.AnimationCheck();
-                if(SceneHelper.CurrentScene == "Level 7-4")
-                {
-                    SceneHelper.LoadScene("Level 8-1");
-                }
                 if (ItePlugin.toggleNickname.value) ChatUI.Message($"<color=orange>You're currently being displayed as <color=blue>{lobby.Value.GetData("devnick")}</color></color>", 10f);
                 currentType = lobbyType;
                 currentTypeRaw = ItePlugin.Instance.LobbyTypeToRaw(lobbyType);

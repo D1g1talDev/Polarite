@@ -32,11 +32,6 @@ namespace Polarite.Patches
                 NetworkManager.Instance.LeaveLobby();
                 ItePlugin.ignoreSpectate = true;
             }
-            if(sceneName == "Level 7-4" && NetworkManager.InLobby)
-            {
-                SceneHelper.LoadScene("Level 8-1");
-                return false;
-            }
             if(sceneName == "Intermission1")
             {
                 SceneHelper.LoadScene("Level 4-1");
