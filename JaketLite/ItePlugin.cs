@@ -1853,7 +1853,7 @@ namespace Polarite
         {
             Transform box = polrMM.notifBox.transform.Find("Box");
             Transform up = polrMM.notifBox.transform.Find("BoxUp");
-            MoveY(box.GetComponent<RectTransform>(), up.GetComponent<RectTransform>().position.y);
+            MoveY(box.GetComponent<RectTransform>(), up.GetComponent<RectTransform>().position.y, false);
             XServers.canShowNotif = true;
         }
         public static string GetLevelName()
@@ -2273,6 +2273,7 @@ namespace Polarite
                 Typewriter(notif.message, 0.1f, msg);
                 Typewriter(notif.type, 0.25f, type);
 
+                box.gameObject.SetActive(true);
                 box.GetComponent<AudioSource>().Play();
 
                 RectTransform rect = box.GetComponent<RectTransform>();
@@ -2280,27 +2281,28 @@ namespace Polarite
                 float y2 = boxU.GetComponent<RectTransform>().position.y;
                 if (rect != null)
                 {
-                    MoveY(rect, y1);
+                    MoveY(rect, y1, true);
                     if(!showForever)
                     {
                         yield return new WaitForSecondsRealtime(7f);
-                        MoveY(rect, y2);
+                        MoveY(rect, y2, false);
                         XServers.canShowNotif = true;
                     }
                     yield break;
                 }
             }
         }
-        public static void MoveY(RectTransform rect, float y)
+        public static void MoveY(RectTransform rect, float y, bool toggle)
         {
             if(currentMoveY != null)
             {
                 Instance.StopCoroutine(currentMoveY);
             }
-            currentMoveY = Instance.StartCoroutine(Instance.MoveYCoro(rect, y));
+            currentMoveY = Instance.StartCoroutine(Instance.MoveYCoro(rect, y, toggle));
         }
-        public IEnumerator MoveYCoro(RectTransform rect, float y)
+        public IEnumerator MoveYCoro(RectTransform rect, float y, bool toggle)
         {
+            if (toggle) rect.gameObject.SetActive(true);
             while (Mathf.Abs(rect.position.y - y) > 0.1f)
             {
                 float newY = Mathf.Lerp(rect.position.y, y, Time.unscaledDeltaTime * 5f);
@@ -2308,6 +2310,7 @@ namespace Polarite
                 yield return null;
             }
             rect.position = new Vector3(rect.position.x, y, 0);
+            rect.gameObject.SetActive(toggle);
         }
         public static void DeathScream(Sam sam, Transform parent = null)
         {

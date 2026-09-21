@@ -22,6 +22,7 @@ namespace Polarite.Networking
         {
             if (Instance == null) Instance = this;
             smallBG = transform.Find("SmallPingBG").gameObject;
+            ping = gameObject.FindWithComponent<TextMeshProUGUI>("Ping");
         }
         public void Update()
         {
