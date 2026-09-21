@@ -57,6 +57,7 @@ namespace Polarite.Multiplayer
         private readonly Dictionary<ulong, OpusDecoder> opusDecoders = new Dictionary<ulong, OpusDecoder>();
 
         public static bool inSetup = false;
+        public static bool micCheckFailed = false;
 
         void Awake()
         {
@@ -95,7 +96,7 @@ namespace Polarite.Multiplayer
                 CleanupAllPeers();
             }
             wasInLobby = inLobby;
-            if (!hasMic) return;
+            if (!hasMic || micCheckFailed) return;
 
             KeyCode configured = ItePlugin.voicePushToTalk.value;
             var mode = ItePlugin.voiceMode.value;
@@ -208,8 +209,11 @@ namespace Polarite.Multiplayer
         {
             try
             {
-                if (Microphone.devices == null || Microphone.devices.Length == 0) return;
-
+                if (Microphone.devices == null || Microphone.devices.Length == 0)
+                {
+                    micCheckFailed = true;
+                    return;
+                }
                 ItePlugin.wheresMyMic.text = "";
                 for (int i = 0; i < Microphone.devices.Length; i++)
                     ItePlugin.wheresMyMic.text += $"{i}: " + Microphone.devices[i] + "\n";
@@ -251,6 +255,7 @@ namespace Polarite.Multiplayer
             catch (Exception e)
             {
                 Logs.Warn("[Voice] Failed to start microphone: " + e, this);
+                micCheckFailed = true;
             }
         }
 
