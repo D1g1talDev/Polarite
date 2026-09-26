@@ -299,11 +299,6 @@ namespace Polarite.Multiplayer
         {
             if (!SteamClient.IsValid) return;
             if (InLobby) LeaveLobby();
-            if (!Importances.MOD_RELEASE && lobbyType == LobbyType.Public)
-            {
-                DisplayError("You cannot make public lobbies on beta builds.");
-                return;
-            }
             if(maxPlayers <= 0)
             {
                 DisplayError("...");

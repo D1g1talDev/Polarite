@@ -114,13 +114,21 @@ namespace Polarite
     }
     public static class Importances
     {
-        public const string MOD_VERSION = "v1.1.2";
-        public const string MOD_VERSION_RAW = "1.1.2";
-        public const bool MOD_RELEASE = true;
+        public const string MOD_VERSION = "v1.1.2-tb";
+        public const bool MOD_RELEASE = false;
+        public const bool IS_TESTER_BRANCH = true;
+        public const bool IS_PUBLICBETA_BRANCH = false;
         public const bool BYPASS_LOBBYVERSION_CHECK = false;
+
+
+        public const string MOD_VERSION_RAW = "1.1.2";
+        // release - com.d1g1tal.polarite - tb/pb - com.d1g1tal.testrite
+        public const string MOD_GUID = "com.d1g1tal.testrite";
+        // release - Polarite - tb/pb - Testrite
+        public const string MOD_NAME = "Testrite";
     }
 
-    [BepInPlugin("com.d1g1tal.polarite", "Polarite", Importances.MOD_VERSION_RAW)]
+    [BepInPlugin(Importances.MOD_GUID, Importances.MOD_NAME, Importances.MOD_VERSION_RAW)]
     public class ItePlugin : BaseUnityPlugin
     {
         public static readonly PluginConfigurator config = PluginConfigurator.Create("Polarite Config", "com.d1g1tal.polarite");
