@@ -232,7 +232,7 @@ namespace Polarite.Multiplayer
                 switch (ItePlugin.voiceQuality.value)
                 {
                     case VoiceQuality.Low: sampleRate = 16000; break;
-                    case VoiceQuality.Medium: sampleRate = 44100; break;
+                    case VoiceQuality.Medium: sampleRate = 24000; break;
                     case VoiceQuality.High: sampleRate = 48000; break;
                 }
 
